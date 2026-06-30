@@ -11,10 +11,11 @@ from sqlalchemy.orm import Session
 from auth import create_access_token, get_current_user
 from database import Base, engine, get_db
 from models import ExchangeRate
-from services import import_ar_excel
-
-# 建立資料表（本機 SQLite 可直接使用）
-Base.metadata.create_all(bind=engine)
+# 建立資料表（Vercel 上失敗不阻擋 UI 啟動）
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    pass
 
 app = FastAPI(title="ERP SaaS API")
 BASE_DIR = Path(__file__).resolve().parent
@@ -135,6 +136,8 @@ async def upload_ar_file(
     """上傳 AR Excel 並匯入"""
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="未提供檔案")
+
+    from services import import_ar_excel
 
     content = await file.read()
     import_ar_excel(BytesIO(content), current_user["tenant_id"], db)

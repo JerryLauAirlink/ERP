@@ -3,11 +3,16 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# 預設使用 SQLite，本機可直接 RUN；正式環境請設 DATABASE_URL 指向 PostgreSQL
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./erp_demo.db",
-)
+def _default_database_url() -> str:
+    if os.getenv("DATABASE_URL"):
+        return os.environ["DATABASE_URL"]
+    # Vercel serverless 只可寫 /tmp，本機用專案目錄 SQLite
+    if os.getenv("VERCEL") or os.getenv("VERCEL_ENV"):
+        return "sqlite:////tmp/erp_demo.db"
+    return "sqlite:///./erp_demo.db"
+
+
+DATABASE_URL = _default_database_url()
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 
