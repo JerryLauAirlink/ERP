@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ERP System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="app"></div>
+    <script type="text/babel">
+      const { useMemo, useState } = React;
+
+      const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
+
+      const I18N = {
+        en: {
+          appTitle: "ERP System", nav_dashboard: "Dashboard", nav_clients: "Clients", nav_job: "Job List", nav_ar: "AR List", nav_ap: "AP List", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
+          baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
+          view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
+          filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
+          jobFlowHint: "Client → Job (quote) → Customer PO → Vendor/SI quotes → Our PO → Delivery & invoices → Pay Vendor/SI (AP) → Job Complete → Invoice Client (AR)",
+          payeeType: "Payee Type", payeeVendor: "Vendor", payeeSi: "SI (Subcontractor)", apBills: "AP Bills",
+          markApPaid: "Mark Paid", apPaid: "Paid", apUnpaid: "Unpaid", issueInvoiceToClient: "Issue Invoice to Client",
+          jobCompletedBanner: "Job completed — you can now issue an invoice to the client.", autoApPaidHint: "Entering pay date marks this bill as paid (green).",
+          settingsTitle: "Settings", language: "Language", langEn: "English", langZhTw: "Traditional Chinese (Taiwan)", settingsSaved: "Settings saved",
+          clientDetail: "Client Details", jobDetail: "Job Details", vendorDetail: "Vendor Details", siDetail: "SI Details", arDetail: "AR Details", apDetail: "AP Details",
+          relatedJobs: "Related Jobs", relatedInvoices: "AR Invoices (to Client)", relatedPo: "Related PO", relatedAp: "AP Bills (Vendor/SI costs)", noJobs: "No jobs", noInvoices: "No invoices", noPo: "No PO", noAp: "No AP bills",
+          ownedClient: "Linked Client", linkedJob: "Linked Job", markPaid: "Mark Paid", paymentStatus: "Payment Status", paid: "Paid", awaitingPayment: "Awaiting Payment", overdue: "Overdue",
+          addClient: "+ Add Client", addJob: "+ Add Job", addVendor: "+ Add Vendor", addSi: "+ Add SI", createAr: "+ Create AR Invoice", createAp: "+ Create AP Bill",
+          actions: "Actions", invoices: "Invoices", clientGroup: "Client (Group)", type: "Type", status: "Status",
+          arOutstanding: "AR Outstanding", apOutstanding: "AP Outstanding", netPosition: "Net Position", dueSoon: "Due Soon", overdueCount: "overdue", pendingBills: "bills pending", dueSoonHint: "unpaid, due soon",
+          topOverdue: "Top Overdue Invoices", approvalQueue: "Approval Queue", cashFlow: "Cash In vs Cash Out (90 Days)", arAging: "A/R Aging",
+          editClient: "Edit Client", addClientTitle: "Add Client", editJob: "Edit Job", addJobTitle: "Add Job", editVendor: "Edit Vendor", addVendorTitle: "Add Vendor", editSi: "Edit SI", addSiTitle: "Add SI",
+          editAr: "Edit AR Invoice", createArTitle: "Create AR Invoice", editAp: "Edit AP Bill", createApTitle: "Create AP Bill", newTxTitle: "New Transaction",
+          createArDesc: "Create accounts receivable invoice", createApDesc: "Create accounts payable bill",
+          yes: "Yes", no: "No", goToAr: "Go to AR", goToJob: "Go to Job", goToAp: "Go to AP",
+          paymentReceived: "Payment Received Date", autoPaidHint: "Entering payment date will set status to Paid",
+          amountManualOverride: "editable", settingsLangHint: "The interface will switch to English immediately.",
+          siPageHint: "SI completes work and sends PO/Invoice to you — pay them via AP List."
+        },
+        zh_TW: {
+          appTitle: "ERP 系統", nav_dashboard: "儀表板", nav_clients: "客戶", nav_job: "工作清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
+          baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
+          view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
+          filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
+          jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 問 Vendor／SI 報價 → 出 PO → 收貨及 Invoice → 付 Vendor／SI（應付）→ 工作完成 → 向客開 Invoice（應收）",
+          payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "分包商 (SI)", apBills: "應付單數",
+          markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "待付款", issueInvoiceToClient: "向客開立發票",
+          jobCompletedBanner: "工作已完成 — 可向客戶開立發票收款。", autoApPaidHint: "輸入付款日期會標記為已付款（綠色顯示）。",
+          settingsTitle: "設定", language: "介面語言", langEn: "英文", langZhTw: "繁體中文（台灣）", settingsSaved: "設定已儲存",
+          clientDetail: "客戶詳情", jobDetail: "工作詳情", vendorDetail: "供應商詳情", siDetail: "分包商詳情", arDetail: "應收詳情", apDetail: "應付詳情",
+          relatedJobs: "相關工作", relatedInvoices: "應收發票（向客戶）", relatedPo: "相關採購單", relatedAp: "應付單（供應商／分包商成本）", noJobs: "暫無工作", noInvoices: "暫無發票", noPo: "暫無 PO", noAp: "暫無應付單",
+          ownedClient: "所屬客戶", linkedJob: "關聯工作", markPaid: "標記已收款", paymentStatus: "付款狀態", paid: "已收款", awaitingPayment: "待收款", overdue: "逾期",
+          addClient: "+ 新增客戶", addJob: "+ 新增工作", addVendor: "+ 新增供應商", addSi: "+ 新增分包商", createAr: "+ 新增應收發票", createAp: "+ 新增應付單",
+          actions: "操作", invoices: "發票數", clientGroup: "客戶（分組）", type: "類型", status: "狀態",
+          arOutstanding: "應收未結", apOutstanding: "應付未結", netPosition: "淨部位", dueSoon: "即將到期", overdueCount: "筆已逾期", pendingBills: "筆待處理", dueSoonHint: "未收款、即將到期",
+          topOverdue: "逾期發票排行", approvalQueue: "審批佇列", cashFlow: "現金流入 vs 流出（90 天）", arAging: "應收帳齡",
+          editClient: "修改客戶", addClientTitle: "新增客戶", editJob: "修改工作", addJobTitle: "新增工作", editVendor: "修改供應商", addVendorTitle: "新增供應商", editSi: "修改分包商", addSiTitle: "新增分包商",
+          editAr: "修改應收發票", createArTitle: "新增應收發票", editAp: "修改應付單", createApTitle: "新增應付單", newTxTitle: "新增交易",
+          createArDesc: "建立應收發票", createApDesc: "建立應付單",
+          yes: "是", no: "否", goToAr: "前往應收", goToJob: "前往工作", goToAp: "前往應付",
+          paymentReceived: "收款日期", autoPaidHint: "輸入收款日期會自動設為已收款",
+          amountManualOverride: "可手改", settingsLangHint: "切換後介面會即時更新為繁體中文（台灣）。",
+          siPageHint: "分包商 (SI) 完成工作後向你開 PO／Invoice，你在 AP List 付款給佢。"
+        }
+      };
+
+      function paymentStatusLabel(status, t) {
+        if (status === "Paid") return t("paid");
+        if (status === "Overdue") return t("overdue");
+        return t("awaitingPayment");
+      }
+
+      function paymentStatusClass(status) {
+        if (status === "Paid") return "text-green-700 bg-green-100";
+        if (status === "Overdue") return "text-red-700 bg-red-100";
+        return "text-amber-700 bg-amber-100";
+      }
+
+      function isJobCompleted(status) {
+        return status === "Completed" || status === "Complete";
+      }
+
+      function jobStatusClass(status) {
+        if (isJobCompleted(status)) return "text-green-800 bg-green-100 font-semibold ring-1 ring-green-300";
+        if (status === "In Progress") return "text-blue-700 bg-blue-100";
+        if (status === "On Hold") return "text-slate-600 bg-slate-100";
+        return "text-amber-700 bg-amber-100";
+      }
+
+      function isApPaid(bill) {
+        return !!(bill && bill.pay_date);
+      }
+
+      function apPaymentLabel(bill, t) {
+        return isApPaid(bill) ? t("apPaid") : t("apUnpaid");
+      }
+
+      function apPaymentClass(bill) {
+        return isApPaid(bill) ? "text-green-800 bg-green-100 font-semibold ring-1 ring-green-300" : "text-amber-700 bg-amber-100";
+      }
+
+      const fxUsdMap = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160 };
+
+      function calcOverdueDays(dueDate) {
+        if (!dueDate) return 0;
+        const now = new Date();
+        const due = new Date(dueDate + "T00:00:00");
+        const diff = Math.floor((now - due) / (1000 * 60 * 60 * 24));
+        return diff > 0 ? diff : 0;
+      }
+
+      function calcDaysBetween(startDate, endDate) {
+        if (!startDate || !endDate) return 0;
+        const start = new Date(startDate + "T00:00:00");
+        const end = new Date(endDate + "T00:00:00");
+        const diff = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+        return diff > 0 ? diff : 0;
+      }
+
+      function convertCurrency(amount, fromCurrency, baseCurrency) {
+        if (!amount) return 0;
+        const fromRate = fxUsdMap[fromCurrency] || 1;
+        const baseRate = fxUsdMap[baseCurrency] || 1;
+        return (Number(amount) / fromRate) * baseRate;
+      }
+
+      function money(value) {
+        return Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+      }
+
+      function nowIso() { return new Date().toISOString(); }
+
+      function emptyClient() {
+        return { customer_no: "", company: "", gst_no: "", primary_contact: "", company_phone: "", mobile_phone: "", email: "", address: "", postal_code: "", account_dept_contact: "", payment_terms: "" };
+      }
+
+      function emptyJob() {
+        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", status: "Open", description: "", start_date: "" };
+      }
+
+      function emptyVendor() { return { name: "", email: "", bank: "", swift_code: "", contact: "", phone: "" }; }
+
+      function emptySi() { return { name: "", email: "", bank: "", swift_code: "", contact: "", phone: "" }; }
+
+      function emptyApForm() {
+        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "" };
+      }
+
+      function Modal({ title, children, onClose, wide }) {
+        return (
+          <div className="fixed inset-0 z-50 bg-black/40 p-4 flex items-center justify-center" onClick={onClose}>
+            <div className={"w-full rounded-xl bg-white border border-slate-200 shadow-xl " + (wide ? "max-w-5xl" : "max-w-4xl")} onClick={(e) => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b flex justify-between items-center">
+                <h3 className="font-semibold">{title}</h3>
+                <button onClick={onClose} className="text-slate-500 hover:text-slate-900">✕</button>
+              </div>
+              <div className="p-5 max-h-[78vh] overflow-y-auto">{children}</div>
+            </div>
+          </div>
+        );
+      }
+
+      function Field({ label, children }) {
+        return (
+          <label className="block">
+            <span className="block mb-1 text-xs font-medium text-slate-600">{label}</span>
+            {children}
+          </label>
+        );
+      }
+
+      function Input(props) {
+        return <input {...props} className={"w-full rounded-lg border border-slate-300 px-3 py-2 text-sm " + (props.className || "")} />;
+      }
+
+      function Select(props) {
+        return <select {...props} className={"w-full rounded-lg border border-slate-300 px-3 py-2 text-sm " + (props.className || "")} />;
+      }
+
+      function ActionButtons({ onView, onEdit, viewLabel, editLabel, extra }) {
+        return (
+          <div className="flex gap-1 flex-wrap">
+            <button type="button" onClick={(e) => { e.stopPropagation(); onView(); }} className="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200">{viewLabel}</button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(); }} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 hover:bg-amber-200">{editLabel}</button>
+            {extra}
+          </div>
+        );
+      }
+
+      function LinkBtn({ children, onClick }) {
+        return <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="text-blue-600 hover:underline font-medium">{children}</button>;
+      }
+
+      function ListToolbar({ t, mode, clients, jobs, viewMode, setViewMode, clientFilter, setClientFilter, jobFilter, setJobFilter }) {
+        return (
+          <div className="p-4 border-b flex flex-wrap gap-3 items-center bg-slate-50/80">
+            {(mode === "job" || mode === "ar" || mode === "ap") && (
+              <label className="text-sm flex items-center gap-2">
+                <span className="text-slate-600">{t("filterClient")}:</span>
+                <Select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className="w-48 bg-white">
+                  <option value="all">{t("all")}</option>
+                  {clients.map((c) => <option key={c.id} value={c.company}>{c.company}</option>)}
+                </Select>
+              </label>
+            )}
+            {mode === "ap" && (
+              <label className="text-sm flex items-center gap-2">
+                <span className="text-slate-600">{t("filterJob")}:</span>
+                <Select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} className="w-48 bg-white">
+                  <option value="all">{t("all")}</option>
+                  {jobs.map((j) => <option key={j.id} value={String(j.id)}>{j.job_no} · {j.company}</option>)}
+                </Select>
+              </label>
+            )}
+            <label className="text-sm flex items-center gap-2">
+              <span className="text-slate-600">{t("displayMode")}:</span>
+              <Select value={viewMode} onChange={(e) => setViewMode(e.target.value)} className="w-52 bg-white">
+                <option value="list">{t("listView")}</option>
+                <option value="grouped">{mode === "ap" ? t("groupByVendor") : t("groupByClient")}</option>
+              </Select>
+            </label>
+            <span className="text-xs text-slate-500">{mode === "ap" && jobFilter !== "all" ? t("filterJobHint") : t("filterClientHint")} · {t("groupHint")}</span>
+          </div>
+        );
+      }
+
+      const initialClients = [
+        { id: 1, customer_no: "CUST-0001", company: "Pacific Systems", gst_no: "GST-HK-1102", primary_contact: "Ken Wong", company_phone: "852-2333-1122", mobile_phone: "852-9456-3321", email: "ar@pacific.com", address: "18/F Pacific Tower, TST, Hong Kong", postal_code: "999077", account_dept_contact: "May Chan", payment_terms: "30 Days" },
+        { id: 2, customer_no: "CUST-0002", company: "Kingston Trading", gst_no: "GST-HK-2208", primary_contact: "Henry Lee", company_phone: "852-2550-0091", mobile_phone: "852-9877-1234", email: "finance@kingston.com", address: "Rm 1206, Mongkok Centre, Kowloon", postal_code: "999078", account_dept_contact: "Amy Lau", payment_terms: "45 Days" }
+      ];
+
+      const initialJobs = [
+        { id: 1, job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", status: "In Progress", description: "ERP rollout phase 1", start_date: "2026-04-01" },
+        { id: 2, job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", status: "Completed", description: "Annual maintenance", start_date: "2026-05-15" }
+      ];
+
+      const initialVendors = [
+        { id: 1, name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Tom Lee", phone: "852-2111-0000" },
+        { id: 2, name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", contact: "Sarah", phone: "852-2888-0000" }
+      ];
+
+      const initialSis = [
+        { id: 1, name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Mr. Cheung", phone: "852-3000-1122" }
+      ];
+
+      const initialAr = [
+        { id: 1, job_id: 1, job_no: "JB-001", customer: "Pacific Systems", customer_po: "PO-7781", job_completed: false, invoice_no: "INV-2026-1192", invoice_currency: "USD", invoice_amt: 11000, exchange_rate_locked: 7.8, base_amount_locked: 85800, base_amount: 85800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-01", due_date: "2026-06-05", payment_received_date: "", payment_status: "Overdue" },
+        { id: 2, job_id: 2, job_no: "JB-002", customer: "Kingston Trading", customer_po: "PO-8801", job_completed: true, invoice_no: "INV-2026-1204", invoice_currency: "HKD", invoice_amt: 54500, exchange_rate_locked: 1, base_amount_locked: 54500, base_amount: 54500, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-01", due_date: "2026-06-20", payment_received_date: "", payment_status: "Awaiting Payment" }
+      ];
+
+      const initialAp = [
+        { id: 1, job_id: 1, job_no: "JB-001", payee_type: "Vendor", si_id: null, company_name: "Delta Tech Vendor", invoice_no: "BILL-2026-2289", invoice_date: "2026-06-04", invoice_received_date: "2026-06-07", due_date: "2026-07-02", currency: "USD", amount: 6000, exchange_rate_locked: 7.8, base_amount_locked: 46800, base_amount: 46800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "2026-06-28", remarks: "Hardware for JB-001", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "ap@delta.com" },
+        { id: 2, job_id: 1, job_no: "JB-001", payee_type: "SI", si_id: 1, company_name: "Ace Engineering SI", invoice_no: "SI-INV-2026-001", invoice_date: "2026-06-10", invoice_received_date: "2026-06-12", due_date: "2026-07-10", currency: "HKD", amount: 28000, exchange_rate_locked: 1, base_amount_locked: 28000, base_amount: 28000, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Subcontract install work", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "invoice@ace-eng.com" }
+      ];
+
+      const initialApprovals = [
+        { id: 1, doc: "PO-2026-4411 / IT Hardware", requester: "Benson", status: "Pending CFO" },
+        { id: 2, doc: "BILL-2026-2289 / Marketing Agency", requester: "Amy", status: "Pending Finance" },
+        { id: 3, doc: "Expense Batch / Travel Reimbursement", requester: "Sales Team", status: "Over SLA" }
+      ];
+
+      function App() {
+        const [page, setPage] = useState("dashboard");
+        const [lang, setLang] = useState(() => localStorage.getItem("erp_lang") || "zh_TW");
+        const [baseCurrency, setBaseCurrency] = useState("HKD");
+        const [customCurrency, setCustomCurrency] = useState("");
+        const [clients, setClients] = useState(initialClients);
+        const [jobs, setJobs] = useState(initialJobs);
+        const [vendors, setVendors] = useState(initialVendors);
+        const [sis, setSis] = useState(initialSis);
+        const [arInvoices, setArInvoices] = useState(initialAr);
+        const [apBills, setApBills] = useState(initialAp);
+        const [approvals] = useState(initialApprovals);
+
+        const [newTxOpen, setNewTxOpen] = useState(false);
+        const [detailPanel, setDetailPanel] = useState(null);
+        const [highlightId, setHighlightId] = useState(null);
+
+        const [jobViewMode, setJobViewMode] = useState("list");
+        const [arViewMode, setArViewMode] = useState("list");
+        const [apViewMode, setApViewMode] = useState("list");
+        const [jobClientFilter, setJobClientFilter] = useState("all");
+        const [arClientFilter, setArClientFilter] = useState("all");
+        const [apClientFilter, setApClientFilter] = useState("all");
+        const [apJobFilter, setApJobFilter] = useState("all");
+
+        const [clientModal, setClientModal] = useState(null);
+        const [jobModal, setJobModal] = useState(null);
+        const [vendorModal, setVendorModal] = useState(null);
+        const [siModal, setSiModal] = useState(null);
+        const [arModal, setArModal] = useState(null);
+        const [apModal, setApModal] = useState(null);
+
+        const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+
+        function changeLang(next) {
+          setLang(next);
+          localStorage.setItem("erp_lang", next);
+        }
+
+        function navigateTo(targetPage, opts = {}) {
+          setDetailPanel(null);
+          setPage(targetPage);
+          if (opts.client) {
+            setJobClientFilter(opts.client);
+            setArClientFilter(opts.client);
+            setApClientFilter(opts.client);
+          }
+          if (opts.jobId) setApJobFilter(String(opts.jobId));
+          if (opts.highlightId) {
+            setHighlightId(opts.highlightId);
+            setTimeout(() => setHighlightId(null), 4000);
+          }
+        }
+
+        function navigateToArByPo(customer, po) {
+          const match = arInvoices.find((r) => r.customer === customer && r.customer_po === po);
+          navigateTo("ar", { highlightId: match ? match.id : null });
+        }
+
+        function navigateToJobByPo(company, po) {
+          const match = jobs.find((j) => j.company === company && j.customer_po === po);
+          navigateTo("job", { highlightId: match ? match.id : null });
+        }
+
+        function markArPaid(id) {
+          const today = new Date().toISOString().slice(0, 10);
+          setArInvoices((prev) => prev.map((r) => (r.id === id ? { ...r, payment_status: "Paid", payment_received_date: r.payment_received_date || today } : r)));
+        }
+
+        function markApPaid(id) {
+          const today = new Date().toISOString().slice(0, 10);
+          setApBills((prev) => prev.map((b) => (b.id === id ? { ...b, pay_date: b.pay_date || today } : b)));
+        }
+
+        function openArFromJob(j) {
+          setDetailPanel(null);
+          setArModal({
+            mode: "add",
+            data: {
+              job_id: String(j.id), job_no: j.job_no, customer: j.company, customer_po: j.customer_po || "",
+              invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "",
+              override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment"
+            }
+          });
+        }
+
+        function rowHighlightClass(id) {
+          return highlightId === id ? "ring-2 ring-inset ring-blue-500 bg-blue-50" : "";
+        }
+
+        const activeBaseCurrency = baseCurrency === "OTHER" ? (customCurrency || "USD").toUpperCase() : baseCurrency;
+
+        const arDisplay = useMemo(() => arInvoices.map((r) => ({ ...r, display_base_amount: convertCurrency(r.invoice_amt, r.invoice_currency, activeBaseCurrency) })), [arInvoices, activeBaseCurrency]);
+        const apDisplay = useMemo(() => apBills.map((r) => ({ ...r, display_base_amount: convertCurrency(r.amount, r.currency, activeBaseCurrency) })), [apBills, activeBaseCurrency]);
+        const arTotal = useMemo(() => arDisplay.filter((r) => r.payment_status !== "Paid").reduce((a, b) => a + b.display_base_amount, 0), [arDisplay]);
+        const apTotal = useMemo(() => apDisplay.filter((b) => !isApPaid(b)).reduce((a, b) => a + b.display_base_amount, 0), [apDisplay]);
+
+        const overdueList = useMemo(() =>
+          arDisplay.map((r) => ({ ...r, overdue_days: calcOverdueDays(r.due_date) })).filter((r) => r.overdue_days > 0 && r.payment_status !== "Paid").sort((a, b) => b.overdue_days - a.overdue_days).slice(0, 5),
+          [arDisplay]
+        );
+
+        const aging = useMemo(() => {
+          const bucket = { d0_30: 0, d31_60: 0, d61_90: 0, d90_plus: 0 };
+          arDisplay.forEach((r) => {
+            const d = calcOverdueDays(r.due_date);
+            if (d <= 30) bucket.d0_30 += r.display_base_amount;
+            else if (d <= 60) bucket.d31_60 += r.display_base_amount;
+            else if (d <= 90) bucket.d61_90 += r.display_base_amount;
+            else bucket.d90_plus += r.display_base_amount;
+          });
+          return bucket;
+        }, [arDisplay]);
+
+        const dueSoonCount = useMemo(() => arDisplay.filter((r) => calcOverdueDays(r.due_date) === 0 && r.payment_status !== "Paid").length, [arDisplay]);
+        const overdueCount = overdueList.length;
+
+        const filteredJobs = useMemo(() => (jobClientFilter === "all" ? jobs : jobs.filter((j) => j.company === jobClientFilter)), [jobs, jobClientFilter]);
+        const filteredAr = useMemo(() => (arClientFilter === "all" ? arDisplay : arDisplay.filter((r) => r.customer === arClientFilter)), [arDisplay, arClientFilter]);
+        const filteredAp = useMemo(() => {
+          let list = apDisplay;
+          if (apClientFilter !== "all") {
+            list = list.filter((b) => {
+              const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+              return job ? job.company === apClientFilter : false;
+            });
+          }
+          if (apJobFilter !== "all") {
+            list = list.filter((b) => String(b.job_id) === apJobFilter || jobs.find((j) => j.id === Number(apJobFilter))?.job_no === b.job_no);
+          }
+          return list;
+        }, [apDisplay, apClientFilter, apJobFilter, jobs]);
+
+        function getJobForAr(r) {
+          if (r.job_id) return jobs.find((j) => j.id === r.job_id) || null;
+          if (r.job_no) return jobs.find((j) => j.job_no === r.job_no) || null;
+          return null;
+        }
+
+        function syncArWithJobStatus(jobId, jobNo, status) {
+          const completed = isJobCompleted(status);
+          setArInvoices((prev) => prev.map((r) => (
+            r.job_id === jobId || r.job_no === jobNo ? { ...r, job_completed: completed } : r
+          )));
+        }
+
+        function groupRows(rows, keyFn) {
+          const map = {};
+          rows.forEach((r) => {
+            const k = keyFn(r) || "-";
+            if (!map[k]) map[k] = [];
+            map[k].push(r);
+          });
+          return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
+        }
+
+        function getJobsByClient(company) {
+          return jobs.filter((j) => j.company === company);
+        }
+
+        function getArByClient(company) {
+          return arInvoices.filter((r) => r.customer === company);
+        }
+
+        function getArByJob(jobNo) {
+          return arInvoices.filter((r) => r.job_no === jobNo);
+        }
+
+        function getApByJob(jobNo) {
+          return apBills.filter((b) => b.job_no === jobNo);
+        }
+
+        function getApByVendor(name) {
+          return apBills.filter((r) => r.company_name === name && r.payee_type !== "SI");
+        }
+
+        function getApBySi(name) {
+          return apBills.filter((r) => r.company_name === name && r.payee_type === "SI");
+        }
+
+        function syncCompanyName(oldName, newName) {
+          if (!oldName || oldName === newName) return;
+          setJobs((prev) => prev.map((j) => (j.company === oldName ? { ...j, company: newName } : j)));
+          setArInvoices((prev) => prev.map((r) => (r.customer === oldName ? { ...r, customer: newName } : r)));
+        }
+
+        function calcBaseEditable(amount, rate, form, setForm) {
+          const a = Number(amount);
+          const r = Number(rate);
+          const next = { ...form };
+          if (!Number.isNaN(a) && !Number.isNaN(r) && r !== 0) next.base_amount = (a * r).toFixed(2);
+          setForm(next);
+        }
+
+        function saveClient(e) {
+          e.preventDefault();
+          const data = clientModal.data;
+          if (clientModal.mode === "add") {
+            setClients([{ id: Date.now(), ...data }, ...clients]);
+          } else {
+            const old = clients.find((c) => c.id === clientModal.id);
+            setClients(clients.map((c) => (c.id === clientModal.id ? { ...c, ...data } : c)));
+            if (old) syncCompanyName(old.company, data.company);
+          }
+          setClientModal(null);
+        }
+
+        function saveJob(e) {
+          e.preventDefault();
+          const data = { ...jobModal.data, client_id: Number(jobModal.data.client_id) };
+          const client = clients.find((c) => c.id === data.client_id);
+          const payload = { ...data, company: client ? client.company : data.company };
+          if (jobModal.mode === "add") {
+            const newId = Date.now();
+            setJobs([{ id: newId, ...payload }, ...jobs]);
+          } else {
+            const old = jobs.find((j) => j.id === jobModal.id);
+            setJobs(jobs.map((j) => (j.id === jobModal.id ? { ...j, ...payload } : j)));
+            if (old && old.job_no !== payload.job_no) {
+              setArInvoices((prev) => prev.map((r) => (r.job_no === old.job_no ? { ...r, job_no: payload.job_no, job_id: jobModal.id } : r)));
+            }
+            if (old && old.company !== payload.company) {
+              setArInvoices((prev) => prev.map((r) => (r.job_no === payload.job_no ? { ...r, customer: payload.company } : r)));
+            }
+            syncArWithJobStatus(jobModal.id, payload.job_no, payload.status);
+          }
+          setJobModal(null);
+        }
+
+        function saveVendor(e) {
+          e.preventDefault();
+          const data = vendorModal.data;
+          if (vendorModal.mode === "add") {
+            setVendors([{ id: Date.now(), ...data }, ...vendors]);
+          } else {
+            const old = vendors.find((v) => v.id === vendorModal.id);
+            setVendors(vendors.map((v) => (v.id === vendorModal.id ? { ...v, ...data } : v)));
+            if (old && old.name !== data.name) {
+              setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "Vendor" ? { ...b, company_name: data.name } : b)));
+            }
+          }
+          setVendorModal(null);
+        }
+
+        function saveSi(e) {
+          e.preventDefault();
+          const data = siModal.data;
+          if (siModal.mode === "add") {
+            setSis([{ id: Date.now(), ...data }, ...sis]);
+          } else {
+            const old = sis.find((s) => s.id === siModal.id);
+            setSis(sis.map((s) => (s.id === siModal.id ? { ...s, ...data } : s)));
+            if (old && old.name !== data.name) {
+              setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "SI" ? { ...b, company_name: data.name } : b)));
+            }
+          }
+          setSiModal(null);
+        }
+
+        function saveAR(e) {
+          e.preventDefault();
+          const f = arModal.data;
+          const calcValue = Number(f.invoice_amt || 0) * Number(f.exchange_rate || 0);
+          const baseInput = Number(f.base_amount || 0);
+          const selectedJob = jobs.find((j) => j.id === Number(f.job_id));
+          const rec = {
+            ...f,
+            job_id: Number(f.job_id) || null,
+            job_no: selectedJob ? selectedJob.job_no : f.job_no,
+            customer: selectedJob ? selectedJob.company : f.customer,
+            customer_po: f.customer_po || (selectedJob ? selectedJob.customer_po : ""),
+            invoice_amt: Number(f.invoice_amt || 0),
+            exchange_rate_locked: Number(f.exchange_rate || 0),
+            base_amount_locked: baseInput,
+            base_amount: baseInput,
+            lock_timestamp: nowIso(),
+            rate_source: "MANUAL",
+            manual_override: Math.abs(baseInput - calcValue) > 0.01,
+            job_completed: selectedJob ? isJobCompleted(selectedJob.status) : false,
+            payment_received_date: f.payment_received_date || "",
+            payment_status: f.payment_received_date ? "Paid" : (f.payment_status || "Awaiting Payment")
+          };
+          if (arModal.mode === "add") {
+            setArInvoices([{ id: Date.now(), ...rec }, ...arInvoices]);
+          } else {
+            setArInvoices(arInvoices.map((r) => (r.id === arModal.id ? { ...r, ...rec } : r)));
+          }
+          setArModal(null);
+        }
+
+        function saveAP(e) {
+          e.preventDefault();
+          const f = apModal.data;
+          const calcValue = Number(f.amount || 0) * Number(f.exchange_rate || 0);
+          const baseInput = Number(f.base_amount || 0);
+          const selectedJob = jobs.find((j) => j.id === Number(f.job_id));
+          const rec = {
+            ...f,
+            job_id: Number(f.job_id) || null,
+            job_no: selectedJob ? selectedJob.job_no : f.job_no,
+            payee_type: f.payee_type || "Vendor",
+            si_id: f.payee_type === "SI" ? (Number(f.si_id) || null) : null,
+            amount: Number(f.amount || 0),
+            exchange_rate_locked: Number(f.exchange_rate || 0),
+            base_amount_locked: baseInput,
+            base_amount: baseInput,
+            lock_timestamp: nowIso(),
+            rate_source: "MANUAL",
+            manual_override: Math.abs(baseInput - calcValue) > 0.01
+          };
+          if (apModal.mode === "add") {
+            setApBills([{ id: Date.now(), ...rec }, ...apBills]);
+          } else {
+            setApBills(apBills.map((b) => (b.id === apModal.id ? { ...b, ...rec } : b)));
+          }
+          setApModal(null);
+        }
+
+        const cashFlowSeries = useMemo(() => [
+          { date: "04-01", in: 120000, out: 84000 }, { date: "04-15", in: 96000, out: 92000 },
+          { date: "05-01", in: 140000, out: 110000 }, { date: "05-15", in: 132000, out: 104000 },
+          { date: "06-01", in: 155000, out: 121000 }, { date: "06-15", in: 148000, out: 130000 },
+          { date: "07-01", in: 170000, out: 126000 }, { date: "07-15", in: 162000, out: 138000 },
+          { date: "08-01", in: 178000, out: 141000 }, { date: "08-15", in: 168000, out: 149000 },
+          { date: "09-01", in: 185000, out: 152000 }, { date: "09-15", in: 174000, out: 158000 }
+        ].map((p) => ({ ...p, inBase: convertCurrency(p.in, "HKD", activeBaseCurrency), outBase: convertCurrency(p.out, "HKD", activeBaseCurrency) })), [activeBaseCurrency]);
+
+        const maxBar = useMemo(() => Math.max(1, ...cashFlowSeries.flatMap((p) => [p.inBase, p.outBase])), [cashFlowSeries]);
+
+        function SidebarItem({ id, label }) {
+          const active = page === id;
+          return (
+            <button onClick={() => setPage(id)} className={"w-full text-left px-2.5 py-1.5 rounded-lg text-xs " + (active ? "bg-blue-600 text-white font-medium" : "text-slate-100 hover:bg-slate-800")}>
+              {label}
+            </button>
+          );
+        }
+
+        function renderDetailPanel() {
+          if (!detailPanel) return null;
+          const { type, id } = detailPanel;
+
+          if (type === "client") {
+            const c = clients.find((x) => x.id === id);
+            if (!c) return null;
+            const relatedJobs = getJobsByClient(c.company);
+            const relatedAr = getArByClient(c.company);
+            const pos = [...new Set([...relatedJobs.map((j) => j.customer_po), ...relatedAr.map((r) => r.customer_po)].filter(Boolean))];
+            return (
+              <Modal title={t("clientDetail") + " - " + c.company} onClose={() => setDetailPanel(null)} wide>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div><p className="text-slate-500">Customer No.</p><p className="font-medium">{c.customer_no}</p></div>
+                  <div><p className="text-slate-500">COMPANY</p><p className="font-medium">{c.company}</p></div>
+                  <div><p className="text-slate-500">Primary Contact</p><p>{c.primary_contact}</p></div>
+                  <div><p className="text-slate-500">E-mail</p><p>{c.email}</p></div>
+                  <div><p className="text-slate-500">Payment Terms</p><p>{c.payment_terms}</p></div>
+                  <div><p className="text-slate-500">Address</p><p>{c.address}</p></div>
+                </div>
+                <div className="mt-6 space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">{t("relatedJobs")} ({relatedJobs.length})</h4>
+                    {relatedJobs.length ? (
+                      <table className="w-full text-sm border rounded-lg overflow-hidden">
+                        <thead className="bg-slate-50"><tr><th className="p-2 text-left">Job No</th><th className="p-2 text-left">{t("type")}</th><th className="p-2 text-left">PO</th><th className="p-2 text-left">{t("status")}</th><th className="p-2 text-left"></th></tr></thead>
+                        <tbody>{relatedJobs.map((j) => (
+                          <tr key={j.id} className="border-t">
+                            <td className="p-2"><LinkBtn onClick={() => navigateTo("job", { client: c.company, highlightId: j.id })}>{j.job_no}</LinkBtn></td>
+                            <td className="p-2">{j.job_type}</td>
+                            <td className="p-2">{j.customer_po ? <LinkBtn onClick={() => navigateToJobByPo(c.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</td>
+                            <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></td>
+                            <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("job", { client: c.company, highlightId: j.id })}>{t("goToJob")}</button></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    ) : <p className="text-slate-500">{t("noJobs")}</p>}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">{t("relatedInvoices")} ({relatedAr.length})</h4>
+                    {relatedAr.length ? (
+                      <table className="w-full text-sm border rounded-lg overflow-hidden">
+                        <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">Amt</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left"></th></tr></thead>
+                        <tbody>{relatedAr.map((r) => (
+                          <tr key={r.id} className="border-t">
+                            <td className="p-2"><LinkBtn onClick={() => navigateTo("ar", { client: c.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></td>
+                            <td className="p-2">{r.job_no ? <LinkBtn onClick={() => { const job = jobs.find((j) => j.job_no === r.job_no); navigateTo("job", { client: c.company, highlightId: job ? job.id : null }); }}>{r.job_no}</LinkBtn> : "-"}</td>
+                            <td className="p-2 text-right">{money(r.invoice_amt)} {r.invoice_currency}</td>
+                            <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
+                            <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ar", { client: c.company, highlightId: r.id })}>{t("goToAr")}</button></td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    ) : <p className="text-slate-500">{t("noInvoices")}</p>}
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">{t("relatedPo")} ({pos.length})</h4>
+                    {pos.length ? (
+                      <ul className="text-sm space-y-1">{pos.map((po) => (
+                        <li key={po}><LinkBtn onClick={() => navigateToArByPo(c.company, po)}>{po}</LinkBtn> <span className="text-slate-400 text-xs">→ {t("goToAr")}</span></li>
+                      ))}</ul>
+                    ) : <p className="text-slate-500">{t("noPo")}</p>}
+                  </div>
+                </div>
+              </Modal>
+            );
+          }
+
+          if (type === "job") {
+            const j = jobs.find((x) => x.id === id);
+            if (!j) return null;
+            const relatedAr = getArByJob(j.job_no);
+            const relatedAp = getApByJob(j.job_no);
+            const client = clients.find((c) => c.id === j.client_id);
+            return (
+              <Modal title={t("jobDetail") + " - " + j.job_no} onClose={() => setDetailPanel(null)} wide>
+                <p className="text-xs text-slate-500 mb-4">{t("jobFlowHint")}</p>
+                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                  <div><p className="text-slate-500">Client</p><p className="font-medium">{j.company}</p></div>
+                  <div><p className="text-slate-500">{t("type")}</p><p>{j.job_type}</p></div>
+                  <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
+                  <div><p className="text-slate-500">Start Date</p><p>{j.start_date || "-"}</p></div>
+                  <div><p className="text-slate-500">Description</p><p>{j.description || "-"}</p></div>
+                </div>
+                {client && (
+                  <div className="mb-4 p-3 bg-slate-50 rounded-lg text-sm">
+                    <p className="font-medium">{t("ownedClient")}</p>
+                    <p><LinkBtn onClick={() => { setPage("clients"); setDetailPanel({ type: "client", id: client.id }); }}>{client.customer_no} · {client.company}</LinkBtn> · {client.primary_contact}</p>
+                  </div>
+                )}
+                {isJobCompleted(j.status) && (
+                  <div className="mb-4 p-4 rounded-lg bg-green-50 border border-green-200 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-green-800 font-medium">{t("jobCompletedBanner")}</p>
+                    <button type="button" onClick={() => openArFromJob(j)} className="px-4 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700">{t("issueInvoiceToClient")}</button>
+                  </div>
+                )}
+                <h4 className="font-semibold mb-2">{t("relatedInvoices")} ({relatedAr.length})</h4>
+                {relatedAr.length ? (
+                  <table className="w-full text-sm border rounded-lg overflow-hidden mb-6">
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-right">Amt in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
+                    <tbody>{relatedAr.map((r) => (
+                      <tr key={r.id} className="border-t">
+                        <td className="p-2"><LinkBtn onClick={() => navigateTo("ar", { client: j.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></td>
+                        <td className="p-2 text-right">{money(convertCurrency(r.invoice_amt, r.invoice_currency, "SGD"))}</td>
+                        <td className="p-2">{r.due_date}</td>
+                        <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                ) : <p className="text-slate-500 mb-6">{t("noInvoices")}</p>}
+                <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
+                {relatedAp.length ? (
+                  <table className="w-full text-sm border rounded-lg overflow-hidden">
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">{t("payeeType")}</th><th className="p-2 text-left">Payee</th><th className="p-2 text-right">Amount</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left"></th></tr></thead>
+                    <tbody>{relatedAp.map((b) => (
+                      <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/50" : "")}>
+                        <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { client: j.company, jobId: j.id, highlightId: b.id })}>{b.invoice_no}</LinkBtn></td>
+                        <td className="p-2">{b.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</td>
+                        <td className="p-2">{b.company_name}</td>
+                        <td className="p-2 text-right">{money(b.amount)} {b.currency}</td>
+                        <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></td>
+                        <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ap", { client: j.company, jobId: j.id, highlightId: b.id })}>{t("goToAp")}</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                ) : <p className="text-slate-500">{t("noAp")}</p>}
+              </Modal>
+            );
+          }
+
+          if (type === "si") {
+            const s = sis.find((x) => x.id === id);
+            if (!s) return null;
+            const relatedAp = getApBySi(s.name);
+            return (
+              <Modal title={t("siDetail") + " - " + s.name} onClose={() => setDetailPanel(null)} wide>
+                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                  <div><p className="text-slate-500">Name</p><p className="font-medium">{s.name}</p></div>
+                  <div><p className="text-slate-500">Email</p><p>{s.email}</p></div>
+                  <div><p className="text-slate-500">Bank</p><p>{s.bank}</p></div>
+                  <div><p className="text-slate-500">SWIFT</p><p>{s.swift_code || "-"}</p></div>
+                </div>
+                <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
+                {relatedAp.length ? (
+                  <table className="w-full text-sm border rounded-lg overflow-hidden">
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">Amount in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left"></th></tr></thead>
+                    <tbody>{relatedAp.map((b) => (
+                      <tr key={b.id} className="border-t">
+                        <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
+                        <td className="p-2">{b.job_no || "-"}</td>
+                        <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, "SGD"))}</td>
+                        <td className="p-2">{b.due_date}</td>
+                        <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{t("goToAp")}</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                ) : <p className="text-slate-500">{t("noAp")}</p>}
+              </Modal>
+            );
+          }
+
+          if (type === "vendor") {
+            const v = vendors.find((x) => x.id === id);
+            if (!v) return null;
+            const relatedAp = getApByVendor(v.name);
+            return (
+              <Modal title={t("vendorDetail") + " - " + v.name} onClose={() => setDetailPanel(null)} wide>
+                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                  <div><p className="text-slate-500">Name</p><p className="font-medium">{v.name}</p></div>
+                  <div><p className="text-slate-500">Email</p><p>{v.email}</p></div>
+                  <div><p className="text-slate-500">Bank</p><p>{v.bank}</p></div>
+                  <div><p className="text-slate-500">SWIFT</p><p>{v.swift_code || "-"}</p></div>
+                </div>
+                <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
+                {relatedAp.length ? (
+                  <table className="w-full text-sm border rounded-lg overflow-hidden">
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-right">Amount in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">Remarks</th><th className="p-2 text-left"></th></tr></thead>
+                    <tbody>{relatedAp.map((b) => (
+                      <tr key={b.id} className="border-t">
+                        <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
+                        <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, "SGD"))}</td>
+                        <td className="p-2">{b.due_date}</td>
+                        <td className="p-2">{b.remarks}</td>
+                        <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{t("goToAp")}</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                ) : <p className="text-slate-500">{t("noAp")}</p>}
+              </Modal>
+            );
+          }
+
+          if (type === "ar") {
+            const r = arInvoices.find((x) => x.id === id);
+            if (!r) return null;
+            const job = jobs.find((j) => j.job_no === r.job_no);
+            return (
+              <Modal title={t("arDetail") + " - " + r.invoice_no} onClose={() => setDetailPanel(null)} wide>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div><p className="text-slate-500">Job No.</p><p>{r.job_no ? <LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === r.job_no); navigateTo("job", { client: r.customer, highlightId: j ? j.id : null }); }}>{r.job_no}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">Customer</p><p>{r.customer}</p></div>
+                  <div><p className="text-slate-500">Customer PO</p><p>{r.customer_po ? <LinkBtn onClick={() => navigateToArByPo(r.customer, r.customer_po)}>{r.customer_po}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("jobStatus")}</p><p>{getJobForAr(r) ? <span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(getJobForAr(r).status)}>{getJobForAr(r).status}</span> : "-"}</p></div>
+                  <div><p className="text-slate-500">Invoice Amt</p><p>{money(r.invoice_amt)} {r.invoice_currency}</p></div>
+                  <div><p className="text-slate-500">Amt in SGD</p><p>{money(convertCurrency(r.invoice_amt, r.invoice_currency, "SGD"))}</p></div>
+                  <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></p></div>
+                </div>
+                {job && <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm"><p className="font-medium">{t("linkedJob")}</p><p><LinkBtn onClick={() => navigateTo("job", { client: r.customer, highlightId: job.id })}>{job.job_no}</LinkBtn> · {job.job_type} · <span className={"px-1.5 py-0.5 rounded text-xs " + jobStatusClass(job.status)}>{job.status}</span></p></div>}
+                {job && isJobCompleted(job.status) && r.payment_status !== "Paid" && (
+                  <div className="mt-4">
+                    <button type="button" onClick={() => openArFromJob(job)} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700">{t("issueInvoiceToClient")}</button>
+                  </div>
+                )}
+                {r.payment_status !== "Paid" && (
+                  <div className="mt-4">
+                    <button type="button" onClick={() => { markArPaid(r.id); setDetailPanel(null); }} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700">{t("markPaid")}</button>
+                  </div>
+                )}
+              </Modal>
+            );
+          }
+
+          if (type === "ap") {
+            const b = apBills.find((x) => x.id === id);
+            if (!b) return null;
+            const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+            return (
+              <Modal title={t("apDetail") + " - " + b.invoice_no} onClose={() => setDetailPanel(null)} wide>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div><p className="text-slate-500">Job No.</p><p>{b.job_no ? <LinkBtn onClick={() => navigateTo("job", { client: job ? job.company : "all", highlightId: job ? job.id : null })}>{b.job_no}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("payeeType")}</p><p>{b.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</p></div>
+                  <div><p className="text-slate-500">Company</p><p>{b.company_name}</p></div>
+                  <div><p className="text-slate-500">Amount</p><p>{money(b.amount)} {b.currency}</p></div>
+                  <div><p className="text-slate-500">Amount in SGD</p><p>{money(convertCurrency(b.amount, b.currency, "SGD"))}</p></div>
+                  <div><p className="text-slate-500">Due Date</p><p>{b.due_date}</p></div>
+                  <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></p></div>
+                  <div><p className="text-slate-500">Pay Date</p><p>{b.pay_date || "-"}</p></div>
+                  <div><p className="text-slate-500">Bank</p><p>{b.bank}</p></div>
+                  <div><p className="text-slate-500">SWIFT</p><p>{b.swift_code}</p></div>
+                </div>
+                {!isApPaid(b) && (
+                  <div className="mt-4">
+                    <button type="button" onClick={() => { markApPaid(b.id); setDetailPanel(null); }} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700">{t("markApPaid")}</button>
+                  </div>
+                )}
+              </Modal>
+            );
+          }
+          return null;
+        }
+
+        function renderJobRows(list) {
+          return list.map((j) => (
+            <tr key={j.id} className={"hover:bg-blue-50/50 cursor-pointer " + (isJobCompleted(j.status) ? "bg-green-50/70 " : "") + rowHighlightClass(j.id)} onClick={() => setDetailPanel({ type: "job", id: j.id })}>
+              <td className="p-3 font-medium">{j.job_no}</td>
+              <td className="p-3"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs">{j.company}</span></td>
+              <td className="p-3">{j.job_type}</td>
+              <td className="p-3">{j.customer_po || "-"}</td>
+              <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></td>
+              <td className="p-3">{j.start_date || "-"}</td>
+              <td className="p-3">{getArByJob(j.job_no).length}</td>
+              <td className="p-3">{getApByJob(j.job_no).length}</td>
+              <td className="p-3">
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => setJobModal({ mode: "edit", id: j.id, data: { ...j, client_id: String(j.client_id) } })}
+                  extra={isJobCompleted(j.status) ? <button type="button" onClick={(e) => { e.stopPropagation(); openArFromJob(j); }} className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">{t("issueInvoiceToClient")}</button> : null}
+                />
+              </td>
+            </tr>
+          ));
+        }
+
+        function renderArRows(list) {
+          return list.map((r) => {
+            const linkedJob = getJobForAr(r);
+            const jobStatus = linkedJob ? linkedJob.status : "-";
+            return (
+            <tr key={r.id} className={"hover:bg-blue-50/50 cursor-pointer " + rowHighlightClass(r.id)} onClick={() => setDetailPanel({ type: "ar", id: r.id })}>
+              <td className="p-3">{r.job_no}</td><td className="p-3">{r.customer}</td><td className="p-3">{r.customer_po || "-"}</td>
+              <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + (linkedJob ? jobStatusClass(linkedJob.status) : "bg-slate-100")}>{jobStatus}</span></td>
+              <td className="p-3">{r.invoice_no}</td><td className="p-3">{r.invoice_currency}</td><td className="p-3 text-right">{money(r.invoice_amt)}</td>
+              <td className="p-3 text-right font-medium">{money(convertCurrency(r.invoice_amt, r.invoice_currency, "SGD"))}</td>
+              <td className="p-3">{r.invoice_date}</td><td className="p-3">{r.due_date}</td>
+              <td className="p-3 text-right">{r.payment_status === "Paid" ? 0 : calcOverdueDays(r.due_date)}</td><td className="p-3 text-right">{calcDaysBetween(r.invoice_date, r.due_date)}</td>
+              <td className="p-3">{r.payment_received_date || "-"}</td>
+              <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
+              <td className="p-3">
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "ar", id: r.id })} onEdit={() => setArModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || "") } })}
+                  extra={r.payment_status !== "Paid" ? <button type="button" onClick={(e) => { e.stopPropagation(); markArPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markPaid")}</button> : null}
+                />
+              </td>
+            </tr>
+            );
+          });
+        }
+
+        function renderApRows(list) {
+          return list.map((r) => (
+            <tr key={r.id} className={"hover:bg-blue-50/50 cursor-pointer " + (isApPaid(r) ? "bg-green-50/70 " : "") + rowHighlightClass(r.id)} onClick={() => setDetailPanel({ type: "ap", id: r.id })}>
+              <td className="p-3">{r.job_no || "-"}</td>
+              <td className="p-3"><span className="text-xs px-1.5 py-0.5 rounded bg-slate-100">{r.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</span></td>
+              <td className="p-3">{r.company_name}</td><td className="p-3">{r.invoice_no}</td><td className="p-3">{r.invoice_date || "-"}</td><td className="p-3">{r.invoice_received_date || "-"}</td>
+              <td className="p-3">{r.due_date || "-"}</td><td className="p-3">{r.currency}</td><td className="p-3 text-right">{money(r.amount)}</td>
+              <td className="p-3 text-right font-medium">{money(convertCurrency(r.amount, r.currency, "SGD"))}</td>
+              <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(r)}>{apPaymentLabel(r, t)}</span></td>
+              <td className="p-3">{r.pay_date || "-"}</td><td className="p-3">{r.remarks || "-"}</td><td className="p-3">{r.bank || "-"}</td><td className="p-3">{r.charge || "-"}</td><td className="p-3">{r.swift_code || "-"}</td><td className="p-3">{r.payment_advice_email || "-"}</td>
+              <td className="p-3">
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "ap", id: r.id })} onEdit={() => setApModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), si_id: String(r.si_id || ""), payee_type: r.payee_type || "Vendor", exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || "") } })}
+                  extra={!isApPaid(r) ? <button type="button" onClick={(e) => { e.stopPropagation(); markApPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markApPaid")}</button> : null}
+                />
+              </td>
+            </tr>
+          ));
+        }
+
+        return (
+          <div className="flex min-h-screen">
+            <aside className="w-48 shrink-0 bg-slate-900 text-slate-100 p-3">
+              <h1 className="text-sm font-semibold tracking-wide mb-4 px-1">{t("appTitle")}</h1>
+              <nav className="space-y-1">
+                <SidebarItem id="dashboard" label={t("nav_dashboard")} />
+                <SidebarItem id="clients" label={t("nav_clients")} />
+                <SidebarItem id="job" label={t("nav_job")} />
+                <SidebarItem id="ar" label={t("nav_ar")} />
+                <SidebarItem id="ap" label={t("nav_ap")} />
+                <SidebarItem id="vendors" label={t("nav_vendors")} />
+                <SidebarItem id="si" label={t("nav_si")} />
+                <SidebarItem id="settings" label={t("nav_settings")} />
+              </nav>
+            </aside>
+
+            <main className="flex-1 min-w-0 p-5 space-y-5">
+              <header className="flex justify-between items-start gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-bold">
+                    {page === "dashboard" && t("nav_dashboard")}
+                    {page === "clients" && t("nav_clients")}
+                    {page === "job" && t("nav_job")}
+                    {page === "ar" && t("nav_ar")}
+                    {page === "vendors" && t("nav_vendors")}
+                    {page === "si" && t("nav_si")}
+                    {page === "ap" && t("nav_ap")}
+                    {page === "settings" && t("nav_settings")}
+                  </h2>
+                  <p className="text-sm text-slate-500">{t("baseCurrency")}: {activeBaseCurrency} · {t("hintClickRow")}</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <select value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value)} className="h-8 w-[4.5rem] shrink-0 rounded-lg border border-slate-300 bg-white text-xs px-2 py-1">
+                    <option value="HKD">HKD</option><option value="USD">USD</option><option value="RMB">RMB</option>
+                    <option value="TWD">TWD</option><option value="SGD">SGD</option><option value="EUR">EUR</option><option value="OTHER">Other</option>
+                  </select>
+                  {baseCurrency === "OTHER" && <Input placeholder="e.g. MYD" className="w-16 h-8 text-xs px-2 py-1 bg-white shrink-0" value={customCurrency} onChange={(e) => setCustomCurrency(e.target.value)} />}
+                  <button type="button" onClick={() => setNewTxOpen(true)} className="h-8 shrink-0 px-2.5 text-xs leading-none rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">{t("newTransaction")}</button>
+                </div>
+              </header>
+
+              {page === "dashboard" && (
+                <>
+                  <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("arOutstanding")} ({activeBaseCurrency})</p><p className="text-2xl font-bold mt-2">{money(arTotal)}</p><p className="text-xs text-slate-500 mt-2">{overdueCount} {t("overdueCount")}</p></article>
+                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("apOutstanding")} ({activeBaseCurrency})</p><p className="text-2xl font-bold mt-2">{money(apTotal)}</p><p className="text-xs text-slate-500 mt-2">{apBills.length} {t("pendingBills")}</p></article>
+                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("netPosition")}</p><p className="text-2xl font-bold mt-2">{money(arTotal - apTotal)}</p></article>
+                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("dueSoon")}</p><p className="text-2xl font-bold mt-2">{dueSoonCount}</p><p className="text-xs text-slate-500 mt-2">{t("dueSoonHint")}</p></article>
+                  </section>
+                  <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                    <article className="xl:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                      <h3 className="font-semibold mb-4">{t("cashFlow")} - {activeBaseCurrency}</h3>
+                      <div className="h-72 rounded-lg bg-slate-50 border border-slate-200 p-4 overflow-x-auto">
+                        <div className="min-w-[860px] h-full flex items-end gap-4">
+                          {cashFlowSeries.map((p) => (
+                            <div key={p.date} className="flex flex-col items-center gap-1">
+                              <div className="flex items-end gap-1 h-56">
+                                <div title={`${p.date} Cash In: ${money(p.inBase)} ${activeBaseCurrency}`} className="w-4 bg-blue-500 rounded-t cursor-pointer" style={{ height: `${(p.inBase / maxBar) * 100}%` }}></div>
+                                <div title={`${p.date} Cash Out: ${money(p.outBase)} ${activeBaseCurrency}`} className="w-4 bg-rose-400 rounded-t cursor-pointer" style={{ height: `${(p.outBase / maxBar) * 100}%` }}></div>
+                              </div>
+                              <span className="text-[10px] text-slate-500">{p.date}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </article>
+                    <article className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                      <h3 className="font-semibold mb-4">{t("arAging")} ({activeBaseCurrency})</h3>
+                      <ul className="space-y-3 text-sm">
+                        <li className="flex justify-between"><span>0 - 30 days</span><span className="font-semibold">{money(aging.d0_30)}</span></li>
+                        <li className="flex justify-between"><span>31 - 60 days</span><span className="font-semibold">{money(aging.d31_60)}</span></li>
+                        <li className="flex justify-between"><span>61 - 90 days</span><span className="font-semibold">{money(aging.d61_90)}</span></li>
+                        <li className="flex justify-between text-red-600"><span>90+ days</span><span className="font-semibold">{money(aging.d90_plus)}</span></li>
+                      </ul>
+                    </article>
+                  </section>
+                  <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <article className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-4 border-b"><h3 className="font-semibold">{t("topOverdue")}</h3></div>
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-slate-500"><tr><th className="text-left p-3">Invoice</th><th className="text-left p-3">Client</th><th className="text-left p-3">Overdue</th><th className="text-right p-3">Amount</th></tr></thead>
+                        <tbody className="divide-y">{overdueList.map((r) => <tr key={r.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setDetailPanel({ type: "ar", id: r.id })}><td className="p-3 font-medium text-blue-600">{r.invoice_no}</td><td className="p-3">{r.customer}</td><td className="p-3 text-red-600">+{r.overdue_days} days</td><td className="p-3 text-right font-semibold">{money(r.display_base_amount)}</td></tr>)}</tbody>
+                      </table>
+                    </article>
+                    <article className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-4 border-b"><h3 className="font-semibold">{t("approvalQueue")}</h3></div>
+                      <ul className="divide-y text-sm">{approvals.map((a) => <li key={a.id} className="p-4 flex justify-between"><div><p className="font-medium">{a.doc}</p><p className="text-xs text-slate-500">Requester: {a.requester}</p></div><span className={a.status === "Over SLA" ? "text-red-600" : "text-amber-600"}>{a.status}</span></li>)}</ul>
+                    </article>
+                  </section>
+                </>
+              )}
+
+              {page === "clients" && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b flex justify-between items-center">
+                    <h3 className="font-semibold">{t("nav_clients")}</h3>
+                    <button onClick={() => setClientModal({ mode: "add", data: emptyClient() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>
+                  </div>
+                  <div className="overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-500">
+                        <tr>
+                          <th className="p-3 text-left">Customer No.</th><th className="p-3 text-left">COMPANY</th><th className="p-3 text-left">GST#</th>
+                          <th className="p-3 text-left">Primary Contact</th><th className="p-3 text-left">Company Phone #</th><th className="p-3 text-left">Mobile Phone #</th>
+                          <th className="p-3 text-left">E-mail</th><th className="p-3 text-left">Address</th><th className="p-3 text-left">Postal Code</th>
+                          <th className="p-3 text-left">Account Dept Contact</th><th className="p-3 text-left">Payment Terms</th><th className="p-3 text-left">{t("actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {clients.map((c) => (
+                          <tr key={c.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "client", id: c.id })}>
+                            <td className="p-3">{c.customer_no}</td><td className="p-3 font-medium">{c.company}</td><td className="p-3">{c.gst_no}</td>
+                            <td className="p-3">{c.primary_contact}</td><td className="p-3">{c.company_phone}</td><td className="p-3">{c.mobile_phone}</td>
+                            <td className="p-3">{c.email}</td><td className="p-3">{c.address}</td><td className="p-3">{c.postal_code}</td>
+                            <td className="p-3">{c.account_dept_contact}</td><td className="p-3">{c.payment_terms}</td>
+                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "client", id: c.id })} onEdit={() => setClientModal({ mode: "edit", id: c.id, data: { ...c } })} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {page === "job" && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold">{t("nav_job")}</h3>
+                      <button onClick={() => setJobModal({ mode: "add", data: emptyJob() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
+                  </div>
+                  <ListToolbar t={t} mode="job" clients={clients} jobs={jobs} viewMode={jobViewMode} setViewMode={setJobViewMode} clientFilter={jobClientFilter} setClientFilter={setJobClientFilter} />
+                  <div className="overflow-auto">
+                    {jobViewMode === "grouped" ? (
+                      groupRows(filteredJobs, (j) => j.company).map(([group, rows]) => (
+                        <div key={group} className="mb-4">
+                          <div className="px-4 py-2 bg-blue-50 border-y font-semibold text-blue-900">{group}</div>
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500">
+                              <tr>
+                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("type")}</th>
+                                <th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
+                                <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">{renderJobRows(rows)}</tbody>
+                          </table>
+                        </div>
+                      ))
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-slate-500">
+                          <tr>
+                            <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("type")}</th>
+                            <th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
+                            <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">{renderJobRows(filteredJobs)}</tbody>
+                      </table>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {page === "vendors" && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b flex justify-between items-center">
+                    <h3 className="font-semibold">{t("nav_vendors")}</h3>
+                    <button onClick={() => setVendorModal({ mode: "add", data: emptyVendor() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>
+                  </div>
+                  <div className="overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-500">
+                        <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("actions")}</th></tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {vendors.map((v) => (
+                          <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
+                            <td className="p-3 font-medium">{v.name}</td><td className="p-3">{v.email}</td><td className="p-3">{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
+                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "vendor", id: v.id })} onEdit={() => setVendorModal({ mode: "edit", id: v.id, data: { ...v } })} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {page === "si" && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b flex justify-between items-center">
+                    <h3 className="font-semibold">{t("nav_si")}</h3>
+                    <button onClick={() => setSiModal({ mode: "add", data: emptySi() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addSi")}</button>
+                  </div>
+                  <p className="px-4 py-2 text-xs text-slate-500 border-b bg-amber-50/50">{t("siPageHint")}</p>
+                  <div className="overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-500">
+                        <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {sis.map((s) => (
+                          <tr key={s.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "si", id: s.id })}>
+                            <td className="p-3 font-medium">{s.name}</td><td className="p-3">{s.email}</td><td className="p-3">{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
+                            <td className="p-3">{getApBySi(s.name).length}</td>
+                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "si", id: s.id })} onEdit={() => setSiModal({ mode: "edit", id: s.id, data: { ...s } })} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {page === "ar" && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b flex justify-between items-center">
+                    <h3 className="font-semibold">{t("nav_ar")}</h3>
+                    <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>
+                  </div>
+                  <ListToolbar t={t} mode="ar" clients={clients} jobs={jobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} />
+                  <div className="overflow-auto">
+                    {arViewMode === "grouped" ? (
+                      groupRows(filteredAr, (r) => r.customer).map(([group, rows]) => (
+                        <div key={group} className="mb-4">
+                          <div className="px-4 py-2 bg-blue-50 border-y font-semibold text-blue-900">{group}</div>
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500">
+                              <tr>
+                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("jobStatus")}</th>
+                                <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
+                                <th className="p-3 text-right">Amt in SGD</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
+                                <th className="p-3 text-right">Overdue Days</th><th className="p-3 text-right">Days</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">{renderArRows(rows)}</tbody>
+                          </table>
+                        </div>
+                      ))
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-slate-500">
+                          <tr>
+                            <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("jobStatus")}</th>
+                            <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
+                            <th className="p-3 text-right">Amt in SGD</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
+                            <th className="p-3 text-right">Overdue Days</th><th className="p-3 text-right">Days</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">{renderArRows(filteredAr)}</tbody>
+                      </table>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {page === "ap" && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b flex justify-between items-center">
+                    <h3 className="font-semibold">{t("nav_ap")}</h3>
+                    <button onClick={() => setApModal({ mode: "add", data: emptyApForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAp")}</button>
+                  </div>
+                  <ListToolbar t={t} mode="ap" clients={clients} jobs={jobs} viewMode={apViewMode} setViewMode={setApViewMode} clientFilter={apClientFilter} setClientFilter={setApClientFilter} jobFilter={apJobFilter} setJobFilter={setApJobFilter} />
+                  <div className="overflow-auto">
+                    {apViewMode === "grouped" ? (
+                      groupRows(filteredAp, (r) => r.company_name).map(([group, rows]) => (
+                        <div key={group} className="mb-4">
+                          <div className="px-4 py-2 bg-violet-50 border-y font-semibold text-violet-900">{group}</div>
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500">
+                              <tr>
+                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
+                                <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">Amount in SGD</th>
+                            <th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">Charge</th><th className="p-3 text-left">SWIFT CODE</th><th className="p-3 text-left">Payment Advice email</th><th className="p-3 text-left">{t("actions")}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">{renderApRows(rows)}</tbody>
+                          </table>
+                        </div>
+                      ))
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-slate-500">
+                          <tr>
+                            <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
+                            <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">Amount in SGD</th>
+                            <th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">Charge</th><th className="p-3 text-left">SWIFT CODE</th><th className="p-3 text-left">Payment Advice email</th><th className="p-3 text-left">{t("actions")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">{renderApRows(filteredAp)}</tbody>
+                      </table>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {page === "settings" && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 max-w-xl">
+                  <h3 className="font-semibold text-lg mb-4">{t("settingsTitle")}</h3>
+                  <div className="space-y-4">
+                    <Field label={t("language")}>
+                      <Select value={lang} onChange={(e) => changeLang(e.target.value)}>
+                        <option value="en">{t("langEn")}</option>
+                        <option value="zh_TW">{t("langZhTw")}</option>
+                      </Select>
+                    </Field>
+                    <p className="text-sm text-slate-500">{t("settingsLangHint")}</p>
+                  </div>
+                </section>
+              )}
+
+              {newTxOpen && (
+                <Modal title={t("newTxTitle")} onClose={() => setNewTxOpen(false)}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button onClick={() => { setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
+                      <p className="font-semibold">{t("createArTitle")}</p><p className="text-xs text-slate-500">{t("createArDesc")}</p>
+                    </button>
+                    <button onClick={() => { setApModal({ mode: "add", data: emptyApForm() }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
+                      <p className="font-semibold">{t("createApTitle")}</p><p className="text-xs text-slate-500">{t("createApDesc")}</p>
+                    </button>
+                  </div>
+                </Modal>
+              )}
+
+              {clientModal && (
+                <Modal title={clientModal.mode === "add" ? t("addClientTitle") : t("editClient")} onClose={() => setClientModal(null)}>
+                  <form onSubmit={saveClient} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label="Customer No."><Input required value={clientModal.data.customer_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, customer_no: e.target.value } })} /></Field>
+                    <Field label="COMPANY"><Input required value={clientModal.data.company} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company: e.target.value } })} /></Field>
+                    <Field label="GST#"><Input value={clientModal.data.gst_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, gst_no: e.target.value } })} /></Field>
+                    <Field label="Primary Contact"><Input value={clientModal.data.primary_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, primary_contact: e.target.value } })} /></Field>
+                    <Field label="Company Phone #"><Input value={clientModal.data.company_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company_phone: e.target.value } })} /></Field>
+                    <Field label="Mobile Phone #"><Input value={clientModal.data.mobile_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, mobile_phone: e.target.value } })} /></Field>
+                    <Field label="E-mail"><Input type="email" value={clientModal.data.email} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, email: e.target.value } })} /></Field>
+                    <Field label="Address"><Input value={clientModal.data.address} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, address: e.target.value } })} /></Field>
+                    <Field label="Postal Code"><Input value={clientModal.data.postal_code} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, postal_code: e.target.value } })} /></Field>
+                    <Field label="Contact Person in Account Dept."><Input value={clientModal.data.account_dept_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_contact: e.target.value } })} /></Field>
+                    <Field label="Payment Terms"><Input value={clientModal.data.payment_terms} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: e.target.value } })} /></Field>
+                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setClientModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
+                  </form>
+                </Modal>
+              )}
+
+              {jobModal && (
+                <Modal title={jobModal.mode === "add" ? t("addJobTitle") : t("editJob")} onClose={() => setJobModal(null)}>
+                  <form onSubmit={saveJob} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label="Job No."><Input required value={jobModal.data.job_no} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, job_no: e.target.value } })} /></Field>
+                    <Field label={t("clientGroup")}>
+                      <Select required value={jobModal.data.client_id} onChange={(e) => {
+                        const client = clients.find((c) => c.id === Number(e.target.value));
+                        setJobModal({ ...jobModal, data: { ...jobModal.data, client_id: e.target.value, company: client ? client.company : "" } });
+                      }}>
+                        <option value="">Select Client</option>
+                        {clients.map((c) => <option key={c.id} value={c.id}>{c.customer_no} · {c.company}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label="Type">
+                      <Select required value={jobModal.data.job_type} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, job_type: e.target.value } })}>
+                        {JOB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label="Customer PO"><Input value={jobModal.data.customer_po} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po: e.target.value } })} /></Field>
+                    <Field label="Status">
+                      <Select value={jobModal.data.status} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, status: e.target.value } })}>
+                        <option>Open</option><option>In Progress</option><option>Completed</option><option>On Hold</option>
+                      </Select>
+                    </Field>
+                    <Field label="Start Date"><Input type="date" value={jobModal.data.start_date} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, start_date: e.target.value } })} /></Field>
+                    <Field label="Description"><Input value={jobModal.data.description} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, description: e.target.value } })} /></Field>
+                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setJobModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
+                  </form>
+                </Modal>
+              )}
+
+              {vendorModal && (
+                <Modal title={vendorModal.mode === "add" ? t("addVendorTitle") : t("editVendor")} onClose={() => setVendorModal(null)}>
+                  <form onSubmit={saveVendor} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label="Vendor Name"><Input required value={vendorModal.data.name} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, name: e.target.value } })} /></Field>
+                    <Field label="Email"><Input type="email" value={vendorModal.data.email} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, email: e.target.value } })} /></Field>
+                    <Field label="Bank"><Input value={vendorModal.data.bank} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bank: e.target.value } })} /></Field>
+                    <Field label="SWIFT CODE"><Input value={vendorModal.data.swift_code} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, swift_code: e.target.value } })} /></Field>
+                    <Field label="Contact"><Input value={vendorModal.data.contact} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, contact: e.target.value } })} /></Field>
+                    <Field label="Phone"><Input value={vendorModal.data.phone} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, phone: e.target.value } })} /></Field>
+                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setVendorModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
+                  </form>
+                </Modal>
+              )}
+
+              {siModal && (
+                <Modal title={siModal.mode === "add" ? t("addSiTitle") : t("editSi")} onClose={() => setSiModal(null)}>
+                  <form onSubmit={saveSi} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label="SI Name"><Input required value={siModal.data.name} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, name: e.target.value } })} /></Field>
+                    <Field label="Email"><Input type="email" value={siModal.data.email} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, email: e.target.value } })} /></Field>
+                    <Field label="Bank"><Input value={siModal.data.bank} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, bank: e.target.value } })} /></Field>
+                    <Field label="SWIFT CODE"><Input value={siModal.data.swift_code} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, swift_code: e.target.value } })} /></Field>
+                    <Field label="Contact"><Input value={siModal.data.contact} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, contact: e.target.value } })} /></Field>
+                    <Field label="Phone"><Input value={siModal.data.phone} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, phone: e.target.value } })} /></Field>
+                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setSiModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
+                  </form>
+                </Modal>
+              )}
+
+              {arModal && (
+                <Modal title={arModal.mode === "add" ? t("createArTitle") : t("editAr")} onClose={() => setArModal(null)} wide>
+                  <form onSubmit={saveAR} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label="Link Job">
+                      <Select value={arModal.data.job_id} onChange={(e) => {
+                        const job = jobs.find((j) => j.id === Number(e.target.value));
+                        setArModal({ ...arModal, data: { ...arModal.data, job_id: e.target.value, job_no: job ? job.job_no : "", customer: job ? job.company : arModal.data.customer, customer_po: job ? job.customer_po : arModal.data.customer_po } });
+                      }}>
+                        <option value="">Select Job (optional)</option>
+                        {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company} · {j.job_type}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label="Customer"><Input value={arModal.data.customer} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, customer: e.target.value } })} /></Field>
+                    <Field label="Customer PO"><Input value={arModal.data.customer_po} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, customer_po: e.target.value } })} /></Field>
+                    {(() => {
+                      const linked = jobs.find((j) => j.id === Number(arModal.data.job_id));
+                      return linked ? <Field label={t("jobStatus")}><Input readOnly value={linked.status} className="bg-slate-50" /></Field> : null;
+                    })()}
+                    <Field label="Invoice No."><Input required value={arModal.data.invoice_no} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_no: e.target.value } })} /></Field>
+                    <Field label="Invoice Currency"><Input required value={arModal.data.invoice_currency} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_currency: e.target.value.toUpperCase() } })} /></Field>
+                    <Field label="Invoice Amt"><Input type="number" step="0.01" required value={arModal.data.invoice_amt} onChange={(e) => calcBaseEditable(e.target.value, arModal.data.exchange_rate, arModal.data, (d) => setArModal({ ...arModal, data: d }))} /></Field>
+                    <Field label="Exchange Rate"><Input type="number" step="0.0001" required value={arModal.data.exchange_rate} onChange={(e) => calcBaseEditable(arModal.data.invoice_amt, e.target.value, arModal.data, (d) => setArModal({ ...arModal, data: d }))} /></Field>
+                    <Field label={`Amount in ${activeBaseCurrency} (${t("amountManualOverride")})`}><Input type="number" step="0.01" value={arModal.data.base_amount} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, base_amount: e.target.value } })} /></Field>
+                    <Field label="Invoice Date"><Input type="date" required value={arModal.data.invoice_date} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_date: e.target.value } })} /></Field>
+                    <Field label="Due Date"><Input type="date" required value={arModal.data.due_date} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, due_date: e.target.value } })} /></Field>
+                    <Field label={t("paymentReceived")}><Input type="date" value={arModal.data.payment_received_date} onChange={(e) => {
+                      const v = e.target.value;
+                      setArModal({ ...arModal, data: { ...arModal.data, payment_received_date: v, payment_status: v ? "Paid" : arModal.data.payment_status } });
+                    }} /></Field>
+                    <p className="md:col-span-2 text-xs text-slate-500">{t("autoPaidHint")}</p>
+                    <Field label={t("paymentStatus")}><Select value={arModal.data.payment_status} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, payment_status: e.target.value } })}><option value="Awaiting Payment">{t("awaitingPayment")}</option><option value="Overdue">{t("overdue")}</option><option value="Paid">{t("paid")}</option></Select></Field>
+                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setArModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
+                  </form>
+                </Modal>
+              )}
+
+              {apModal && (
+                <Modal title={apModal.mode === "add" ? t("createApTitle") : t("editAp")} onClose={() => setApModal(null)} wide>
+                  <form onSubmit={saveAP} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label="Link Job">
+                      <Select value={apModal.data.job_id} onChange={(e) => {
+                        const job = jobs.find((j) => j.id === Number(e.target.value));
+                        setApModal({ ...apModal, data: { ...apModal.data, job_id: e.target.value, job_no: job ? job.job_no : "" } });
+                      }}>
+                        <option value="">Select Job</option>
+                        {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label={t("payeeType")}>
+                      <Select value={apModal.data.payee_type} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payee_type: e.target.value, company_name: "", si_id: "" } })}>
+                        <option value="Vendor">{t("payeeVendor")}</option>
+                        <option value="SI">{t("payeeSi")}</option>
+                      </Select>
+                    </Field>
+                    <Field label="Company Name">
+                      {apModal.data.payee_type === "SI" ? (
+                        <Select required value={apModal.data.si_id} onChange={(e) => {
+                          const si = sis.find((s) => s.id === Number(e.target.value));
+                          setApModal({ ...apModal, data: { ...apModal.data, si_id: e.target.value, company_name: si ? si.name : "", bank: si ? si.bank : apModal.data.bank, swift_code: si ? si.swift_code : apModal.data.swift_code, payment_advice_email: si ? si.email : apModal.data.payment_advice_email } });
+                        }}>
+                          <option value="">Select SI</option>
+                          {sis.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </Select>
+                      ) : (
+                        <Select required value={apModal.data.company_name} onChange={(e) => {
+                          const v = vendors.find((x) => x.name === e.target.value);
+                          setApModal({ ...apModal, data: { ...apModal.data, company_name: e.target.value, bank: v ? v.bank : apModal.data.bank, swift_code: v ? v.swift_code : apModal.data.swift_code, payment_advice_email: v ? v.email : apModal.data.payment_advice_email } });
+                        }}>
+                          <option value="">Select Vendor</option>
+                          {vendors.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
+                        </Select>
+                      )}
+                    </Field>
+                    <Field label="Invoice No."><Input required value={apModal.data.invoice_no} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_no: e.target.value } })} /></Field>
+                    <Field label="Invoice Date"><Input type="date" required value={apModal.data.invoice_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_date: e.target.value } })} /></Field>
+                    <Field label="Invoice Received Date"><Input type="date" value={apModal.data.invoice_received_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_received_date: e.target.value } })} /></Field>
+                    <Field label="Due Date"><Input type="date" required value={apModal.data.due_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, due_date: e.target.value } })} /></Field>
+                    <Field label="Currency"><Input required value={apModal.data.currency} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, currency: e.target.value.toUpperCase() } })} /></Field>
+                    <Field label="Amount"><Input type="number" step="0.01" required value={apModal.data.amount} onChange={(e) => calcBaseEditable(e.target.value, apModal.data.exchange_rate, apModal.data, (d) => setApModal({ ...apModal, data: d }))} /></Field>
+                    <Field label="Exchange Rate"><Input type="number" step="0.0001" required value={apModal.data.exchange_rate} onChange={(e) => calcBaseEditable(apModal.data.amount, e.target.value, apModal.data, (d) => setApModal({ ...apModal, data: d }))} /></Field>
+                    <Field label={`Amount in ${activeBaseCurrency} (${t("amountManualOverride")})`}><Input type="number" step="0.01" value={apModal.data.base_amount} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, base_amount: e.target.value } })} /></Field>
+                    <Field label="Pay Date"><Input type="date" value={apModal.data.pay_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, pay_date: e.target.value } })} /></Field>
+                    <p className="md:col-span-2 text-xs text-slate-500">{t("autoApPaidHint")}</p>
+                    <Field label="Remarks"><Input value={apModal.data.remarks} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, remarks: e.target.value } })} /></Field>
+                    <Field label="Bank"><Input value={apModal.data.bank} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, bank: e.target.value } })} /></Field>
+                    <Field label="Charge"><Input value={apModal.data.charge} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, charge: e.target.value } })} /></Field>
+                    <Field label="SWIFT CODE"><Input value={apModal.data.swift_code} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, swift_code: e.target.value } })} /></Field>
+                    <Field label="Payment Advice Email"><Input type="email" value={apModal.data.payment_advice_email} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payment_advice_email: e.target.value } })} /></Field>
+                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setApModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
+                  </form>
+                </Modal>
+              )}
+
+              {renderDetailPanel()}
+            </main>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("app")).render(<App />);
+    </script>
+</body>
+</html>
