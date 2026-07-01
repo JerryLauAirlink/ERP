@@ -1315,18 +1315,25 @@
                 </div>
                 <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
                 {relatedAp.length ? (
+                  <>
+                    <p className="text-xs text-slate-500 mb-2">
+                      {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
+                    </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">Amount in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">Amount in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">Pay Date</th><th className="p-2 text-left"></th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
-                      <tr key={b.id} className="border-t">
+                      <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/70" : "")}>
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
                         <td className="p-2">{b.job_no || "-"}</td>
                         <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, "SGD"))}</td>
                         <td className="p-2">{b.due_date}</td>
+                        <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></td>
+                        <td className="p-2">{b.pay_date || "-"}</td>
                         <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{t("goToAp")}</button></td>
                       </tr>
                     ))}</tbody>
                   </table>
+                  </>
                 ) : <p className="text-slate-500">{t("noAp")}</p>}
               </Modal>
             );
@@ -1346,18 +1353,26 @@
                 </div>
                 <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
                 {relatedAp.length ? (
+                  <>
+                    <p className="text-xs text-slate-500 mb-2">
+                      {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
+                    </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-right">Amount in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">Remarks</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">Amount in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">Pay Date</th><th className="p-2 text-left">Remarks</th><th className="p-2 text-left"></th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
-                      <tr key={b.id} className="border-t">
+                      <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/70" : "")}>
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
+                        <td className="p-2">{b.job_no || "-"}</td>
                         <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, "SGD"))}</td>
                         <td className="p-2">{b.due_date}</td>
-                        <td className="p-2">{b.remarks}</td>
+                        <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></td>
+                        <td className="p-2">{b.pay_date || "-"}</td>
+                        <td className="p-2">{b.remarks || "-"}</td>
                         <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{t("goToAp")}</button></td>
                       </tr>
                     ))}</tbody>
                   </table>
+                  </>
                 ) : <p className="text-slate-500">{t("noAp")}</p>}
               </Modal>
             );
