@@ -53,6 +53,12 @@
         { id: "America/New_York", labelEn: "New York", labelZh: "紐約" }
       ];
 
+      function timezoneLabel(id, lang) {
+        const tz = WORLD_TIMEZONES.find((x) => x.id === id);
+        if (!tz) return id.replace(/^Asia\//, "").replace(/_/g, " ");
+        return lang === "zh_TW" ? tz.labelZh : tz.labelEn;
+      }
+
       const PERM_KEYS = ["view", "add", "edit", "delete", "export", "import"];
 
       function fullPermissions() {
@@ -526,12 +532,12 @@
         const [lang, setLang] = useState(() => localStorage.getItem("erp_lang") || "zh_TW");
         const [baseCurrency, setBaseCurrency] = useState("HKD");
         const [customCurrency, setCustomCurrency] = useState("");
-        const [clients, setClients] = useState(() => ensureRegionOnRecords(initialClients));
-        const [jobs, setJobs] = useState(() => ensureRegionOnRecords(initialJobs));
-        const [vendors, setVendors] = useState(() => ensureRegionOnRecords(initialVendors));
-        const [sis, setSis] = useState(() => ensureRegionOnRecords(initialSis));
-        const [arInvoices, setArInvoices] = useState(() => ensureRegionOnRecords(initialAr));
-        const [apBills, setApBills] = useState(() => ensureRegionOnRecords(initialAp));
+        const [clients, setClients] = useState(() => ensureRegionOnRecords(loadJson("erp_clients", initialClients)));
+        const [jobs, setJobs] = useState(() => ensureRegionOnRecords(loadJson("erp_jobs", initialJobs)));
+        const [vendors, setVendors] = useState(() => ensureRegionOnRecords(loadJson("erp_vendors", initialVendors)));
+        const [sis, setSis] = useState(() => ensureRegionOnRecords(loadJson("erp_sis", initialSis)));
+        const [arInvoices, setArInvoices] = useState(() => ensureRegionOnRecords(loadJson("erp_ar", initialAr)));
+        const [apBills, setApBills] = useState(() => ensureRegionOnRecords(loadJson("erp_ap", initialAp)));
         const [approvals] = useState(initialApprovals);
 
         const [newTxOpen, setNewTxOpen] = useState(false);
@@ -584,6 +590,12 @@
 
         useEffect(() => { localStorage.setItem("erp_users", JSON.stringify(users)); }, [users]);
         useEffect(() => { localStorage.setItem("erp_audit_logs", JSON.stringify(auditLogs)); }, [auditLogs]);
+        useEffect(() => { localStorage.setItem("erp_clients", JSON.stringify(clients)); }, [clients]);
+        useEffect(() => { localStorage.setItem("erp_jobs", JSON.stringify(jobs)); }, [jobs]);
+        useEffect(() => { localStorage.setItem("erp_vendors", JSON.stringify(vendors)); }, [vendors]);
+        useEffect(() => { localStorage.setItem("erp_sis", JSON.stringify(sis)); }, [sis]);
+        useEffect(() => { localStorage.setItem("erp_ar", JSON.stringify(arInvoices)); }, [arInvoices]);
+        useEffect(() => { localStorage.setItem("erp_ap", JSON.stringify(apBills)); }, [apBills]);
         useEffect(() => { localStorage.setItem("erp_current_user_id", String(currentUserId)); }, [currentUserId]);
         useEffect(() => { localStorage.setItem("erp_world_timezone", worldTimeZone); }, [worldTimeZone]);
         useEffect(() => { localStorage.setItem("erp_sidebar_collapsed", sidebarCollapsed ? "1" : "0"); }, [sidebarCollapsed]);
@@ -1171,6 +1183,7 @@
         function handleImportFile(module, file) {
           if (!guardPermission(module, "import")) return;
           if (!file) return;
+          if (typeof XLSX === "undefined") { alert("Excel library not loaded"); return; }
           const schema = EXCEL_SCHEMAS[module];
           const reader = new FileReader();
           reader.onload = (e) => {
@@ -1661,8 +1674,10 @@
                   <p className="text-sm text-slate-500">{t("baseCurrency")}: {activeBaseCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-nowrap">
-                  <div className="flex items-center gap-2 h-9 px-2.5 rounded-lg border border-slate-200 bg-white" title={`${t("worldTime")} · ${worldTimeZone}`}>
+                  <div className="flex items-center gap-2 h-9 px-2.5 rounded-lg border border-slate-200 bg-white" title={t("worldTimeHint")}>
                     <span className="text-[10px] uppercase tracking-wide text-slate-400 whitespace-nowrap">{t("worldTime")}</span>
+                    <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">{timezoneLabel(worldTimeZone, lang)}</span>
+                    <span className="text-slate-300">|</span>
                     <span className="text-xs font-mono font-semibold text-slate-700 tabular-nums whitespace-nowrap">{formatWorldTime(worldClock, worldTimeZone, lang)}</span>
                   </div>
                   <div className="flex items-center gap-1.5 h-9">
@@ -1974,7 +1989,7 @@
                         </Select>
                       </Field>
                       <p className="text-sm text-slate-500">{t("worldTimeHint")}</p>
-                      <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{formatWorldTime(worldClock, worldTimeZone, lang)}</p>
+                      <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{timezoneLabel(worldTimeZone, lang)} · {formatWorldTime(worldClock, worldTimeZone, lang)}</p>
                       <p className="text-sm text-slate-500">{t("regionDataHint")}</p>
                     </div>
                   )}
