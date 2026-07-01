@@ -23,6 +23,26 @@
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
       const ERP_MODULES = ["dashboard", "clients", "job", "ar", "ap", "vendors", "si", "settings"];
+      const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
+      const ERP_REGIONS = [
+        { id: "HK", labelEn: "HK", labelZh: "香港" },
+        { id: "TW", labelEn: "TW", labelZh: "台灣" },
+        { id: "SG", labelEn: "SG", labelZh: "新加坡" },
+        { id: "MY", labelEn: "MY", labelZh: "馬來西亞" },
+        { id: "ID", labelEn: "ID", labelZh: "印尼" },
+        { id: "ALL", labelEn: "ALL", labelZh: "全部" }
+      ];
+      const DATA_REGION_IDS = ["HK", "TW", "SG", "MY", "ID"];
+
+      function regionLabel(id, lang) {
+        const r = ERP_REGIONS.find((x) => x.id === id);
+        if (!r) return id;
+        return lang === "zh_TW" ? r.labelZh : r.labelEn;
+      }
+
+      function ensureRegionOnRecords(arr, fallback = "HK") {
+        return (arr || []).map((x) => ({ ...x, region: x.region || fallback }));
+      }
       const WORLD_TIMEZONES = [
         { id: "UTC", labelEn: "UTC (World Standard)", labelZh: "UTC（世界標準時間）" },
         { id: "Asia/Hong_Kong", labelEn: "Hong Kong", labelZh: "香港" },
@@ -201,7 +221,10 @@
           importExcel: "Import Excel", importPreviewTitle: "Import Preview", importConfirm: "Confirm Import",
           importRowCreate: "New", importRowUpdate: "Update", importRowError: "Error", importSummary: "Summary",
           importNoRows: "No valid rows found.", importFileError: "Could not read file.",
-          actionExport: "Export", actionImport: "Import", importModeHint: "Existing keys will be updated; new keys will be created."
+          actionExport: "Export", actionImport: "Import",           importModeHint: "Existing keys will be updated; new keys will be created.",
+          filterStatus: "Filter Status", searchPlaceholder: "Search...", searchHint: "Matches invoice no., client, job no., PO, etc.",
+          region: "Region", regionAccess: "Region Access", regionScopeHint: "Data you create is tagged to the active region. ALL shows every region you can access.",
+          regionDataHint: "New records are saved under the currently selected region (not ALL)."
         },
         zh_TW: {
           appTitle: "ERP 系統", nav_dashboard: "儀表板", nav_clients: "客戶", nav_job: "工作清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
@@ -245,7 +268,10 @@
           importExcel: "匯入 Excel", importPreviewTitle: "匯入預覽", importConfirm: "確認匯入",
           importRowCreate: "新增", importRowUpdate: "更新", importRowError: "錯誤", importSummary: "摘要",
           importNoRows: "找不到有效資料列。", importFileError: "無法讀取檔案。",
-          actionExport: "匯出", actionImport: "匯入", importModeHint: "已存在的主鍵會更新；新主鍵會新增。"
+          actionExport: "匯出", actionImport: "匯入",           importModeHint: "已存在的主鍵會更新；新主鍵會新增。",
+          filterStatus: "篩選狀態", searchPlaceholder: "搜尋...", searchHint: "可搜發票號、客戶、工作編號、PO 等。",
+          region: "地區", regionAccess: "地區權限", regionScopeHint: "你新增嘅資料會標記為目前地區；ALL 顯示你有權限嘅所有地區。",
+          regionDataHint: "新增資料會儲存於目前所選地區（ALL 時用你有權限嘅第一個地區）。"
         },
       };
 
@@ -377,7 +403,7 @@
         return <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="text-blue-600 hover:underline font-medium">{children}</button>;
       }
 
-      function ListToolbar({ t, mode, clients, jobs, viewMode, setViewMode, clientFilter, setClientFilter, jobFilter, setJobFilter }) {
+      function ListToolbar({ t, mode, clients, jobs, viewMode, setViewMode, clientFilter, setClientFilter, jobFilter, setJobFilter, statusFilter, setStatusFilter, searchQ, setSearchQ, lang }) {
         return (
           <div className="p-4 border-b flex flex-wrap gap-3 items-center bg-slate-50/80">
             {(mode === "job" || mode === "ar" || mode === "ap") && (
@@ -386,6 +412,15 @@
                 <Select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className="w-48 bg-white">
                   <option value="all">{t("all")}</option>
                   {clients.map((c) => <option key={c.id} value={c.company}>{c.company}</option>)}
+                </Select>
+              </label>
+            )}
+            {mode === "job" && (
+              <label className="text-sm flex items-center gap-2">
+                <span className="text-slate-600">{t("filterStatus")}:</span>
+                <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-40 bg-white">
+                  <option value="all">{t("all")}</option>
+                  {JOB_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </Select>
               </label>
             )}
@@ -398,6 +433,12 @@
                 </Select>
               </label>
             )}
+            {(mode === "ar" || mode === "ap") && (
+              <label className="text-sm flex items-center gap-2 flex-1 min-w-[12rem]">
+                <span className="text-slate-600 shrink-0">{t("auditSearch")}:</span>
+                <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder={t("searchPlaceholder")} className="bg-white" />
+              </label>
+            )}
             <label className="text-sm flex items-center gap-2">
               <span className="text-slate-600">{t("displayMode")}:</span>
               <Select value={viewMode} onChange={(e) => setViewMode(e.target.value)} className="w-52 bg-white">
@@ -405,38 +446,42 @@
                 <option value="grouped">{mode === "ap" ? t("groupByVendor") : t("groupByClient")}</option>
               </Select>
             </label>
-            <span className="text-xs text-slate-500">{mode === "ap" && jobFilter !== "all" ? t("filterJobHint") : t("filterClientHint")} · {t("groupHint")}</span>
+            <span className="text-xs text-slate-500">
+              {mode === "ap" && jobFilter !== "all" ? t("filterJobHint") : mode === "ar" || mode === "ap" ? t("searchHint") : t("filterClientHint")} · {t("groupHint")}
+            </span>
           </div>
         );
       }
 
       const initialClients = [
-        { id: 1, customer_no: "CUST-0001", company: "Pacific Systems", gst_no: "GST-HK-1102", primary_contact: "Ken Wong", company_phone: "852-2333-1122", mobile_phone: "852-9456-3321", email: "ar@pacific.com", address: "18/F Pacific Tower, TST, Hong Kong", postal_code: "999077", account_dept_contact: "May Chan", payment_terms: "30 Days" },
-        { id: 2, customer_no: "CUST-0002", company: "Kingston Trading", gst_no: "GST-HK-2208", primary_contact: "Henry Lee", company_phone: "852-2550-0091", mobile_phone: "852-9877-1234", email: "finance@kingston.com", address: "Rm 1206, Mongkok Centre, Kowloon", postal_code: "999078", account_dept_contact: "Amy Lau", payment_terms: "45 Days" }
+        { id: 1, region: "HK", customer_no: "CUST-0001", company: "Pacific Systems", gst_no: "GST-HK-1102", primary_contact: "Ken Wong", company_phone: "852-2333-1122", mobile_phone: "852-9456-3321", email: "ar@pacific.com", address: "18/F Pacific Tower, TST, Hong Kong", postal_code: "999077", account_dept_contact: "May Chan", payment_terms: "30 Days" },
+        { id: 2, region: "HK", customer_no: "CUST-0002", company: "Kingston Trading", gst_no: "GST-HK-2208", primary_contact: "Henry Lee", company_phone: "852-2550-0091", mobile_phone: "852-9877-1234", email: "finance@kingston.com", address: "Rm 1206, Mongkok Centre, Kowloon", postal_code: "999078", account_dept_contact: "Amy Lau", payment_terms: "45 Days" },
+        { id: 3, region: "TW", customer_no: "CUST-TW-001", company: "Taipei Tech Co.", gst_no: "TW-88321", primary_contact: "Lin Mei", company_phone: "886-2-5500-1122", mobile_phone: "886-912-334455", email: "ap@taipei-tech.tw", address: "Taipei Xinyi District", postal_code: "110", account_dept_contact: "Chen Wei", payment_terms: "30 Days" }
       ];
 
       const initialJobs = [
-        { id: 1, job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", status: "In Progress", description: "ERP rollout phase 1", start_date: "2026-04-01" },
-        { id: 2, job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", status: "Completed", description: "Annual maintenance", start_date: "2026-05-15" }
+        { id: 1, region: "HK", job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", status: "In Progress", description: "ERP rollout phase 1", start_date: "2026-04-01" },
+        { id: 2, region: "HK", job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", status: "Completed", description: "Annual maintenance", start_date: "2026-05-15" },
+        { id: 3, region: "TW", job_no: "JB-TW-001", client_id: 3, company: "Taipei Tech Co.", job_type: "Project", customer_po: "PO-TW-100", status: "Open", description: "TW office setup", start_date: "2026-06-01" }
       ];
 
       const initialVendors = [
-        { id: 1, name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Tom Lee", phone: "852-2111-0000" },
-        { id: 2, name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", contact: "Sarah", phone: "852-2888-0000" }
+        { id: 1, region: "HK", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Tom Lee", phone: "852-2111-0000" },
+        { id: 2, region: "HK", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", contact: "Sarah", phone: "852-2888-0000" }
       ];
 
       const initialSis = [
-        { id: 1, name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Mr. Cheung", phone: "852-3000-1122" }
+        { id: 1, region: "HK", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Mr. Cheung", phone: "852-3000-1122" }
       ];
 
       const initialAr = [
-        { id: 1, job_id: 1, job_no: "JB-001", customer: "Pacific Systems", customer_po: "PO-7781", job_completed: false, invoice_no: "INV-2026-1192", invoice_currency: "USD", invoice_amt: 11000, exchange_rate_locked: 7.8, base_amount_locked: 85800, base_amount: 85800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-01", due_date: "2026-06-05", payment_received_date: "", payment_status: "Overdue" },
-        { id: 2, job_id: 2, job_no: "JB-002", customer: "Kingston Trading", customer_po: "PO-8801", job_completed: true, invoice_no: "INV-2026-1204", invoice_currency: "HKD", invoice_amt: 54500, exchange_rate_locked: 1, base_amount_locked: 54500, base_amount: 54500, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-01", due_date: "2026-06-20", payment_received_date: "", payment_status: "Awaiting Payment" }
+        { id: 1, region: "HK", job_id: 1, job_no: "JB-001", customer: "Pacific Systems", customer_po: "PO-7781", job_completed: false, invoice_no: "INV-2026-1192", invoice_currency: "USD", invoice_amt: 11000, exchange_rate_locked: 7.8, base_amount_locked: 85800, base_amount: 85800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-01", due_date: "2026-06-05", payment_received_date: "", payment_status: "Overdue" },
+        { id: 2, region: "HK", job_id: 2, job_no: "JB-002", customer: "Kingston Trading", customer_po: "PO-8801", job_completed: true, invoice_no: "INV-2026-1204", invoice_currency: "HKD", invoice_amt: 54500, exchange_rate_locked: 1, base_amount_locked: 54500, base_amount: 54500, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-01", due_date: "2026-06-20", payment_received_date: "", payment_status: "Awaiting Payment" }
       ];
 
       const initialAp = [
-        { id: 1, job_id: 1, job_no: "JB-001", payee_type: "Vendor", si_id: null, company_name: "Delta Tech Vendor", invoice_no: "BILL-2026-2289", invoice_date: "2026-06-04", invoice_received_date: "2026-06-07", due_date: "2026-07-02", currency: "USD", amount: 6000, exchange_rate_locked: 7.8, base_amount_locked: 46800, base_amount: 46800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "2026-06-28", remarks: "Hardware for JB-001", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "ap@delta.com" },
-        { id: 2, job_id: 1, job_no: "JB-001", payee_type: "SI", si_id: 1, company_name: "Ace Engineering SI", invoice_no: "SI-INV-2026-001", invoice_date: "2026-06-10", invoice_received_date: "2026-06-12", due_date: "2026-07-10", currency: "HKD", amount: 28000, exchange_rate_locked: 1, base_amount_locked: 28000, base_amount: 28000, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Subcontract install work", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "invoice@ace-eng.com" }
+        { id: 1, region: "HK", job_id: 1, job_no: "JB-001", payee_type: "Vendor", si_id: null, company_name: "Delta Tech Vendor", invoice_no: "BILL-2026-2289", invoice_date: "2026-06-04", invoice_received_date: "2026-06-07", due_date: "2026-07-02", currency: "USD", amount: 6000, exchange_rate_locked: 7.8, base_amount_locked: 46800, base_amount: 46800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "2026-06-28", remarks: "Hardware for JB-001", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "ap@delta.com" },
+        { id: 2, region: "HK", job_id: 1, job_no: "JB-001", payee_type: "SI", si_id: 1, company_name: "Ace Engineering SI", invoice_no: "SI-INV-2026-001", invoice_date: "2026-06-10", invoice_received_date: "2026-06-12", due_date: "2026-07-10", currency: "HKD", amount: 28000, exchange_rate_locked: 1, base_amount_locked: 28000, base_amount: 28000, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Subcontract install work", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "invoice@ace-eng.com" }
       ];
 
       const initialApprovals = [
@@ -446,9 +491,9 @@
       ];
 
       const initialUsers = [
-        { id: 1, name: "Root Admin", email: "root@erp.local", password: "root", role: "root", is_active: true, permissions: fullPermissions() },
+        { id: 1, name: "Root Admin", email: "root@erp.local", password: "root", role: "root", is_active: true, permissions: fullPermissions(), allowed_regions: ["ALL"] },
         {
-          id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true,
+          id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true, allowed_regions: ["HK"],
           permissions: {
             dashboard: { view: true, add: false, edit: false, delete: false, export: false, import: false },
             clients: { view: true, add: false, edit: false, delete: false, export: true, import: false },
@@ -481,12 +526,12 @@
         const [lang, setLang] = useState(() => localStorage.getItem("erp_lang") || "zh_TW");
         const [baseCurrency, setBaseCurrency] = useState("HKD");
         const [customCurrency, setCustomCurrency] = useState("");
-        const [clients, setClients] = useState(initialClients);
-        const [jobs, setJobs] = useState(initialJobs);
-        const [vendors, setVendors] = useState(initialVendors);
-        const [sis, setSis] = useState(initialSis);
-        const [arInvoices, setArInvoices] = useState(initialAr);
-        const [apBills, setApBills] = useState(initialAp);
+        const [clients, setClients] = useState(() => ensureRegionOnRecords(initialClients));
+        const [jobs, setJobs] = useState(() => ensureRegionOnRecords(initialJobs));
+        const [vendors, setVendors] = useState(() => ensureRegionOnRecords(initialVendors));
+        const [sis, setSis] = useState(() => ensureRegionOnRecords(initialSis));
+        const [arInvoices, setArInvoices] = useState(() => ensureRegionOnRecords(initialAr));
+        const [apBills, setApBills] = useState(() => ensureRegionOnRecords(initialAp));
         const [approvals] = useState(initialApprovals);
 
         const [newTxOpen, setNewTxOpen] = useState(false);
@@ -497,9 +542,14 @@
         const [arViewMode, setArViewMode] = useState("list");
         const [apViewMode, setApViewMode] = useState("list");
         const [jobClientFilter, setJobClientFilter] = useState("all");
+        const [jobStatusFilter, setJobStatusFilter] = useState("all");
         const [arClientFilter, setArClientFilter] = useState("all");
+        const [arSearch, setArSearch] = useState("");
         const [apClientFilter, setApClientFilter] = useState("all");
         const [apJobFilter, setApJobFilter] = useState("all");
+        const [apSearch, setApSearch] = useState("");
+        const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("erp_sidebar_collapsed") === "1");
+        const [activeRegion, setActiveRegion] = useState(() => localStorage.getItem("erp_active_region") || "HK");
 
         const [clientModal, setClientModal] = useState(null);
         const [jobModal, setJobModal] = useState(null);
@@ -510,7 +560,11 @@
 
         const [users, setUsers] = useState(() => {
           const loaded = loadJson("erp_users", initialUsers);
-          return Array.isArray(loaded) ? loaded.map((u) => ({ ...u, permissions: u.role === "root" ? fullPermissions() : normalizePermissions(u.permissions) })) : initialUsers;
+          return Array.isArray(loaded) ? loaded.map((u) => ({
+            ...u,
+            permissions: u.role === "root" ? fullPermissions() : normalizePermissions(u.permissions),
+            allowed_regions: u.role === "root" ? ["ALL"] : (u.allowed_regions && u.allowed_regions.length ? u.allowed_regions : ["HK"])
+          })) : initialUsers;
         });
         const [auditLogs, setAuditLogs] = useState(() => loadJson("erp_audit_logs", initialAuditLogs));
         const [currentUserId, setCurrentUserId] = useState(() => Number(localStorage.getItem("erp_current_user_id") || 1));
@@ -532,10 +586,48 @@
         useEffect(() => { localStorage.setItem("erp_audit_logs", JSON.stringify(auditLogs)); }, [auditLogs]);
         useEffect(() => { localStorage.setItem("erp_current_user_id", String(currentUserId)); }, [currentUserId]);
         useEffect(() => { localStorage.setItem("erp_world_timezone", worldTimeZone); }, [worldTimeZone]);
+        useEffect(() => { localStorage.setItem("erp_sidebar_collapsed", sidebarCollapsed ? "1" : "0"); }, [sidebarCollapsed]);
+        useEffect(() => { localStorage.setItem("erp_active_region", activeRegion); }, [activeRegion]);
 
         function getCurrentUser() {
           return users.find((u) => u.id === currentUserId) || users.find((u) => u.role === "root") || users[0];
         }
+
+        function getUserRegions() {
+          const u = getCurrentUser();
+          if (!u) return ["HK"];
+          if (u.role === "root" || (u.allowed_regions && u.allowed_regions.includes("ALL"))) return ERP_REGIONS.map((r) => r.id);
+          return u.allowed_regions && u.allowed_regions.length ? u.allowed_regions : ["HK"];
+        }
+
+        function recordInActiveRegion(rec) {
+          const rg = rec.region || "HK";
+          const allowed = getUserRegions();
+          if (activeRegion === "ALL") {
+            if (allowed.includes("ALL")) return true;
+            return allowed.includes(rg);
+          }
+          return rg === activeRegion && (allowed.includes("ALL") || allowed.includes(rg));
+        }
+
+        function regionForNewRecord() {
+          if (activeRegion !== "ALL") return activeRegion;
+          const allowed = getUserRegions().filter((x) => x !== "ALL");
+          return allowed[0] || "HK";
+        }
+
+        function matchesSearch(row, q, keys) {
+          if (!q.trim()) return true;
+          const s = q.toLowerCase();
+          return keys.some((k) => String(row[k] || "").toLowerCase().includes(s));
+        }
+
+        useEffect(() => {
+          const allowed = getUserRegions();
+          if (!allowed.includes(activeRegion)) {
+            setActiveRegion(allowed.includes("ALL") ? "ALL" : allowed[0]);
+          }
+        }, [currentUserId, users]);
 
         function isRoot() {
           const u = getCurrentUser();
@@ -665,8 +757,15 @@
 
         const activeBaseCurrency = baseCurrency === "OTHER" ? (customCurrency || "USD").toUpperCase() : baseCurrency;
 
-        const arDisplay = useMemo(() => arInvoices.map((r) => ({ ...r, display_base_amount: convertCurrency(r.invoice_amt, r.invoice_currency, activeBaseCurrency) })), [arInvoices, activeBaseCurrency]);
-        const apDisplay = useMemo(() => apBills.map((r) => ({ ...r, display_base_amount: convertCurrency(r.amount, r.currency, activeBaseCurrency) })), [apBills, activeBaseCurrency]);
+        const scopedClients = useMemo(() => clients.filter(recordInActiveRegion), [clients, activeRegion, users, currentUserId]);
+        const scopedJobs = useMemo(() => jobs.filter(recordInActiveRegion), [jobs, activeRegion, users, currentUserId]);
+        const scopedVendors = useMemo(() => vendors.filter(recordInActiveRegion), [vendors, activeRegion, users, currentUserId]);
+        const scopedSis = useMemo(() => sis.filter(recordInActiveRegion), [sis, activeRegion, users, currentUserId]);
+        const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, currentUserId]);
+        const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, currentUserId]);
+
+        const arDisplay = useMemo(() => scopedArInvoices.map((r) => ({ ...r, display_base_amount: convertCurrency(r.invoice_amt, r.invoice_currency, activeBaseCurrency) })), [scopedArInvoices, activeBaseCurrency]);
+        const apDisplay = useMemo(() => scopedApBills.map((r) => ({ ...r, display_base_amount: convertCurrency(r.amount, r.currency, activeBaseCurrency) })), [scopedApBills, activeBaseCurrency]);
         const arTotal = useMemo(() => arDisplay.filter((r) => r.payment_status !== "Paid").reduce((a, b) => a + b.display_base_amount, 0), [arDisplay]);
         const apTotal = useMemo(() => apDisplay.filter((b) => !isApPaid(b)).reduce((a, b) => a + b.display_base_amount, 0), [apDisplay]);
 
@@ -690,21 +789,32 @@
         const dueSoonCount = useMemo(() => arDisplay.filter((r) => calcOverdueDays(r.due_date) === 0 && r.payment_status !== "Paid").length, [arDisplay]);
         const overdueCount = overdueList.length;
 
-        const filteredJobs = useMemo(() => (jobClientFilter === "all" ? jobs : jobs.filter((j) => j.company === jobClientFilter)), [jobs, jobClientFilter]);
-        const filteredAr = useMemo(() => (arClientFilter === "all" ? arDisplay : arDisplay.filter((r) => r.customer === arClientFilter)), [arDisplay, arClientFilter]);
+        const filteredJobs = useMemo(() => {
+          let list = scopedJobs;
+          if (jobClientFilter !== "all") list = list.filter((j) => j.company === jobClientFilter);
+          if (jobStatusFilter !== "all") list = list.filter((j) => j.status === jobStatusFilter);
+          return list;
+        }, [scopedJobs, jobClientFilter, jobStatusFilter]);
+        const filteredAr = useMemo(() => {
+          let list = arDisplay;
+          if (arClientFilter !== "all") list = list.filter((r) => r.customer === arClientFilter);
+          if (arSearch.trim()) list = list.filter((r) => matchesSearch(r, arSearch, ["invoice_no", "customer", "customer_po", "job_no"]));
+          return list;
+        }, [arDisplay, arClientFilter, arSearch]);
         const filteredAp = useMemo(() => {
           let list = apDisplay;
           if (apClientFilter !== "all") {
             list = list.filter((b) => {
-              const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+              const job = scopedJobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
               return job ? job.company === apClientFilter : false;
             });
           }
           if (apJobFilter !== "all") {
-            list = list.filter((b) => String(b.job_id) === apJobFilter || jobs.find((j) => j.id === Number(apJobFilter))?.job_no === b.job_no);
+            list = list.filter((b) => String(b.job_id) === apJobFilter || scopedJobs.find((j) => j.id === Number(apJobFilter))?.job_no === b.job_no);
           }
+          if (apSearch.trim()) list = list.filter((b) => matchesSearch(b, apSearch, ["invoice_no", "company_name", "job_no", "remarks", "customer_po"]));
           return list;
-        }, [apDisplay, apClientFilter, apJobFilter, jobs]);
+        }, [apDisplay, apClientFilter, apJobFilter, apSearch, scopedJobs]);
 
         function getJobForAr(r) {
           if (r.job_id) return jobs.find((j) => j.id === r.job_id) || null;
@@ -775,7 +885,7 @@
           const data = clientModal.data;
           if (clientModal.mode === "add") {
             if (!guardPermission("clients", "add")) return;
-            setClients([{ id: Date.now(), ...data }, ...clients]);
+            setClients([{ id: Date.now(), region: regionForNewRecord(), ...data }, ...clients]);
             logAudit("clients", "create", data.company, `Created client ${data.customer_no} · ${data.company}`);
           } else {
             if (!guardPermission("clients", "edit")) return;
@@ -803,7 +913,7 @@
           if (jobModal.mode === "add") {
             if (!guardPermission("job", "add")) return;
             const newId = Date.now();
-            setJobs([{ id: newId, ...payload }, ...jobs]);
+            setJobs([{ id: newId, region: regionForNewRecord(), ...payload }, ...jobs]);
             logAudit("job", "create", payload.job_no, `Created job ${payload.job_no} for ${payload.company}`);
           } else {
             if (!guardPermission("job", "edit")) return;
@@ -834,7 +944,7 @@
           const data = vendorModal.data;
           if (vendorModal.mode === "add") {
             if (!guardPermission("vendors", "add")) return;
-            setVendors([{ id: Date.now(), ...data }, ...vendors]);
+            setVendors([{ id: Date.now(), region: regionForNewRecord(), ...data }, ...vendors]);
             logAudit("vendors", "create", data.name, `Created vendor ${data.name}`);
           } else {
             if (!guardPermission("vendors", "edit")) return;
@@ -861,7 +971,7 @@
           const data = siModal.data;
           if (siModal.mode === "add") {
             if (!guardPermission("si", "add")) return;
-            setSis([{ id: Date.now(), ...data }, ...sis]);
+            setSis([{ id: Date.now(), region: regionForNewRecord(), ...data }, ...sis]);
             logAudit("si", "create", data.name, `Created SI ${data.name}`);
           } else {
             if (!guardPermission("si", "edit")) return;
@@ -908,7 +1018,7 @@
           };
           if (arModal.mode === "add") {
             if (!guardPermission("ar", "add")) return;
-            setArInvoices([{ id: Date.now(), ...rec }, ...arInvoices]);
+            setArInvoices([{ id: Date.now(), region: regionForNewRecord(), ...rec }, ...arInvoices]);
             logAudit("ar", "create", rec.invoice_no, `Created AR ${rec.invoice_no} for ${rec.customer}`);
           } else {
             if (!guardPermission("ar", "edit")) return;
@@ -948,7 +1058,7 @@
           };
           if (apModal.mode === "add") {
             if (!guardPermission("ap", "add")) return;
-            setApBills([{ id: Date.now(), ...rec }, ...apBills]);
+            setApBills([{ id: Date.now(), region: regionForNewRecord(), ...rec }, ...apBills]);
             logAudit("ap", "create", rec.invoice_no, `Created AP ${rec.invoice_no} for ${rec.company_name}`);
           } else {
             if (!guardPermission("ap", "edit")) return;
@@ -967,14 +1077,21 @@
         }
 
         function emptyUserForm() {
-          return { name: "", email: "", password: "", role: "user", is_active: true, permissions: emptyPermissions() };
+          return { name: "", email: "", password: "", role: "user", is_active: true, permissions: emptyPermissions(), allowed_regions: ["HK"] };
+        }
+
+        function toggleUserRegion(regionId) {
+          if (!userModal || userModal.data.role === "root") return;
+          const cur = userModal.data.allowed_regions || [];
+          const next = cur.includes(regionId) ? cur.filter((x) => x !== regionId) : [...cur, regionId];
+          setUserModal({ ...userModal, data: { ...userModal.data, allowed_regions: next.length ? next : ["HK"] } });
         }
 
         function saveUser(e) {
           e.preventDefault();
           if (!isRoot()) { alert(t("rootOnly")); return; }
           const data = userModal.data;
-          if (data.role === "root") data.permissions = fullPermissions();
+          if (data.role === "root") { data.permissions = fullPermissions(); data.allowed_regions = ["ALL"]; }
           if (userModal.mode === "add") {
             if (users.some((u) => u.email === data.email)) { alert("Email already exists"); return; }
             setUsers([...users, { id: Date.now(), ...data }]);
@@ -1001,11 +1118,11 @@
           if (!schema || typeof XLSX === "undefined") { alert("Excel library not loaded"); return; }
           const stamp = new Date().toISOString().slice(0, 10);
           if (module === "clients") {
-            const rows = mode === "data" ? clients.map((c) => ({ ...c })) : [];
+            const rows = mode === "data" ? scopedClients.map((c) => ({ ...c })) : [];
             downloadWorkbook(buildWorkbook(schema, rows, true), schema.filePrefix + (mode === "data" ? "_data_" : "_template_") + stamp + ".xlsx");
             logAudit(module, "export", schema.sheetName, `Exported ${mode} (${rows.length} rows)`);
           } else if (module === "job") {
-            const rows = mode === "data" ? jobs.map((j) => ({ job_no: j.job_no, company: j.company, job_type: j.job_type, customer_po: j.customer_po || "", status: j.status || "Open", start_date: j.start_date || "", description: j.description || "" })) : [];
+            const rows = mode === "data" ? scopedJobs.map((j) => ({ job_no: j.job_no, company: j.company, job_type: j.job_type, customer_po: j.customer_po || "", status: j.status || "Open", start_date: j.start_date || "", description: j.description || "" })) : [];
             downloadWorkbook(buildWorkbook(schema, rows, true), schema.filePrefix + (mode === "data" ? "_data_" : "_template_") + stamp + ".xlsx");
             logAudit(module, "export", schema.sheetName, `Exported ${mode} (${rows.length} rows)`);
           }
@@ -1089,7 +1206,7 @@
                 if (oldCompany !== payload.company) syncCompanyName(oldCompany, payload.company);
                 updated++;
               } else {
-                next = [{ id: Date.now() + Math.floor(Math.random() * 10000), ...payload }, ...next];
+                next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...next];
                 created++;
               }
             });
@@ -1119,7 +1236,7 @@
                 updated++;
               } else {
                 const newId = Date.now() + Math.floor(Math.random() * 10000);
-                next = [{ id: newId, ...payload }, ...next];
+                next = [{ id: newId, region: regionForNewRecord(), ...payload }, ...next];
                 created++;
               }
             });
@@ -1167,12 +1284,12 @@
 
         const maxBar = useMemo(() => Math.max(1, ...cashFlowSeries.flatMap((p) => [p.inBase, p.outBase])), [cashFlowSeries]);
 
-        function SidebarItem({ id, label, module }) {
+        function SidebarItem({ id, label, module, collapsed }) {
           if (module && !can(module, "view")) return null;
           const active = page === id;
           return (
-            <button onClick={() => setPage(id)} className={"w-full text-left px-2.5 py-1.5 rounded-lg text-xs " + (active ? "bg-blue-600 text-white font-medium" : "text-slate-100 hover:bg-slate-800")}>
-              {label}
+            <button onClick={() => setPage(id)} title={label} className={"w-full text-left rounded-lg text-xs " + (collapsed ? "px-2 py-2 text-center" : "px-2.5 py-1.5") + " " + (active ? "bg-blue-600 text-white font-medium" : "text-slate-100 hover:bg-slate-800")}>
+              {collapsed ? label.slice(0, 1) : label}
             </button>
           );
         }
@@ -1509,22 +1626,27 @@
 
         return (
           <div className="flex min-h-screen">
-            <aside className="w-48 shrink-0 bg-slate-900 text-slate-100 p-3">
-              <h1 className="text-sm font-semibold tracking-wide mb-4 px-1">{t("appTitle")}</h1>
+            <aside className={(sidebarCollapsed ? "w-12" : "w-48") + " shrink-0 bg-slate-900 text-slate-100 p-3 transition-all duration-200 relative"}>
+              <div className={"flex items-center mb-4 " + (sidebarCollapsed ? "justify-center" : "justify-between px-1")}>
+                {!sidebarCollapsed && <h1 className="text-sm font-semibold tracking-wide">{t("appTitle")}</h1>}
+                <button type="button" onClick={() => setSidebarCollapsed((v) => !v)} className="text-slate-300 hover:text-white text-xs px-1.5 py-1 rounded hover:bg-slate-800" title={sidebarCollapsed ? "Expand" : "Collapse"}>
+                  {sidebarCollapsed ? "»" : "«"}
+                </button>
+              </div>
               <nav className="space-y-1">
-                <SidebarItem id="dashboard" label={t("nav_dashboard")} module="dashboard" />
-                <SidebarItem id="clients" label={t("nav_clients")} module="clients" />
-                <SidebarItem id="job" label={t("nav_job")} module="job" />
-                <SidebarItem id="ar" label={t("nav_ar")} module="ar" />
-                <SidebarItem id="ap" label={t("nav_ap")} module="ap" />
-                <SidebarItem id="vendors" label={t("nav_vendors")} module="vendors" />
-                <SidebarItem id="si" label={t("nav_si")} module="si" />
-                <SidebarItem id="settings" label={t("nav_settings")} module="settings" />
+                <SidebarItem id="dashboard" label={t("nav_dashboard")} module="dashboard" collapsed={sidebarCollapsed} />
+                <SidebarItem id="clients" label={t("nav_clients")} module="clients" collapsed={sidebarCollapsed} />
+                <SidebarItem id="job" label={t("nav_job")} module="job" collapsed={sidebarCollapsed} />
+                <SidebarItem id="ar" label={t("nav_ar")} module="ar" collapsed={sidebarCollapsed} />
+                <SidebarItem id="ap" label={t("nav_ap")} module="ap" collapsed={sidebarCollapsed} />
+                <SidebarItem id="vendors" label={t("nav_vendors")} module="vendors" collapsed={sidebarCollapsed} />
+                <SidebarItem id="si" label={t("nav_si")} module="si" collapsed={sidebarCollapsed} />
+                <SidebarItem id="settings" label={t("nav_settings")} module="settings" collapsed={sidebarCollapsed} />
               </nav>
             </aside>
 
             <main className="flex-1 min-w-0 p-5 space-y-5">
-              <header className="flex justify-between items-start gap-3">
+              <header className="flex justify-between items-center gap-3">
                 <div className="min-w-0">
                   <h2 className="text-2xl font-bold">
                     {page === "dashboard" && t("nav_dashboard")}
@@ -1536,25 +1658,31 @@
                     {page === "ap" && t("nav_ap")}
                     {page === "settings" && t("nav_settings")}
                   </h2>
-                  <p className="text-sm text-slate-500">{t("baseCurrency")}: {activeBaseCurrency} · {t("hintClickRow")}</p>
+                  <p className="text-sm text-slate-500">{t("baseCurrency")}: {activeBaseCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                  <div className="text-right mr-1 hidden sm:block">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-400">{t("worldTime")} · {worldTimeZone}</p>
-                    <p className="text-xs font-mono font-semibold text-slate-700 tabular-nums">{formatWorldTime(worldClock, worldTimeZone, lang)}</p>
+                <div className="flex items-center gap-2 shrink-0 flex-nowrap">
+                  <div className="flex items-center gap-2 h-9 px-2.5 rounded-lg border border-slate-200 bg-white" title={`${t("worldTime")} · ${worldTimeZone}`}>
+                    <span className="text-[10px] uppercase tracking-wide text-slate-400 whitespace-nowrap">{t("worldTime")}</span>
+                    <span className="text-xs font-mono font-semibold text-slate-700 tabular-nums whitespace-nowrap">{formatWorldTime(worldClock, worldTimeZone, lang)}</span>
                   </div>
-                  <div className="text-right mr-1 hidden md:block">
-                    <p className="text-[10px] text-slate-400">{t("currentUser")}</p>
-                    <select value={currentUserId} onChange={(e) => setCurrentUserId(Number(e.target.value))} className="h-8 max-w-[9rem] rounded-lg border border-slate-300 bg-white text-xs px-2 py-1" title={t("switchUser")}>
+                  <div className="flex items-center gap-1.5 h-9">
+                    <span className="text-[10px] text-slate-400 whitespace-nowrap">{t("currentUser")}</span>
+                    <select value={currentUserId} onChange={(e) => setCurrentUserId(Number(e.target.value))} className="h-9 min-w-[7rem] rounded-lg border border-slate-300 bg-white text-xs px-2" title={t("switchUser")}>
                       {users.filter((u) => u.is_active).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                   </div>
-                  <select value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value)} className="h-8 w-[4.5rem] shrink-0 rounded-lg border border-slate-300 bg-white text-xs px-2 py-1">
+                  <div className="flex items-center gap-1.5 h-9">
+                    <span className="text-[10px] text-slate-400 whitespace-nowrap">{t("region")}</span>
+                    <select value={activeRegion} onChange={(e) => setActiveRegion(e.target.value)} className="h-9 min-w-[4.5rem] rounded-lg border border-slate-300 bg-white text-xs px-2 font-semibold">
+                      {getUserRegions().map((rid) => <option key={rid} value={rid}>{regionLabel(rid, lang)}</option>)}
+                    </select>
+                  </div>
+                  <select value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value)} className="h-9 w-[4.5rem] shrink-0 rounded-lg border border-slate-300 bg-white text-xs px-2">
                     <option value="HKD">HKD</option><option value="USD">USD</option><option value="RMB">RMB</option>
                     <option value="TWD">TWD</option><option value="SGD">SGD</option><option value="EUR">EUR</option><option value="OTHER">Other</option>
                   </select>
-                  {baseCurrency === "OTHER" && <Input placeholder="e.g. MYD" className="w-16 h-8 text-xs px-2 py-1 bg-white shrink-0" value={customCurrency} onChange={(e) => setCustomCurrency(e.target.value)} />}
-                  {(can("ar", "add") || can("ap", "add")) && <button type="button" onClick={() => setNewTxOpen(true)} className="h-8 shrink-0 px-2.5 text-xs leading-none rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">{t("newTransaction")}</button>}
+                  {baseCurrency === "OTHER" && <Input placeholder="e.g. MYD" className="w-16 h-9 text-xs px-2 bg-white shrink-0" value={customCurrency} onChange={(e) => setCustomCurrency(e.target.value)} />}
+                  {(can("ar", "add") || can("ap", "add")) && <button type="button" onClick={() => setNewTxOpen(true)} className="h-9 shrink-0 px-3 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">{t("newTransaction")}</button>}
                 </div>
               </header>
 
@@ -1562,7 +1690,7 @@
                 <>
                   <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("arOutstanding")} ({activeBaseCurrency})</p><p className="text-2xl font-bold mt-2">{money(arTotal)}</p><p className="text-xs text-slate-500 mt-2">{overdueCount} {t("overdueCount")}</p></article>
-                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("apOutstanding")} ({activeBaseCurrency})</p><p className="text-2xl font-bold mt-2">{money(apTotal)}</p><p className="text-xs text-slate-500 mt-2">{apBills.length} {t("pendingBills")}</p></article>
+                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("apOutstanding")} ({activeBaseCurrency})</p><p className="text-2xl font-bold mt-2">{money(apTotal)}</p><p className="text-xs text-slate-500 mt-2">{scopedApBills.length} {t("pendingBills")}</p></article>
                     <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("netPosition")}</p><p className="text-2xl font-bold mt-2">{money(arTotal - apTotal)}</p></article>
                     <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("dueSoon")}</p><p className="text-2xl font-bold mt-2">{dueSoonCount}</p><p className="text-xs text-slate-500 mt-2">{t("dueSoonHint")}</p></article>
                   </section>
@@ -1629,7 +1757,7 @@
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {clients.map((c) => (
+                        {scopedClients.map((c) => (
                           <tr key={c.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "client", id: c.id })}>
                             <td className="p-3">{c.customer_no}</td><td className="p-3 font-medium">{c.company}</td><td className="p-3">{c.gst_no}</td>
                             <td className="p-3">{c.primary_contact}</td><td className="p-3">{c.company_phone}</td><td className="p-3">{c.mobile_phone}</td>
@@ -1656,7 +1784,7 @@
                     </div>
                     <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
                   </div>
-                  <ListToolbar t={t} mode="job" clients={clients} jobs={jobs} viewMode={jobViewMode} setViewMode={setJobViewMode} clientFilter={jobClientFilter} setClientFilter={setJobClientFilter} />
+                  <ListToolbar t={t} mode="job" clients={scopedClients} jobs={scopedJobs} viewMode={jobViewMode} setViewMode={setJobViewMode} clientFilter={jobClientFilter} setClientFilter={setJobClientFilter} statusFilter={jobStatusFilter} setStatusFilter={setJobStatusFilter} lang={lang} />
                   <div className="overflow-auto">
                     {jobViewMode === "grouped" ? (
                       groupRows(filteredJobs, (j) => j.company).map(([group, rows]) => (
@@ -1702,7 +1830,7 @@
                         <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("actions")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
-                        {vendors.map((v) => (
+                        {scopedVendors.map((v) => (
                           <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
                             <td className="p-3 font-medium">{v.name}</td><td className="p-3">{v.email}</td><td className="p-3">{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
                             <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("vendors", "edit")} canDelete={can("vendors", "delete")} onDelete={() => deleteVendor(v.id)} onView={() => setDetailPanel({ type: "vendor", id: v.id })} onEdit={() => setVendorModal({ mode: "edit", id: v.id, data: { ...v } })} /></td>
@@ -1727,7 +1855,7 @@
                         <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
-                        {sis.map((s) => (
+                        {scopedSis.map((s) => (
                           <tr key={s.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "si", id: s.id })}>
                             <td className="p-3 font-medium">{s.name}</td><td className="p-3">{s.email}</td><td className="p-3">{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
                             <td className="p-3">{getApBySi(s.name).length}</td>
@@ -1746,7 +1874,7 @@
                     <h3 className="font-semibold">{t("nav_ar")}</h3>
                     {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
                   </div>
-                  <ListToolbar t={t} mode="ar" clients={clients} jobs={jobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} />
+                  <ListToolbar t={t} mode="ar" clients={scopedClients} jobs={scopedJobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} searchQ={arSearch} setSearchQ={setArSearch} lang={lang} />
                   <div className="overflow-auto">
                     {arViewMode === "grouped" ? (
                       groupRows(filteredAr, (r) => r.customer).map(([group, rows]) => (
@@ -1788,7 +1916,7 @@
                     <h3 className="font-semibold">{t("nav_ap")}</h3>
                     {can("ap", "add") && <button onClick={() => setApModal({ mode: "add", data: emptyApForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAp")}</button>}
                   </div>
-                  <ListToolbar t={t} mode="ap" clients={clients} jobs={jobs} viewMode={apViewMode} setViewMode={setApViewMode} clientFilter={apClientFilter} setClientFilter={setApClientFilter} jobFilter={apJobFilter} setJobFilter={setApJobFilter} />
+                  <ListToolbar t={t} mode="ap" clients={scopedClients} jobs={scopedJobs} viewMode={apViewMode} setViewMode={setApViewMode} clientFilter={apClientFilter} setClientFilter={setApClientFilter} jobFilter={apJobFilter} setJobFilter={setApJobFilter} searchQ={apSearch} setSearchQ={setApSearch} lang={lang} />
                   <div className="overflow-auto">
                     {apViewMode === "grouped" ? (
                       groupRows(filteredAp, (r) => r.company_name).map(([group, rows]) => (
@@ -1847,6 +1975,7 @@
                       </Field>
                       <p className="text-sm text-slate-500">{t("worldTimeHint")}</p>
                       <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{formatWorldTime(worldClock, worldTimeZone, lang)}</p>
+                      <p className="text-sm text-slate-500">{t("regionDataHint")}</p>
                     </div>
                   )}
 
@@ -1878,7 +2007,7 @@
                                 <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + (u.role === "root" ? "bg-violet-100 text-violet-800" : "bg-slate-100")}>{u.role === "root" ? t("roleRoot") : t("roleUser")}</span></td>
                                 <td className="p-3">{u.is_active ? t("yes") : t("no")}</td>
                                 <td className="p-3">
-                                  <button type="button" onClick={() => setUserModal({ mode: "edit", id: u.id, data: { name: u.name, email: u.email, password: u.password || "", role: u.role, is_active: u.is_active, permissions: u.permissions || emptyPermissions() } })} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">{t("edit")}</button>
+                                  <button type="button" onClick={() => setUserModal({ mode: "edit", id: u.id, data: { name: u.name, email: u.email, password: u.password || "", role: u.role, is_active: u.is_active, permissions: u.permissions || emptyPermissions(), allowed_regions: u.allowed_regions || ["HK"] } })} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">{t("edit")}</button>
                                 </td>
                               </tr>
                             ))}
@@ -1968,7 +2097,7 @@
                       <Field label={t("userEmail")}><Input required type="email" value={userModal.data.email} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, email: e.target.value } })} /></Field>
                       <Field label={t("userPassword")}><Input required type="password" value={userModal.data.password} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, password: e.target.value } })} /></Field>
                       <Field label={t("userRole")}>
-                        <Select value={userModal.data.role} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, role: e.target.value, permissions: e.target.value === "root" ? fullPermissions() : (userModal.data.permissions || emptyPermissions()) } })}>
+                        <Select value={userModal.data.role} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, role: e.target.value, permissions: e.target.value === "root" ? fullPermissions() : (userModal.data.permissions || emptyPermissions()), allowed_regions: e.target.value === "root" ? ["ALL"] : (userModal.data.allowed_regions || ["HK"]) } })}>
                           <option value="user">{t("roleUser")}</option>
                           <option value="root">{t("roleRoot")}</option>
                         </Select>
@@ -1980,6 +2109,20 @@
                         </Select>
                       </Field>
                     </div>
+                    {userModal.data.role !== "root" && (
+                      <div>
+                        <p className="text-sm font-semibold mb-2">{t("regionAccess")}</p>
+                        <p className="text-xs text-slate-500 mb-2">{t("regionScopeHint")}</p>
+                        <div className="flex flex-wrap gap-3">
+                          {ERP_REGIONS.map((rg) => (
+                            <label key={rg.id} className="text-sm flex items-center gap-1.5">
+                              <input type="checkbox" checked={!!(userModal.data.allowed_regions && userModal.data.allowed_regions.includes(rg.id))} onChange={() => toggleUserRegion(rg.id)} />
+                              {lang === "zh_TW" ? rg.labelZh : rg.labelEn}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {userModal.data.role !== "root" && (
                       <div>
                         <p className="text-sm font-semibold mb-2">{t("accessRights")}</p>
@@ -2101,7 +2244,7 @@
                         setJobModal({ ...jobModal, data: { ...jobModal.data, client_id: e.target.value, company: client ? client.company : "" } });
                       }}>
                         <option value="">Select Client</option>
-                        {clients.map((c) => <option key={c.id} value={c.id}>{c.customer_no} · {c.company}</option>)}
+                        {clients.filter((c) => c.region === (jobModal.mode === "edit" ? (jobs.find((j) => j.id === jobModal.id)?.region || regionForNewRecord()) : regionForNewRecord())).map((c) => <option key={c.id} value={c.id}>{c.customer_no} · {c.company}</option>)}
                       </Select>
                     </Field>
                     <Field label="Type">
@@ -2159,7 +2302,7 @@
                         setArModal({ ...arModal, data: { ...arModal.data, job_id: e.target.value, job_no: job ? job.job_no : "", customer: job ? job.company : arModal.data.customer, customer_po: job ? job.customer_po : arModal.data.customer_po } });
                       }}>
                         <option value="">Select Job (optional)</option>
-                        {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company} · {j.job_type}</option>)}
+                        {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company} · {j.job_type}</option>)}
                       </Select>
                     </Field>
                     <Field label="Customer"><Input value={arModal.data.customer} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, customer: e.target.value } })} /></Field>
@@ -2201,7 +2344,7 @@
                         setApModal({ ...apModal, data: { ...apModal.data, job_id: e.target.value, job_no: job ? job.job_no : "" } });
                       }}>
                         <option value="">Select Job</option>
-                        {jobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company}</option>)}
+                        {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company}</option>)}
                       </Select>
                     </Field>
                     <Field label={t("payeeType")}>
@@ -2217,7 +2360,7 @@
                           setApModal({ ...apModal, data: { ...apModal.data, si_id: e.target.value, company_name: si ? si.name : "", bank: si ? si.bank : apModal.data.bank, swift_code: si ? si.swift_code : apModal.data.swift_code, payment_advice_email: si ? si.email : apModal.data.payment_advice_email } });
                         }}>
                           <option value="">Select SI</option>
-                          {sis.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          {scopedSis.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </Select>
                       ) : (
                         <Select required value={apModal.data.company_name} onChange={(e) => {
@@ -2225,7 +2368,7 @@
                           setApModal({ ...apModal, data: { ...apModal.data, company_name: e.target.value, bank: v ? v.bank : apModal.data.bank, swift_code: v ? v.swift_code : apModal.data.swift_code, payment_advice_email: v ? v.email : apModal.data.payment_advice_email } });
                         }}>
                           <option value="">Select Vendor</option>
-                          {vendors.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
+                          {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
                         </Select>
                       )}
                     </Field>
