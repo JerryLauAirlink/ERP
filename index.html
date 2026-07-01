@@ -246,8 +246,11 @@
           dashSubtitle: "Executive summary — cash position & what needs attention",
           dashCashIn: "Cash In (AR)", dashCashOut: "Cash Out (AP)", dashCashInHint: "Unpaid client invoices", dashCashOutHint: "Unpaid vendor / SI bills", dashNetHint: "Receivables minus payables",
           dashActiveJobs: "Active Jobs", dashActiveJobsHint: "Open or in progress",
-          dashIncomeOut: "Expected Income vs Out", dashIncomeOutHint: "Grouped by due date · next 6 months · unpaid only",
+          dashIncomeOut: "Expected Income vs Out", dashIncomeOutHint: "Grouped by due date · full calendar year · unpaid only",
+          dashIncomeOutH1: "Jan – Jun", dashIncomeOutH2: "Jul – Dec",
           dashCashInLegend: "Income (AR due)", dashCashOutLegend: "Out (AP due)",
+          dashAllPaidHint: "Records exist but all AR/AP are marked paid for this region.",
+          dashRegionHint: "AR/AP records exist in other regions. Try switching Region to ALL or the matching region.",
           dashArDueSoon: "AR Due Within 14 Days", dashApDueSoon: "AP Due Within 14 Days",
           dashOverdueAr: "Overdue AR — Collect", dashOverdueAp: "Overdue AP — Pay",
           dashDueToday: "Due today", dashDueInDays: "Due in {n}d", dashDaysOverdue: "{n}d overdue",
@@ -272,6 +275,8 @@
           overviewInTotal: "Cash In (AR)", overviewOutTotal: "Cash Out (AP)", overviewNet: "Net",
           overviewNoData: "No AR/AP invoices in this date range", overviewByInvoiceDate: "Invoice date within range",
           overviewArCount: "AR invoices", overviewApCount: "AP bills", phoneNo: "Phone", address: "Address",
+          overviewPaidTitle: "Collected vs Paid — Full Year", overviewPaidHint: "Grouped by payment date · current calendar year",
+          overviewArCollected: "AR Collected", overviewApPaid: "AP Paid", overviewArCollectedTotal: "Total AR Collected", overviewApPaidTotal: "Total AP Paid",
           amtInCurrency: "Amt in {ccy}",
           amountManualOverride: "editable", settingsLangHint: "The interface will switch to English immediately.",
           invoiceAmountOrig: "Amount (invoice currency)", invoiceAmountHint: "Original amount on vendor/client invoice. Editable — updates base amount when rate changes.",
@@ -318,8 +323,11 @@
           dashSubtitle: "管理層總覽 — 現金狀況同需要跟進嘅單",
           dashCashIn: "現金流入（應收）", dashCashOut: "現金流出（應付）", dashCashInHint: "客戶未收款發票", dashCashOutHint: "供應商／分包商未付款", dashNetHint: "應收減應付",
           dashActiveJobs: "進行中工作", dashActiveJobsHint: "Open 或 In Progress",
-          dashIncomeOut: "預期收入 vs 支出", dashIncomeOutHint: "按到期日 · 未來 6 個月 · 只計未結清",
+          dashIncomeOut: "預期收入 vs 支出", dashIncomeOutHint: "按到期日 · 全年（1–12月）· 只計未結清",
+          dashIncomeOutH1: "1 – 6 月", dashIncomeOutH2: "7 – 12 月",
           dashCashInLegend: "收入（應收到期）", dashCashOutLegend: "支出（應付到期）",
+          dashAllPaidHint: "此區域有記錄，但應收／應付已全部標記為已付款。",
+          dashRegionHint: "應收／應付資料在其他區域。請將「區域」改為 ALL 或對應區域。",
           dashArDueSoon: "14 日內應收到期", dashApDueSoon: "14 日內應付到期",
           dashOverdueAr: "逾期應收 — 追數", dashOverdueAp: "逾期應付 — 付款",
           dashDueToday: "今日到期", dashDueInDays: "{n} 日後到期", dashDaysOverdue: "逾期 {n} 日",
@@ -344,6 +352,8 @@
           overviewInTotal: "流入（應收）", overviewOutTotal: "流出（應付）", overviewNet: "淨額",
           overviewNoData: "此日期範圍內沒有應收／應付發票", overviewByInvoiceDate: "發票日期在範圍內",
           overviewArCount: "應收發票", overviewApCount: "應付帳單", phoneNo: "電話", address: "地址",
+          overviewPaidTitle: "全年已收／已付", overviewPaidHint: "按收款／付款日期 · 本年度各月",
+          overviewArCollected: "應收已收", overviewApPaid: "應付已付", overviewArCollectedTotal: "全年應收已收", overviewApPaidTotal: "全年應付已付",
           amtInCurrency: "折合 {ccy}",
           amountManualOverride: "可手改", settingsLangHint: "切換後介面會即時更新為繁體中文（台灣）。",
           invoiceAmountOrig: "金額（發票原幣）", invoiceAmountHint: "供應商／客戶發票上嘅原幣金額，可以改；改動後會按匯率重算本位幣。",
@@ -561,6 +571,54 @@
         const fromRate = fxUsdMap[fromCurrency] || 1;
         const baseRate = fxUsdMap[baseCurrency] || 1;
         return (Number(amount) / fromRate) * baseRate;
+      }
+
+      function isArUnpaid(r) {
+        return !!(r && r.payment_status !== "Paid" && !r.payment_received_date);
+      }
+
+      function resolveArDisplayAmount(r, targetCurrency) {
+        const invAmt = Number(r.invoice_amt);
+        if (invAmt > 0) {
+          return convertCurrency(invAmt, r.invoice_currency || "USD", targetCurrency);
+        }
+        const base = Number(r.base_amount_locked ?? r.base_amount);
+        if (base > 0) {
+          const recordCur = REGION_CURRENCY[r.region] || r.invoice_currency || "HKD";
+          return convertCurrency(base, recordCur, targetCurrency);
+        }
+        return 0;
+      }
+
+      function resolveApDisplayAmount(b, targetCurrency) {
+        const amt = Number(b.amount);
+        if (amt > 0) {
+          return convertCurrency(amt, b.currency || "USD", targetCurrency);
+        }
+        const base = Number(b.base_amount_locked ?? b.base_amount);
+        if (base > 0) {
+          const recordCur = REGION_CURRENCY[b.region] || b.currency || "HKD";
+          return convertCurrency(base, recordCur, targetCurrency);
+        }
+        return 0;
+      }
+
+      function dueDateMonthKey(dueDate, chartYear) {
+        if (!dueDate) return null;
+        const s = String(dueDate).trim();
+        let y;
+        let m;
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+          y = s.slice(0, 4);
+          m = s.slice(5, 7);
+        } else {
+          const d = new Date(s.includes("T") ? s : s + "T00:00:00");
+          if (Number.isNaN(d.getTime())) return null;
+          y = String(d.getFullYear());
+          m = String(d.getMonth() + 1).padStart(2, "0");
+        }
+        if (chartYear && y !== String(chartYear)) return chartYear + "-" + m;
+        return y + "-" + m;
       }
 
       function money(value) {
@@ -812,6 +870,85 @@
                 </p>
               )}
             </div>
+          </div>
+        );
+      }
+
+      function isArPaid(r) {
+        return !!(r && (r.payment_status === "Paid" || r.payment_received_date));
+      }
+
+      function arPaymentDate(r) {
+        if (r.payment_received_date) return r.payment_received_date;
+        if (r.payment_status === "Paid") return r.invoice_date || r.due_date || "";
+        return "";
+      }
+
+      function MonthlyBarChart({ firstHalf, secondHalf, maxBar, t, inLegend, outLegend, h1Label, h2Label, totals, netLabel }) {
+        const barAreaPx = 80;
+        function renderMonths(series) {
+          return series.map((p) => {
+            const inH = p.inBase > 0 ? Math.max(6, Math.round((p.inBase / maxBar) * barAreaPx)) : 2;
+            const outH = p.outBase > 0 ? Math.max(6, Math.round((p.outBase / maxBar) * barAreaPx)) : 2;
+            return (
+              <div key={p.key} className="flex-1 flex flex-col items-center min-w-0">
+                <div className="w-full flex items-end justify-center gap-0.5" style={{ height: barAreaPx }}>
+                  <div
+                    title={inLegend + ": " + money(p.inBase)}
+                    className="w-[42%] max-w-8 rounded-t-md shadow-sm"
+                    style={{
+                      height: inH,
+                      opacity: p.inBase ? 1 : 0.2,
+                      background: "linear-gradient(180deg, #38bdf8 0%, #1d4ed8 100%)"
+                    }}
+                  />
+                  <div
+                    title={outLegend + ": " + money(p.outBase)}
+                    className="w-[42%] max-w-8 rounded-t-md shadow-sm"
+                    style={{
+                      height: outH,
+                      opacity: p.outBase ? 1 : 0.2,
+                      background: "linear-gradient(180deg, #fbbf24 0%, #ea580c 100%)"
+                    }}
+                  />
+                </div>
+                <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium mt-1.5 leading-none">{p.label}</span>
+                {(p.inBase > 0 || p.outBase > 0) && (
+                  <div className="text-[8px] leading-tight mt-0.5 text-center w-full tabular-nums hidden sm:block">
+                    {p.inBase > 0 && <span className="text-blue-600 block truncate">{money(p.inBase)}</span>}
+                    {p.outBase > 0 && <span className="text-orange-600 block truncate">{money(p.outBase)}</span>}
+                  </div>
+                )}
+              </div>
+            );
+          });
+        }
+        return (
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-[10px] font-medium text-slate-400 mb-1.5">{h1Label}</p>
+              <div className="flex items-end gap-1 w-full">{renderMonths(firstHalf)}</div>
+            </div>
+            <div className="border-t border-slate-100 pt-2">
+              <p className="text-[10px] font-medium text-slate-400 mb-1.5">{h2Label}</p>
+              <div className="flex items-end gap-1 w-full">{renderMonths(secondHalf)}</div>
+            </div>
+            {totals && (
+              <div className="mt-1 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-xs">
+                <div className="text-center rounded-lg bg-blue-50/80 px-2 py-2">
+                  <p className="text-slate-500 text-[10px] leading-tight">{inLegend}</p>
+                  <p className="font-bold text-blue-700 tabular-nums mt-0.5">{money(totals.in)}</p>
+                </div>
+                <div className="text-center rounded-lg bg-orange-50/80 px-2 py-2">
+                  <p className="text-slate-500 text-[10px] leading-tight">{outLegend}</p>
+                  <p className="font-bold text-orange-600 tabular-nums mt-0.5">{money(totals.out)}</p>
+                </div>
+                <div className="text-center rounded-lg bg-slate-50 px-2 py-2">
+                  <p className="text-slate-500 text-[10px] leading-tight">{netLabel}</p>
+                  <p className={"font-bold tabular-nums mt-0.5 " + (totals.in >= totals.out ? "text-emerald-700" : "text-amber-700")}>{money(totals.in - totals.out)}</p>
+                </div>
+              </div>
+            )}
           </div>
         );
       }
@@ -1313,16 +1450,29 @@
         const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, currentUserId]);
         const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, currentUserId]);
 
-        const arDisplay = useMemo(() => scopedArInvoices.map((r) => ({ ...r, display_base_amount: convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency) })), [scopedArInvoices, regionListCurrency]);
-        const apDisplay = useMemo(() => scopedApBills.map((r) => ({ ...r, display_base_amount: convertCurrency(r.amount, r.currency, regionListCurrency) })), [scopedApBills, regionListCurrency]);
-        const arTotal = useMemo(() => arDisplay.filter((r) => r.payment_status !== "Paid").reduce((a, b) => a + b.display_base_amount, 0), [arDisplay]);
+        const arDisplay = useMemo(() => scopedArInvoices.map((r) => {
+          const due_date = r.due_date || computeArDueDate(r, clients, jobs);
+          return { ...r, due_date, display_base_amount: resolveArDisplayAmount(r, regionListCurrency) };
+        }), [scopedArInvoices, regionListCurrency, clients, jobs]);
+        const apDisplay = useMemo(() => scopedApBills.map((r) => ({ ...r, display_base_amount: resolveApDisplayAmount(r, regionListCurrency) })), [scopedApBills, regionListCurrency]);
+        const arTotal = useMemo(() => arDisplay.filter(isArUnpaid).reduce((a, b) => a + b.display_base_amount, 0), [arDisplay]);
         const apTotal = useMemo(() => apDisplay.filter((b) => !isApPaid(b)).reduce((a, b) => a + b.display_base_amount, 0), [apDisplay]);
+        const scopedArCount = scopedArInvoices.length;
+        const scopedApCount = scopedApBills.length;
+        const dashShowsAllPaid = scopedArCount + scopedApCount > 0 && arTotal === 0 && apTotal === 0;
+        const recordsOutsideRegion = useMemo(() => {
+          if (activeRegion === "ALL") return 0;
+          const arOther = arInvoices.filter((r) => (r.region || "HK") !== activeRegion).length;
+          const apOther = apBills.filter((b) => (b.region || "HK") !== activeRegion).length;
+          return arOther + apOther;
+        }, [arInvoices, apBills, activeRegion]);
+        const dashRegionMismatch = activeRegion !== "ALL" && scopedArCount + scopedApCount === 0 && recordsOutsideRegion > 0;
         const netPosition = arTotal - apTotal;
         const activeJobCount = useMemo(() => scopedJobs.filter((j) => !isJobCompleted(j.status)).length, [scopedJobs]);
 
         const arDueSoonList = useMemo(() =>
           arDisplay
-            .filter((r) => r.payment_status !== "Paid" && r.due_date)
+            .filter((r) => isArUnpaid(r) && r.due_date)
             .map((r) => ({ ...r, days_until: daysUntilDue(r.due_date), overdue_days: calcOverdueDays(r.due_date) }))
             .filter((r) => r.days_until !== null && r.days_until >= 0 && r.days_until <= 14)
             .sort((a, b) => a.days_until - b.days_until)
@@ -1343,7 +1493,7 @@
         const arOverdueList = useMemo(() =>
           arDisplay
             .map((r) => ({ ...r, overdue_days: calcOverdueDays(r.due_date), days_until: daysUntilDue(r.due_date) }))
-            .filter((r) => r.overdue_days > 0 && r.payment_status !== "Paid")
+            .filter((r) => r.overdue_days > 0 && isArUnpaid(r))
             .sort((a, b) => b.overdue_days - a.overdue_days)
             .slice(0, 6),
           [arDisplay]
@@ -1360,7 +1510,7 @@
 
         const aging = useMemo(() => {
           const bucket = { current: 0, d1_30: 0, d31_60: 0, d61_90: 0, d90_plus: 0 };
-          arDisplay.filter((r) => r.payment_status !== "Paid").forEach((r) => {
+          arDisplay.filter(isArUnpaid).forEach((r) => {
             const od = calcOverdueDays(r.due_date);
             if (od <= 0) bucket.current += r.display_base_amount;
             else if (od <= 30) bucket.d1_30 += r.display_base_amount;
@@ -1374,25 +1524,27 @@
         const agingMax = useMemo(() => Math.max(1, aging.current + aging.d1_30 + aging.d31_60 + aging.d61_90 + aging.d90_plus), [aging]);
 
         const cashFlowSeries = useMemo(() => {
-          const today = new Date();
+          const year = new Date().getFullYear();
           const months = [];
-          for (let i = 0; i < 6; i++) {
-            const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
-            const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
-            const label = String(d.getMonth() + 1).padStart(2, "0") + "/" + String(d.getFullYear()).slice(2);
+          for (let m = 0; m < 12; m++) {
+            const key = year + "-" + String(m + 1).padStart(2, "0");
+            const label = String(m + 1).padStart(2, "0") + "/" + String(year).slice(2);
             months.push({ key, label, inBase: 0, outBase: 0 });
           }
-          const monthMap = Object.fromEntries(months.map((m) => [m.key, m]));
-          arDisplay.filter((r) => r.payment_status !== "Paid" && r.due_date).forEach((r) => {
-            const key = r.due_date.slice(0, 7);
-            if (monthMap[key]) monthMap[key].inBase += r.display_base_amount;
+          const monthMap = Object.fromEntries(months.map((x) => [x.key, x]));
+          arDisplay.filter((r) => isArUnpaid(r) && r.due_date).forEach((r) => {
+            const key = dueDateMonthKey(r.due_date, year);
+            if (key && monthMap[key]) monthMap[key].inBase += r.display_base_amount;
           });
           apDisplay.filter((b) => !isApPaid(b) && b.due_date).forEach((b) => {
-            const key = b.due_date.slice(0, 7);
-            if (monthMap[key]) monthMap[key].outBase += b.display_base_amount;
+            const key = dueDateMonthKey(b.due_date, year);
+            if (key && monthMap[key]) monthMap[key].outBase += b.display_base_amount;
           });
           return months;
         }, [arDisplay, apDisplay]);
+
+        const cashFlowFirstHalf = useMemo(() => cashFlowSeries.slice(0, 6), [cashFlowSeries]);
+        const cashFlowSecondHalf = useMemo(() => cashFlowSeries.slice(6, 12), [cashFlowSeries]);
 
         const maxBar = useMemo(() => Math.max(1, ...cashFlowSeries.flatMap((p) => [p.inBase, p.outBase])), [cashFlowSeries]);
 
@@ -1409,6 +1561,36 @@
           return { arRows, apRows, inTotal, outTotal };
         }, [arDisplay, apDisplay, overviewFrom, overviewTo]);
 
+        const overviewCollectedSeries = useMemo(() => {
+          const year = new Date().getFullYear();
+          const months = [];
+          for (let m = 0; m < 12; m++) {
+            const key = year + "-" + String(m + 1).padStart(2, "0");
+            const label = String(m + 1).padStart(2, "0") + "/" + String(year).slice(2);
+            months.push({ key, label, inBase: 0, outBase: 0 });
+          }
+          const monthMap = Object.fromEntries(months.map((x) => [x.key, x]));
+          arDisplay.filter(isArPaid).forEach((r) => {
+            const payDate = arPaymentDate(r);
+            if (!payDate) return;
+            const key = dueDateMonthKey(payDate, year);
+            if (key && monthMap[key]) monthMap[key].inBase += r.display_base_amount;
+          });
+          apDisplay.filter((b) => isApPaid(b) && b.pay_date).forEach((b) => {
+            const key = dueDateMonthKey(b.pay_date, year);
+            if (key && monthMap[key]) monthMap[key].outBase += b.display_base_amount;
+          });
+          return months;
+        }, [arDisplay, apDisplay]);
+
+        const overviewCollectedFirstHalf = useMemo(() => overviewCollectedSeries.slice(0, 6), [overviewCollectedSeries]);
+        const overviewCollectedSecondHalf = useMemo(() => overviewCollectedSeries.slice(6, 12), [overviewCollectedSeries]);
+        const overviewCollectedMaxBar = useMemo(() => Math.max(1, ...overviewCollectedSeries.flatMap((p) => [p.inBase, p.outBase])), [overviewCollectedSeries]);
+        const overviewCollectedTotals = useMemo(() => ({
+          in: overviewCollectedSeries.reduce((s, p) => s + p.inBase, 0),
+          out: overviewCollectedSeries.reduce((s, p) => s + p.outBase, 0)
+        }), [overviewCollectedSeries]);
+
         const thisMonthKey = useMemo(() => {
           const d = new Date();
           return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
@@ -1418,14 +1600,14 @@
         const thisMonthOut = useMemo(() => cashFlowSeries.find((m) => m.key === thisMonthKey)?.outBase || 0, [cashFlowSeries, thisMonthKey]);
 
         const overdueArTotal = useMemo(() =>
-          arDisplay.filter((r) => calcOverdueDays(r.due_date) > 0 && r.payment_status !== "Paid").reduce((s, r) => s + r.display_base_amount, 0),
+          arDisplay.filter((r) => calcOverdueDays(r.due_date) > 0 && isArUnpaid(r)).reduce((s, r) => s + r.display_base_amount, 0),
           [arDisplay]
         );
         const overdueApTotal = useMemo(() =>
           apDisplay.filter((b) => calcOverdueDays(b.due_date) > 0 && !isApPaid(b)).reduce((s, b) => s + b.display_base_amount, 0),
           [apDisplay]
         );
-        const overdueArCount = useMemo(() => arDisplay.filter((r) => calcOverdueDays(r.due_date) > 0 && r.payment_status !== "Paid").length, [arDisplay]);
+        const overdueArCount = useMemo(() => arDisplay.filter((r) => calcOverdueDays(r.due_date) > 0 && isArUnpaid(r)).length, [arDisplay]);
         const overdueApCount = useMemo(() => apDisplay.filter((b) => calcOverdueDays(b.due_date) > 0 && !isApPaid(b)).length, [apDisplay]);
 
         const regionalMapStats = useMemo(() => {
@@ -1435,9 +1617,9 @@
             const rAr = arInvoices.filter((r) => (r.region || "HK") === regionId);
             const rJobs = jobs.filter((j) => (j.region || "HK") === regionId);
             const rAp = apBills.filter((b) => (b.region || "HK") === regionId);
-            const arUnpaid = rAr.filter((r) => r.payment_status !== "Paid");
-            const arTotal = arUnpaid.reduce((s, r) => s + convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency), 0);
-            const apTotal = rAp.filter((b) => !isApPaid(b)).reduce((s, b) => s + convertCurrency(b.amount, b.currency, regionListCurrency), 0);
+            const arUnpaid = rAr.filter(isArUnpaid);
+            const arTotal = arUnpaid.reduce((s, r) => s + resolveArDisplayAmount(r, regionListCurrency), 0);
+            const apTotal = rAp.filter((b) => !isApPaid(b)).reduce((s, b) => s + resolveApDisplayAmount(b, regionListCurrency), 0);
             const hasOverdueAr = arUnpaid.some((r) => calcOverdueDays(r.due_date) > 0);
             const activeJobs = rJobs.filter((j) => !isJobCompleted(j.status)).length;
             return { regionId, arTotal, apTotal, activeJobs, hasOverdueAr };
@@ -2425,6 +2607,16 @@
 
               {page === "dashboard" && (
                 <div className="space-y-5">
+                  {dashRegionMismatch && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                      {t("dashRegionHint")}
+                    </div>
+                  )}
+                  {dashShowsAllPaid && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                      {t("dashAllPaidHint")}
+                    </div>
+                  )}
                   {/* KPI — Boss sees cash position at a glance */}
                   <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     <DashGradientCard
@@ -2474,56 +2666,19 @@
                           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(135deg, #ea580c, #fbbf24)" }}></span>{t("dashCashOutLegend")}</span>
                         </div>
                       </div>
-                      <div className={"flex flex-col " + (activeRegion === "ALL" ? "flex-1 min-h-0 justify-end" : "")}>
-                        <div className={"flex items-end gap-1.5 sm:gap-2 w-full " + (activeRegion === "ALL" ? "flex-1 min-h-[9rem]" : "")}>
-                          {cashFlowSeries.map((p) => (
-                            <div key={p.key} className="flex-1 flex flex-col items-center justify-end h-full min-w-0">
-                              <div className={"w-full flex items-end justify-center gap-1 " + (activeRegion === "ALL" ? "flex-1" : "h-16")}>
-                                <div
-                                  title={t("dashCashInLegend") + ": " + money(p.inBase)}
-                                  className="w-[42%] max-w-9 rounded-t-md transition-all duration-300"
-                                  style={{
-                                    height: p.inBase ? Math.max(8, (p.inBase / maxBar) * 100) + "%" : "3px",
-                                    opacity: p.inBase ? 1 : 0.2,
-                                    background: "linear-gradient(180deg, #38bdf8 0%, #1d4ed8 100%)"
-                                  }}
-                                />
-                                <div
-                                  title={t("dashCashOutLegend") + ": " + money(p.outBase)}
-                                  className="w-[42%] max-w-9 rounded-t-md transition-all duration-300"
-                                  style={{
-                                    height: p.outBase ? Math.max(8, (p.outBase / maxBar) * 100) + "%" : "3px",
-                                    opacity: p.outBase ? 1 : 0.2,
-                                    background: "linear-gradient(180deg, #fbbf24 0%, #ea580c 100%)"
-                                  }}
-                                />
-                              </div>
-                              <span className="text-[10px] text-slate-500 font-medium mt-2 leading-none">{p.label}</span>
-                              {(p.inBase > 0 || p.outBase > 0) && (
-                                <div className="text-[9px] leading-tight mt-1 text-center w-full tabular-nums">
-                                  {p.inBase > 0 && <span className="text-blue-600 block">{money(p.inBase)}</span>}
-                                  {p.outBase > 0 && <span className="text-orange-600 block">{money(p.outBase)}</span>}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        {activeRegion === "ALL" && (
-                          <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-2 text-xs shrink-0">
-                            <div className="text-center rounded-lg bg-blue-50/80 px-2 py-2">
-                              <p className="text-slate-500 text-[10px] leading-tight">{t("dashCashInLegend")}</p>
-                              <p className="font-bold text-blue-700 tabular-nums mt-0.5">{money(cashFlowTotals.in)}</p>
-                            </div>
-                            <div className="text-center rounded-lg bg-orange-50/80 px-2 py-2">
-                              <p className="text-slate-500 text-[10px] leading-tight">{t("dashCashOutLegend")}</p>
-                              <p className="font-bold text-orange-600 tabular-nums mt-0.5">{money(cashFlowTotals.out)}</p>
-                            </div>
-                            <div className="text-center rounded-lg bg-slate-50 px-2 py-2">
-                              <p className="text-slate-500 text-[10px] leading-tight">{t("dashNetHint")}</p>
-                              <p className={"font-bold tabular-nums mt-0.5 " + (cashFlowTotals.in >= cashFlowTotals.out ? "text-emerald-700" : "text-amber-700")}>{money(cashFlowTotals.in - cashFlowTotals.out)}</p>
-                            </div>
-                          </div>
-                        )}
+                      <div className={"flex flex-col gap-3 " + (activeRegion === "ALL" ? "flex-1 min-h-0 justify-end" : "")}>
+                        <MonthlyBarChart
+                          firstHalf={cashFlowFirstHalf}
+                          secondHalf={cashFlowSecondHalf}
+                          maxBar={maxBar}
+                          t={t}
+                          inLegend={t("dashCashInLegend")}
+                          outLegend={t("dashCashOutLegend")}
+                          h1Label={t("dashIncomeOutH1")}
+                          h2Label={t("dashIncomeOutH2")}
+                          totals={cashFlowTotals}
+                          netLabel={t("dashNetHint")}
+                        />
                       </div>
                     </article>
                     {activeRegion === "ALL" && (
@@ -2607,6 +2762,48 @@
 
               {page === "overview" && can("overview", "view") && (
                 <div className="space-y-4">
+                  <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg text-slate-800">{t("overviewPaidTitle")}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{t("overviewPaidHint")} · {regionListCurrency}</p>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs shrink-0">
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(135deg, #1d4ed8, #38bdf8)" }}></span>{t("overviewArCollected")}</span>
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(135deg, #ea580c, #fbbf24)" }}></span>{t("overviewApPaid")}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                      <div className="rounded-xl bg-gradient-to-br from-blue-600 to-sky-400 px-4 py-3 text-white shadow-sm">
+                        <p className="text-[10px] text-blue-100 uppercase tracking-wide">{t("overviewArCollectedTotal")}</p>
+                        <p className="text-2xl font-bold tabular-nums mt-1">{money(overviewCollectedTotals.in)}</p>
+                        <p className="text-[10px] text-blue-100 mt-0.5">{regionListCurrency}</p>
+                      </div>
+                      <div className="rounded-xl bg-gradient-to-br from-orange-600 to-amber-400 px-4 py-3 text-white shadow-sm">
+                        <p className="text-[10px] text-orange-100 uppercase tracking-wide">{t("overviewApPaidTotal")}</p>
+                        <p className="text-2xl font-bold tabular-nums mt-1">{money(overviewCollectedTotals.out)}</p>
+                        <p className="text-[10px] text-orange-100 mt-0.5">{regionListCurrency}</p>
+                      </div>
+                      <div className={"rounded-xl px-4 py-3 text-white shadow-sm " + (overviewCollectedTotals.in >= overviewCollectedTotals.out ? "bg-gradient-to-br from-emerald-600 to-teal-400" : "bg-gradient-to-br from-amber-600 to-orange-400")}>
+                        <p className="text-[10px] text-white/80 uppercase tracking-wide">{t("overviewNet")}</p>
+                        <p className="text-2xl font-bold tabular-nums mt-1">{money(overviewCollectedTotals.in - overviewCollectedTotals.out)}</p>
+                        <p className="text-[10px] text-white/80 mt-0.5">{regionListCurrency}</p>
+                      </div>
+                    </div>
+                    <MonthlyBarChart
+                      firstHalf={overviewCollectedFirstHalf}
+                      secondHalf={overviewCollectedSecondHalf}
+                      maxBar={overviewCollectedMaxBar}
+                      t={t}
+                      inLegend={t("overviewArCollected")}
+                      outLegend={t("overviewApPaid")}
+                      h1Label={t("dashIncomeOutH1")}
+                      h2Label={t("dashIncomeOutH2")}
+                      totals={overviewCollectedTotals}
+                      netLabel={t("overviewNet")}
+                    />
+                  </section>
+
                   <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
                     <div className="flex flex-wrap items-end gap-3 mb-4">
                       <Field label={t("overviewStartDate")}>
