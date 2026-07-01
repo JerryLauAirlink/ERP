@@ -202,6 +202,17 @@
           actions: "Actions", invoices: "Invoices", clientGroup: "Client (Group)", type: "Type", status: "Status",
           arOutstanding: "AR Outstanding", apOutstanding: "AP Outstanding", netPosition: "Net Position", dueSoon: "Due Soon", overdueCount: "overdue", pendingBills: "bills pending", dueSoonHint: "unpaid, due soon",
           topOverdue: "Top Overdue Invoices", approvalQueue: "Approval Queue", cashFlow: "Cash In vs Cash Out (90 Days)", arAging: "A/R Aging",
+          dashSubtitle: "Executive summary — cash position & what needs attention",
+          dashCashIn: "Cash In (AR)", dashCashOut: "Cash Out (AP)", dashCashInHint: "Unpaid client invoices", dashCashOutHint: "Unpaid vendor / SI bills", dashNetHint: "Receivables minus payables",
+          dashActiveJobs: "Active Jobs", dashActiveJobsHint: "Open or in progress",
+          dashIncomeOut: "Expected Income vs Out", dashIncomeOutHint: "Grouped by due date · next 6 months · unpaid only",
+          dashCashInLegend: "Income (AR due)", dashCashOutLegend: "Out (AP due)",
+          dashArDueSoon: "AR Due Within 14 Days", dashApDueSoon: "AP Due Within 14 Days",
+          dashOverdueAr: "Overdue AR — Collect", dashOverdueAp: "Overdue AP — Pay",
+          dashDueToday: "Due today", dashDueInDays: "Due in {n}d", dashDaysOverdue: "{n}d overdue",
+          dashNoDueSoon: "Nothing due in the next 14 days", dashNoOverdue: "No overdue items",
+          dashAgingCurrent: "Not yet due", dashAging1_30: "1–30 days overdue", dashAging31_60: "31–60 days overdue", dashAging61_90: "61–90 days overdue", dashAging90plus: "90+ days overdue",
+          dashThisMonthIn: "AR due this month", dashThisMonthOut: "AP due this month", dashViewAll: "View all", dashDueDate: "Due",
           editClient: "Edit Client", addClientTitle: "Add Client", editJob: "Edit Job", addJobTitle: "Add Job", editVendor: "Edit Vendor", addVendorTitle: "Add Vendor", editSi: "Edit SI", addSiTitle: "Add SI",
           editAr: "Edit AR Invoice", createArTitle: "Create AR Invoice", editAp: "Edit AP Bill", createApTitle: "Create AP Bill", newTxTitle: "New Transaction",
           createArDesc: "Create accounts receivable invoice", createApDesc: "Create accounts payable bill",
@@ -249,6 +260,17 @@
           actions: "操作", invoices: "發票數", clientGroup: "客戶（分組）", type: "類型", status: "狀態",
           arOutstanding: "應收未結", apOutstanding: "應付未結", netPosition: "淨部位", dueSoon: "即將到期", overdueCount: "筆已逾期", pendingBills: "筆待處理", dueSoonHint: "未收款、即將到期",
           topOverdue: "逾期發票排行", approvalQueue: "審批佇列", cashFlow: "現金流入 vs 流出（90 天）", arAging: "應收帳齡",
+          dashSubtitle: "管理層總覽 — 現金狀況同需要跟進嘅單",
+          dashCashIn: "現金流入（應收）", dashCashOut: "現金流出（應付）", dashCashInHint: "客戶未收款發票", dashCashOutHint: "供應商／分包商未付款", dashNetHint: "應收減應付",
+          dashActiveJobs: "進行中工作", dashActiveJobsHint: "Open 或 In Progress",
+          dashIncomeOut: "預期收入 vs 支出", dashIncomeOutHint: "按到期日 · 未來 6 個月 · 只計未結清",
+          dashCashInLegend: "收入（應收到期）", dashCashOutLegend: "支出（應付到期）",
+          dashArDueSoon: "14 日內應收到期", dashApDueSoon: "14 日內應付到期",
+          dashOverdueAr: "逾期應收 — 追數", dashOverdueAp: "逾期應付 — 付款",
+          dashDueToday: "今日到期", dashDueInDays: "{n} 日後到期", dashDaysOverdue: "逾期 {n} 日",
+          dashNoDueSoon: "14 日內無到期項目", dashNoOverdue: "無逾期項目",
+          dashAgingCurrent: "未到期", dashAging1_30: "逾期 1–30 日", dashAging31_60: "逾期 31–60 日", dashAging61_90: "逾期 61–90 日", dashAging90plus: "逾期 90 日以上",
+          dashThisMonthIn: "本月應收到期", dashThisMonthOut: "本月應付到期", dashViewAll: "查看全部", dashDueDate: "到期",
           editClient: "修改客戶", addClientTitle: "新增客戶", editJob: "修改工作", addJobTitle: "新增工作", editVendor: "修改供應商", addVendorTitle: "新增供應商", editSi: "修改分包商", addSiTitle: "新增分包商",
           editAr: "修改應收發票", createArTitle: "新增應收發票", editAp: "修改應付單", createApTitle: "新增應付單", newTxTitle: "新增交易",
           createArDesc: "建立應收發票", createApDesc: "建立應付單",
@@ -386,6 +408,28 @@
         const due = new Date(dueDate + "T00:00:00");
         const diff = Math.floor((now - due) / (1000 * 60 * 60 * 24));
         return diff > 0 ? diff : 0;
+      }
+
+      function daysUntilDue(dueDate) {
+        if (!dueDate) return null;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const due = new Date(dueDate + "T00:00:00");
+        return Math.floor((due - now) / (1000 * 60 * 60 * 24));
+      }
+
+      function dueBadgeLabel(daysUntil, overdueDays, t) {
+        if (daysUntil === 0) return t("dashDueToday");
+        if (daysUntil !== null && daysUntil > 0) return t("dashDueInDays").replace("{n}", String(daysUntil));
+        if (overdueDays > 0) return t("dashDaysOverdue").replace("{n}", String(overdueDays));
+        return "-";
+      }
+
+      function dueBadgeClass(daysUntil, overdueDays) {
+        if (overdueDays > 0) return "bg-red-100 text-red-800 ring-1 ring-red-200";
+        if (daysUntil === 0) return "bg-amber-100 text-amber-900 ring-1 ring-amber-200";
+        if (daysUntil !== null && daysUntil <= 7) return "bg-amber-50 text-amber-800";
+        return "bg-slate-100 text-slate-700";
       }
 
       function calcDaysBetween(startDate, endDate) {
@@ -842,26 +886,103 @@
         const apDisplay = useMemo(() => scopedApBills.map((r) => ({ ...r, display_base_amount: convertCurrency(r.amount, r.currency, activeBaseCurrency) })), [scopedApBills, activeBaseCurrency]);
         const arTotal = useMemo(() => arDisplay.filter((r) => r.payment_status !== "Paid").reduce((a, b) => a + b.display_base_amount, 0), [arDisplay]);
         const apTotal = useMemo(() => apDisplay.filter((b) => !isApPaid(b)).reduce((a, b) => a + b.display_base_amount, 0), [apDisplay]);
+        const netPosition = arTotal - apTotal;
+        const activeJobCount = useMemo(() => scopedJobs.filter((j) => !isJobCompleted(j.status)).length, [scopedJobs]);
 
-        const overdueList = useMemo(() =>
-          arDisplay.map((r) => ({ ...r, overdue_days: calcOverdueDays(r.due_date) })).filter((r) => r.overdue_days > 0 && r.payment_status !== "Paid").sort((a, b) => b.overdue_days - a.overdue_days).slice(0, 5),
+        const arDueSoonList = useMemo(() =>
+          arDisplay
+            .filter((r) => r.payment_status !== "Paid" && r.due_date)
+            .map((r) => ({ ...r, days_until: daysUntilDue(r.due_date), overdue_days: calcOverdueDays(r.due_date) }))
+            .filter((r) => r.days_until !== null && r.days_until >= 0 && r.days_until <= 14)
+            .sort((a, b) => a.days_until - b.days_until)
+            .slice(0, 8),
           [arDisplay]
         );
 
+        const apDueSoonList = useMemo(() =>
+          apDisplay
+            .filter((b) => !isApPaid(b) && b.due_date)
+            .map((b) => ({ ...b, days_until: daysUntilDue(b.due_date), overdue_days: calcOverdueDays(b.due_date) }))
+            .filter((b) => b.days_until !== null && b.days_until >= 0 && b.days_until <= 14)
+            .sort((a, b) => a.days_until - b.days_until)
+            .slice(0, 8),
+          [apDisplay]
+        );
+
+        const arOverdueList = useMemo(() =>
+          arDisplay
+            .map((r) => ({ ...r, overdue_days: calcOverdueDays(r.due_date), days_until: daysUntilDue(r.due_date) }))
+            .filter((r) => r.overdue_days > 0 && r.payment_status !== "Paid")
+            .sort((a, b) => b.overdue_days - a.overdue_days)
+            .slice(0, 6),
+          [arDisplay]
+        );
+
+        const apOverdueList = useMemo(() =>
+          apDisplay
+            .map((b) => ({ ...b, overdue_days: calcOverdueDays(b.due_date), days_until: daysUntilDue(b.due_date) }))
+            .filter((b) => b.overdue_days > 0 && !isApPaid(b))
+            .sort((a, b) => b.overdue_days - a.overdue_days)
+            .slice(0, 6),
+          [apDisplay]
+        );
+
         const aging = useMemo(() => {
-          const bucket = { d0_30: 0, d31_60: 0, d61_90: 0, d90_plus: 0 };
-          arDisplay.forEach((r) => {
-            const d = calcOverdueDays(r.due_date);
-            if (d <= 30) bucket.d0_30 += r.display_base_amount;
-            else if (d <= 60) bucket.d31_60 += r.display_base_amount;
-            else if (d <= 90) bucket.d61_90 += r.display_base_amount;
+          const bucket = { current: 0, d1_30: 0, d31_60: 0, d61_90: 0, d90_plus: 0 };
+          arDisplay.filter((r) => r.payment_status !== "Paid").forEach((r) => {
+            const od = calcOverdueDays(r.due_date);
+            if (od <= 0) bucket.current += r.display_base_amount;
+            else if (od <= 30) bucket.d1_30 += r.display_base_amount;
+            else if (od <= 60) bucket.d31_60 += r.display_base_amount;
+            else if (od <= 90) bucket.d61_90 += r.display_base_amount;
             else bucket.d90_plus += r.display_base_amount;
           });
           return bucket;
         }, [arDisplay]);
 
-        const dueSoonCount = useMemo(() => arDisplay.filter((r) => calcOverdueDays(r.due_date) === 0 && r.payment_status !== "Paid").length, [arDisplay]);
-        const overdueCount = overdueList.length;
+        const agingMax = useMemo(() => Math.max(1, aging.current + aging.d1_30 + aging.d31_60 + aging.d61_90 + aging.d90_plus), [aging]);
+
+        const cashFlowSeries = useMemo(() => {
+          const today = new Date();
+          const months = [];
+          for (let i = 0; i < 6; i++) {
+            const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+            const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+            const label = String(d.getMonth() + 1).padStart(2, "0") + "/" + String(d.getFullYear()).slice(2);
+            months.push({ key, label, inBase: 0, outBase: 0 });
+          }
+          const monthMap = Object.fromEntries(months.map((m) => [m.key, m]));
+          arDisplay.filter((r) => r.payment_status !== "Paid" && r.due_date).forEach((r) => {
+            const key = r.due_date.slice(0, 7);
+            if (monthMap[key]) monthMap[key].inBase += r.display_base_amount;
+          });
+          apDisplay.filter((b) => !isApPaid(b) && b.due_date).forEach((b) => {
+            const key = b.due_date.slice(0, 7);
+            if (monthMap[key]) monthMap[key].outBase += b.display_base_amount;
+          });
+          return months;
+        }, [arDisplay, apDisplay]);
+
+        const maxBar = useMemo(() => Math.max(1, ...cashFlowSeries.flatMap((p) => [p.inBase, p.outBase])), [cashFlowSeries]);
+
+        const thisMonthKey = useMemo(() => {
+          const d = new Date();
+          return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+        }, []);
+
+        const thisMonthIn = useMemo(() => cashFlowSeries.find((m) => m.key === thisMonthKey)?.inBase || 0, [cashFlowSeries, thisMonthKey]);
+        const thisMonthOut = useMemo(() => cashFlowSeries.find((m) => m.key === thisMonthKey)?.outBase || 0, [cashFlowSeries, thisMonthKey]);
+
+        const overdueArTotal = useMemo(() =>
+          arDisplay.filter((r) => calcOverdueDays(r.due_date) > 0 && r.payment_status !== "Paid").reduce((s, r) => s + r.display_base_amount, 0),
+          [arDisplay]
+        );
+        const overdueApTotal = useMemo(() =>
+          apDisplay.filter((b) => calcOverdueDays(b.due_date) > 0 && !isApPaid(b)).reduce((s, b) => s + b.display_base_amount, 0),
+          [apDisplay]
+        );
+        const overdueArCount = useMemo(() => arDisplay.filter((r) => calcOverdueDays(r.due_date) > 0 && r.payment_status !== "Paid").length, [arDisplay]);
+        const overdueApCount = useMemo(() => apDisplay.filter((b) => calcOverdueDays(b.due_date) > 0 && !isApPaid(b)).length, [apDisplay]);
 
         const filteredJobs = useMemo(() => {
           let list = scopedJobs;
@@ -1348,16 +1469,30 @@
           );
         }
 
-        const cashFlowSeries = useMemo(() => [
-          { date: "04-01", in: 120000, out: 84000 }, { date: "04-15", in: 96000, out: 92000 },
-          { date: "05-01", in: 140000, out: 110000 }, { date: "05-15", in: 132000, out: 104000 },
-          { date: "06-01", in: 155000, out: 121000 }, { date: "06-15", in: 148000, out: 130000 },
-          { date: "07-01", in: 170000, out: 126000 }, { date: "07-15", in: 162000, out: 138000 },
-          { date: "08-01", in: 178000, out: 141000 }, { date: "08-15", in: 168000, out: 149000 },
-          { date: "09-01", in: 185000, out: 152000 }, { date: "09-15", in: 174000, out: 158000 }
-        ].map((p) => ({ ...p, inBase: convertCurrency(p.in, "HKD", activeBaseCurrency), outBase: convertCurrency(p.out, "HKD", activeBaseCurrency) })), [activeBaseCurrency]);
-
-        const maxBar = useMemo(() => Math.max(1, ...cashFlowSeries.flatMap((p) => [p.inBase, p.outBase])), [cashFlowSeries]);
+        function DashDueRow({ item, type, nameKey, noKey }) {
+          const name = item[nameKey];
+          const no = item[noKey];
+          const daysUntil = item.days_until;
+          const overdueDays = item.overdue_days;
+          return (
+            <button
+              type="button"
+              onClick={() => setDetailPanel({ type, id: item.id })}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-0"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-slate-800 truncate">{no}</p>
+                <p className="text-xs text-slate-500 truncate">{name}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-sm font-semibold tabular-nums">{money(item.display_base_amount)}</p>
+                <span className={"inline-block mt-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium " + dueBadgeClass(daysUntil, overdueDays)}>
+                  {dueBadgeLabel(daysUntil, overdueDays, t)}
+                </span>
+              </div>
+            </button>
+          );
+        }
 
         function SidebarItem({ id, label, module, collapsed }) {
           if (module && !can(module, "view")) return null;
@@ -1753,7 +1888,9 @@
                     {page === "ap" && t("nav_ap")}
                     {page === "settings" && t("nav_settings")}
                   </h2>
-                  <p className="text-sm text-slate-500">{t("baseCurrency")}: {activeBaseCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</p>
+                  <p className="text-sm text-slate-500">
+                    {page === "dashboard" ? t("dashSubtitle") : <>{t("baseCurrency")}: {activeBaseCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-nowrap">
                   <div className="flex items-center gap-2 h-9 px-2.5 rounded-lg border border-slate-200 bg-white" title={t("worldTimeHint")}>
@@ -1784,54 +1921,145 @@
               </header>
 
               {page === "dashboard" && (
-                <>
-                  <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("arOutstanding")} ({activeBaseCurrency})</p><p className="text-2xl font-bold mt-2">{money(arTotal)}</p><p className="text-xs text-slate-500 mt-2">{overdueCount} {t("overdueCount")}</p></article>
-                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("apOutstanding")} ({activeBaseCurrency})</p><p className="text-2xl font-bold mt-2">{money(apTotal)}</p><p className="text-xs text-slate-500 mt-2">{scopedApBills.length} {t("pendingBills")}</p></article>
-                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("netPosition")}</p><p className="text-2xl font-bold mt-2">{money(arTotal - apTotal)}</p></article>
-                    <article className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"><p className="text-xs text-slate-500">{t("dueSoon")}</p><p className="text-2xl font-bold mt-2">{dueSoonCount}</p><p className="text-xs text-slate-500 mt-2">{t("dueSoonHint")}</p></article>
-                  </section>
-                  <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                    <article className="xl:col-span-2 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                      <h3 className="font-semibold mb-4">{t("cashFlow")} - {activeBaseCurrency}</h3>
-                      <div className="h-72 rounded-lg bg-slate-50 border border-slate-200 p-4 overflow-x-auto">
-                        <div className="min-w-[860px] h-full flex items-end gap-4">
-                          {cashFlowSeries.map((p) => (
-                            <div key={p.date} className="flex flex-col items-center gap-1">
-                              <div className="flex items-end gap-1 h-56">
-                                <div title={`${p.date} Cash In: ${money(p.inBase)} ${activeBaseCurrency}`} className="w-4 bg-blue-500 rounded-t cursor-pointer" style={{ height: `${(p.inBase / maxBar) * 100}%` }}></div>
-                                <div title={`${p.date} Cash Out: ${money(p.outBase)} ${activeBaseCurrency}`} className="w-4 bg-rose-400 rounded-t cursor-pointer" style={{ height: `${(p.outBase / maxBar) * 100}%` }}></div>
-                              </div>
-                              <span className="text-[10px] text-slate-500">{p.date}</span>
-                            </div>
-                          ))}
-                        </div>
+                <div className="space-y-5">
+                  {/* KPI — Boss sees cash position at a glance */}
+                  <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <article className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-5 shadow-lg shadow-emerald-500/20">
+                      <p className="text-xs font-medium text-emerald-100 uppercase tracking-wide">{t("dashCashIn")}</p>
+                      <p className="text-3xl font-bold mt-2 tabular-nums">{money(arTotal)}</p>
+                      <p className="text-xs text-emerald-100/90 mt-1">{activeBaseCurrency} · {t("dashCashInHint")}</p>
+                      {overdueArCount > 0 && <p className="text-xs mt-3 bg-white/15 rounded-lg px-2 py-1 inline-block">{overdueArCount} {t("overdue")} · {money(overdueArTotal)}</p>}
+                    </article>
+                    <article className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 text-white p-5 shadow-lg shadow-rose-500/20">
+                      <p className="text-xs font-medium text-rose-100 uppercase tracking-wide">{t("dashCashOut")}</p>
+                      <p className="text-3xl font-bold mt-2 tabular-nums">{money(apTotal)}</p>
+                      <p className="text-xs text-rose-100/90 mt-1">{activeBaseCurrency} · {t("dashCashOutHint")}</p>
+                      {overdueApCount > 0 && <p className="text-xs mt-3 bg-white/15 rounded-lg px-2 py-1 inline-block">{overdueApCount} {t("overdue")} · {money(overdueApTotal)}</p>}
+                    </article>
+                    <article className={"relative overflow-hidden rounded-2xl p-5 shadow-lg " + (netPosition >= 0 ? "bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-blue-500/20" : "bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-amber-500/20")}>
+                      <p className="text-xs font-medium opacity-90 uppercase tracking-wide">{t("netPosition")}</p>
+                      <p className="text-3xl font-bold mt-2 tabular-nums">{money(netPosition)}</p>
+                      <p className="text-xs opacity-90 mt-1">{activeBaseCurrency} · {t("dashNetHint")}</p>
+                      <div className="flex gap-3 mt-3 text-xs">
+                        <span className="bg-white/15 rounded-lg px-2 py-1">{t("dashThisMonthIn")}: {money(thisMonthIn)}</span>
+                        <span className="bg-white/15 rounded-lg px-2 py-1">{t("dashThisMonthOut")}: {money(thisMonthOut)}</span>
                       </div>
                     </article>
-                    <article className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                      <h3 className="font-semibold mb-4">{t("arAging")} ({activeBaseCurrency})</h3>
-                      <ul className="space-y-3 text-sm">
-                        <li className="flex justify-between"><span>0 - 30 days</span><span className="font-semibold">{money(aging.d0_30)}</span></li>
-                        <li className="flex justify-between"><span>31 - 60 days</span><span className="font-semibold">{money(aging.d31_60)}</span></li>
-                        <li className="flex justify-between"><span>61 - 90 days</span><span className="font-semibold">{money(aging.d61_90)}</span></li>
-                        <li className="flex justify-between text-red-600"><span>90+ days</span><span className="font-semibold">{money(aging.d90_plus)}</span></li>
+                    <article className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("dashActiveJobs")}</p>
+                      <p className="text-3xl font-bold mt-2 text-slate-800 tabular-nums">{activeJobCount}</p>
+                      <p className="text-xs text-slate-500 mt-1">{t("dashActiveJobsHint")}</p>
+                      <div className="flex gap-2 mt-3 text-xs">
+                        <span className="rounded-lg bg-slate-100 px-2 py-1 text-slate-600">{t("dashArDueSoon")}: {arDueSoonList.length}</span>
+                        <span className="rounded-lg bg-slate-100 px-2 py-1 text-slate-600">{t("dashApDueSoon")}: {apDueSoonList.length}</span>
+                      </div>
+                    </article>
+                  </section>
+
+                  {/* Income vs Out — real AR/AP due dates */}
+                  <article className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+                      <div>
+                        <h3 className="font-semibold text-lg text-slate-800">{t("dashIncomeOut")}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{t("dashIncomeOutHint")} · {activeBaseCurrency}</p>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500"></span>{t("dashCashInLegend")}</span>
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-rose-400"></span>{t("dashCashOutLegend")}</span>
+                      </div>
+                    </div>
+                    <div className="h-52 flex items-end gap-3 px-1">
+                      {cashFlowSeries.map((p) => (
+                        <div key={p.key} className="flex-1 flex flex-col items-center gap-2 min-w-0">
+                          <div className="w-full flex items-end justify-center gap-1 h-40">
+                            <div
+                              title={t("dashCashInLegend") + ": " + money(p.inBase)}
+                              className="w-[42%] max-w-8 bg-emerald-500 rounded-t-md transition-all duration-300 hover:bg-emerald-600"
+                              style={{ height: p.inBase ? Math.max(8, (p.inBase / maxBar) * 100) + "%" : "4px", opacity: p.inBase ? 1 : 0.25 }}
+                            />
+                            <div
+                              title={t("dashCashOutLegend") + ": " + money(p.outBase)}
+                              className="w-[42%] max-w-8 bg-rose-400 rounded-t-md transition-all duration-300 hover:bg-rose-500"
+                              style={{ height: p.outBase ? Math.max(8, (p.outBase / maxBar) * 100) + "%" : "4px", opacity: p.outBase ? 1 : 0.25 }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium">{p.label}</span>
+                          <div className="text-[9px] text-slate-400 text-center leading-tight w-full truncate">
+                            <span className="text-emerald-600">+{money(p.inBase)}</span>
+                            <span className="mx-0.5">/</span>
+                            <span className="text-rose-500">-{money(p.outBase)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+
+                  {/* Due soon — AR & AP side by side */}
+                  <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <article className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                      <div className="px-4 py-3 border-b bg-emerald-50/60 flex justify-between items-center">
+                        <h3 className="font-semibold text-emerald-900">{t("dashArDueSoon")}</h3>
+                        {can("ar", "view") && <button type="button" onClick={() => setPage("ar")} className="text-xs text-emerald-700 hover:underline">{t("dashViewAll")}</button>}
+                      </div>
+                      {arDueSoonList.length ? arDueSoonList.map((r) => <DashDueRow key={r.id} item={r} type="ar" nameKey="customer" noKey="invoice_no" />) : (
+                        <p className="px-4 py-8 text-sm text-slate-400 text-center">{t("dashNoDueSoon")}</p>
+                      )}
+                    </article>
+                    <article className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                      <div className="px-4 py-3 border-b bg-rose-50/60 flex justify-between items-center">
+                        <h3 className="font-semibold text-rose-900">{t("dashApDueSoon")}</h3>
+                        {can("ap", "view") && <button type="button" onClick={() => setPage("ap")} className="text-xs text-rose-700 hover:underline">{t("dashViewAll")}</button>}
+                      </div>
+                      {apDueSoonList.length ? apDueSoonList.map((b) => <DashDueRow key={b.id} item={b} type="ap" nameKey="company_name" noKey="invoice_no" />) : (
+                        <p className="px-4 py-8 text-sm text-slate-400 text-center">{t("dashNoDueSoon")}</p>
+                      )}
+                    </article>
+                  </section>
+
+                  {/* Overdue + Aging */}
+                  <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                    <article className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden xl:col-span-1">
+                      <div className="px-4 py-3 border-b bg-red-50 flex justify-between items-center">
+                        <h3 className="font-semibold text-red-900">{t("dashOverdueAr")}</h3>
+                        <span className="text-xs font-semibold text-red-700">{money(overdueArTotal)}</span>
+                      </div>
+                      {arOverdueList.length ? arOverdueList.map((r) => <DashDueRow key={r.id} item={r} type="ar" nameKey="customer" noKey="invoice_no" />) : (
+                        <p className="px-4 py-6 text-sm text-slate-400 text-center">{t("dashNoOverdue")}</p>
+                      )}
+                    </article>
+                    <article className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden xl:col-span-1">
+                      <div className="px-4 py-3 border-b bg-red-50 flex justify-between items-center">
+                        <h3 className="font-semibold text-red-900">{t("dashOverdueAp")}</h3>
+                        <span className="text-xs font-semibold text-red-700">{money(overdueApTotal)}</span>
+                      </div>
+                      {apOverdueList.length ? apOverdueList.map((b) => <DashDueRow key={b.id} item={b} type="ap" nameKey="company_name" noKey="invoice_no" />) : (
+                        <p className="px-4 py-6 text-sm text-slate-400 text-center">{t("dashNoOverdue")}</p>
+                      )}
+                    </article>
+                    <article className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm xl:col-span-1">
+                      <h3 className="font-semibold text-slate-800 mb-4">{t("arAging")} <span className="text-xs font-normal text-slate-500">({activeBaseCurrency})</span></h3>
+                      <ul className="space-y-3.5">
+                        {[
+                          { key: "current", label: t("dashAgingCurrent"), color: "bg-emerald-500", val: aging.current },
+                          { key: "d1_30", label: t("dashAging1_30"), color: "bg-amber-400", val: aging.d1_30 },
+                          { key: "d31_60", label: t("dashAging31_60"), color: "bg-orange-400", val: aging.d31_60 },
+                          { key: "d61_90", label: t("dashAging61_90"), color: "bg-orange-500", val: aging.d61_90 },
+                          { key: "d90_plus", label: t("dashAging90plus"), color: "bg-red-500", val: aging.d90_plus }
+                        ].map((row) => (
+                          <li key={row.key}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-slate-600">{row.label}</span>
+                              <span className="font-semibold tabular-nums">{money(row.val)}</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                              <div className={"h-full rounded-full transition-all duration-500 " + row.color} style={{ width: Math.max(row.val ? 4 : 0, (row.val / agingMax) * 100) + "%" }} />
+                            </div>
+                          </li>
+                        ))}
                       </ul>
                     </article>
                   </section>
-                  <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    <article className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                      <div className="p-4 border-b"><h3 className="font-semibold">{t("topOverdue")}</h3></div>
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50 text-slate-500"><tr><th className="text-left p-3">Invoice</th><th className="text-left p-3">Client</th><th className="text-left p-3">Overdue</th><th className="text-right p-3">Amount</th></tr></thead>
-                        <tbody className="divide-y">{overdueList.map((r) => <tr key={r.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setDetailPanel({ type: "ar", id: r.id })}><td className="p-3 font-medium text-blue-600">{r.invoice_no}</td><td className="p-3">{r.customer}</td><td className="p-3 text-red-600">+{r.overdue_days} days</td><td className="p-3 text-right font-semibold">{money(r.display_base_amount)}</td></tr>)}</tbody>
-                      </table>
-                    </article>
-                    <article className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                      <div className="p-4 border-b"><h3 className="font-semibold">{t("approvalQueue")}</h3></div>
-                      <ul className="divide-y text-sm">{approvals.map((a) => <li key={a.id} className="p-4 flex justify-between"><div><p className="font-medium">{a.doc}</p><p className="text-xs text-slate-500">Requester: {a.requester}</p></div><span className={a.status === "Over SLA" ? "text-red-600" : "text-amber-600"}>{a.status}</span></li>)}</ul>
-                    </article>
-                  </section>
-                </>
+                </div>
               )}
 
               {page === "clients" && (
