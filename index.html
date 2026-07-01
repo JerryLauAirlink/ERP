@@ -12,9 +12,55 @@
 <body class="bg-slate-50 text-slate-800">
     <div id="app"></div>
     <script type="text/babel">
-      const { useMemo, useState } = React;
+      const { useMemo, useState, useEffect } = React;
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
+      const ERP_MODULES = ["dashboard", "clients", "job", "ar", "ap", "vendors", "si", "settings"];
+      const WORLD_TIMEZONES = [
+        { id: "UTC", labelEn: "UTC (World Standard)", labelZh: "UTC（世界標準時間）" },
+        { id: "Asia/Hong_Kong", labelEn: "Hong Kong", labelZh: "香港" },
+        { id: "Asia/Taipei", labelEn: "Taipei", labelZh: "台北" },
+        { id: "Asia/Singapore", labelEn: "Singapore", labelZh: "新加坡" },
+        { id: "Asia/Tokyo", labelEn: "Tokyo", labelZh: "東京" },
+        { id: "Europe/London", labelEn: "London", labelZh: "倫敦" },
+        { id: "America/New_York", labelEn: "New York", labelZh: "紐約" }
+      ];
+
+      function fullPermissions() {
+        return Object.fromEntries(ERP_MODULES.map((m) => [m, { view: true, add: true, edit: true, delete: true }]));
+      }
+
+      function emptyPermissions() {
+        return Object.fromEntries(ERP_MODULES.map((m) => [m, { view: false, add: false, edit: false, delete: false }]));
+      }
+
+      function formatWorldTime(date, timeZone, lang) {
+        const locale = lang === "zh_TW" ? "zh-TW" : "en-GB";
+        return new Intl.DateTimeFormat(locale, {
+          timeZone,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        }).format(date);
+      }
+
+      function moduleLabel(module, t) {
+        const map = {
+          dashboard: t("nav_dashboard"),
+          clients: t("nav_clients"),
+          job: t("nav_job"),
+          ar: t("nav_ar"),
+          ap: t("nav_ap"),
+          vendors: t("nav_vendors"),
+          si: t("nav_si"),
+          settings: t("nav_settings")
+        };
+        return map[module] || module;
+      }
 
       const I18N = {
         en: {
@@ -40,7 +86,19 @@
           yes: "Yes", no: "No", goToAr: "Go to AR", goToJob: "Go to Job", goToAp: "Go to AP",
           paymentReceived: "Payment Received Date", autoPaidHint: "Entering payment date will set status to Paid",
           amountManualOverride: "editable", settingsLangHint: "The interface will switch to English immediately.",
-          siPageHint: "SI completes work and sends PO/Invoice to you — pay them via AP List."
+          siPageHint: "SI completes work and sends PO/Invoice to you — pay them via AP List.",
+          settingsGeneral: "General", settingsManagement: "User Management", settingsAudit: "Audit Log",
+          worldTime: "World Time", worldTimeHint: "Uses selected timezone (not your computer clock).",
+          timezone: "Timezone", currentUser: "Signed in as", switchUser: "Switch user (demo)",
+          mgmtTitle: "User & Access Management", mgmtHint: "Root admin can create users and assign view / add / edit / delete rights per module.",
+          addUser: "+ Add User", editUser: "Edit User", userName: "Display Name", userEmail: "Email", userPassword: "Password", userRole: "Role", roleRoot: "Root (full access)", roleUser: "User",
+          userActive: "Active", accessRights: "Access Rights", permView: "View", permAdd: "Add", permEdit: "Edit", permDelete: "Delete",
+          auditTitle: "Activity Log", auditHint: "Filter by date, user, module or action — like a report.",
+          auditWhen: "When (UTC stored)", auditUser: "User", auditModule: "Module", auditAction: "Action", auditEntity: "Record", auditDetail: "Details",
+          auditDateFrom: "From date", auditDateTo: "To date", auditSearch: "Search", auditReset: "Reset filters", auditNoRows: "No log entries match your filters.",
+          actionCreate: "Create", actionUpdate: "Update", actionDelete: "Delete", actionMarkPaid: "Mark Paid", actionUserCreate: "User Created", actionUserUpdate: "User Updated",
+          confirmDelete: "Delete this record?", noPermission: "You do not have permission for this action.", rootOnly: "Root admin only.",
+          delete: "Delete", allUsers: "All users", allModules: "All modules", allActions: "All actions"
         },
         zh_TW: {
           appTitle: "ERP 系統", nav_dashboard: "儀表板", nav_clients: "客戶", nav_job: "工作清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
@@ -65,8 +123,20 @@
           yes: "是", no: "否", goToAr: "前往應收", goToJob: "前往工作", goToAp: "前往應付",
           paymentReceived: "收款日期", autoPaidHint: "輸入收款日期會自動設為已收款",
           amountManualOverride: "可手改", settingsLangHint: "切換後介面會即時更新為繁體中文（台灣）。",
-          siPageHint: "分包商 (SI) 完成工作後向你開 PO／Invoice，你在 AP List 付款給佢。"
-        }
+          siPageHint: "分包商 (SI) 完成工作後向你開 PO／Invoice，你在 AP List 付款給佢。",
+          settingsGeneral: "一般", settingsManagement: "用戶管理", settingsAudit: "操作記錄",
+          worldTime: "世界時間", worldTimeHint: "依所選時區顯示（唔跟電腦本機時間）。",
+          timezone: "時區", currentUser: "目前登入", switchUser: "切換用戶（示範）",
+          mgmtTitle: "用戶與權限管理", mgmtHint: "Root 管理員可新增用戶，並按模組設定檢視／新增／修改／刪除權限。",
+          addUser: "+ 新增用戶", editUser: "修改用戶", userName: "顯示名稱", userEmail: "電郵", userPassword: "密碼", userRole: "角色", roleRoot: "Root（最高權限）", roleUser: "一般用戶",
+          userActive: "啟用", accessRights: "存取權限", permView: "檢視", permAdd: "新增", permEdit: "修改", permDelete: "刪除",
+          auditTitle: "操作記錄", auditHint: "可按日期、用戶、模組、動作篩選，好似報表咁搵。",
+          auditWhen: "時間（UTC 儲存）", auditUser: "用戶", auditModule: "模組", auditAction: "動作", auditEntity: "記錄", auditDetail: "詳情",
+          auditDateFrom: "開始日期", auditDateTo: "結束日期", auditSearch: "搜尋", auditReset: "重設篩選", auditNoRows: "沒有符合條件的記錄。",
+          actionCreate: "新增", actionUpdate: "修改", actionDelete: "刪除", actionMarkPaid: "標記已付款", actionUserCreate: "建立用戶", actionUserUpdate: "更新用戶",
+          confirmDelete: "確定刪除此記錄？", noPermission: "你沒有此操作權限。", rootOnly: "僅 Root 管理員可用。",
+          delete: "刪除", allUsers: "全部用戶", allModules: "全部模組", allActions: "全部動作"
+        },
       };
 
       function paymentStatusLabel(status, t) {
@@ -182,11 +252,12 @@
         return <select {...props} className={"w-full rounded-lg border border-slate-300 px-3 py-2 text-sm " + (props.className || "")} />;
       }
 
-      function ActionButtons({ onView, onEdit, viewLabel, editLabel, extra }) {
+      function ActionButtons({ onView, onEdit, onDelete, viewLabel, editLabel, deleteLabel, canEdit = true, canDelete = false, extra }) {
         return (
           <div className="flex gap-1 flex-wrap">
             <button type="button" onClick={(e) => { e.stopPropagation(); onView(); }} className="px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200">{viewLabel}</button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(); }} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 hover:bg-amber-200">{editLabel}</button>
+            {canEdit && <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(); }} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 hover:bg-amber-200">{editLabel}</button>}
+            {canDelete && onDelete && <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(); }} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 hover:bg-red-200">{deleteLabel || "Delete"}</button>}
             {extra}
           </div>
         );
@@ -264,6 +335,37 @@
         { id: 3, doc: "Expense Batch / Travel Reimbursement", requester: "Sales Team", status: "Over SLA" }
       ];
 
+      const initialUsers = [
+        { id: 1, name: "Root Admin", email: "root@erp.local", password: "root", role: "root", is_active: true, permissions: fullPermissions() },
+        {
+          id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true,
+          permissions: {
+            dashboard: { view: true, add: false, edit: false, delete: false },
+            clients: { view: true, add: false, edit: false, delete: false },
+            job: { view: true, add: true, edit: true, delete: false },
+            ar: { view: true, add: true, edit: true, delete: false },
+            ap: { view: true, add: true, edit: true, delete: false },
+            vendors: { view: true, add: false, edit: false, delete: false },
+            si: { view: true, add: false, edit: false, delete: false },
+            settings: { view: true, add: false, edit: false, delete: false }
+          }
+        }
+      ];
+
+      const initialAuditLogs = [
+        { id: 1, at: "2026-06-30T08:15:00.000Z", user_id: 1, user_name: "Root Admin", user_email: "root@erp.local", module: "clients", action: "create", entity: "Pacific Systems", detail: "Created client CUST-0001" },
+        { id: 2, at: "2026-06-30T09:42:00.000Z", user_id: 2, user_name: "Finance User", user_email: "finance@erp.local", module: "ar", action: "update", entity: "INV-2026-1192", detail: "Updated AR invoice payment status" }
+      ];
+
+      function loadJson(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch {
+          return fallback;
+        }
+      }
+
       function App() {
         const [page, setPage] = useState("dashboard");
         const [lang, setLang] = useState(() => localStorage.getItem("erp_lang") || "zh_TW");
@@ -296,7 +398,92 @@
         const [arModal, setArModal] = useState(null);
         const [apModal, setApModal] = useState(null);
 
+        const [users, setUsers] = useState(() => loadJson("erp_users", initialUsers));
+        const [auditLogs, setAuditLogs] = useState(() => loadJson("erp_audit_logs", initialAuditLogs));
+        const [currentUserId, setCurrentUserId] = useState(() => Number(localStorage.getItem("erp_current_user_id") || 1));
+        const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "UTC");
+        const [worldClock, setWorldClock] = useState(() => new Date());
+        const [settingsTab, setSettingsTab] = useState("general");
+        const [userModal, setUserModal] = useState(null);
+        const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
+
         const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+
+        useEffect(() => {
+          const timer = setInterval(() => setWorldClock(new Date()), 1000);
+          return () => clearInterval(timer);
+        }, []);
+
+        useEffect(() => { localStorage.setItem("erp_users", JSON.stringify(users)); }, [users]);
+        useEffect(() => { localStorage.setItem("erp_audit_logs", JSON.stringify(auditLogs)); }, [auditLogs]);
+        useEffect(() => { localStorage.setItem("erp_current_user_id", String(currentUserId)); }, [currentUserId]);
+        useEffect(() => { localStorage.setItem("erp_world_timezone", worldTimeZone); }, [worldTimeZone]);
+
+        function getCurrentUser() {
+          return users.find((u) => u.id === currentUserId) || users.find((u) => u.role === "root") || users[0];
+        }
+
+        function isRoot() {
+          const u = getCurrentUser();
+          return !!(u && u.role === "root");
+        }
+
+        function can(module, action) {
+          const u = getCurrentUser();
+          if (!u || !u.is_active) return false;
+          if (u.role === "root") return true;
+          const p = u.permissions && u.permissions[module];
+          if (!p) return false;
+          return !!p[action];
+        }
+
+        function actionLabel(action) {
+          const map = {
+            create: t("actionCreate"), update: t("actionUpdate"), delete: t("actionDelete"),
+            mark_paid: t("actionMarkPaid"), user_create: t("actionUserCreate"), user_update: t("actionUserUpdate")
+          };
+          return map[action] || action;
+        }
+
+        function logAudit(module, action, entity, detail) {
+          const u = getCurrentUser();
+          const entry = {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            at: new Date().toISOString(),
+            user_id: u ? u.id : null,
+            user_name: u ? u.name : "-",
+            user_email: u ? u.email : "-",
+            module,
+            action,
+            entity: entity || "-",
+            detail: detail || ""
+          };
+          setAuditLogs((prev) => [entry, ...prev].slice(0, 500));
+        }
+
+        function guardPermission(module, action) {
+          if (!can(module, action)) {
+            alert(t("noPermission"));
+            return false;
+          }
+          return true;
+        }
+
+        const filteredAuditLogs = useMemo(() => {
+          return auditLogs.filter((row) => {
+            if (auditFilters.userId !== "all" && String(row.user_id) !== auditFilters.userId) return false;
+            if (auditFilters.module !== "all" && row.module !== auditFilters.module) return false;
+            if (auditFilters.action !== "all" && row.action !== auditFilters.action) return false;
+            if (auditFilters.dateFrom && row.at.slice(0, 10) < auditFilters.dateFrom) return false;
+            if (auditFilters.dateTo && row.at.slice(0, 10) > auditFilters.dateTo) return false;
+            if (auditFilters.q) {
+              const q = auditFilters.q.toLowerCase();
+              const blob = [row.user_name, row.user_email, row.entity, row.detail, row.module, row.action].join(" ").toLowerCase();
+              if (!blob.includes(q)) return false;
+            }
+            return true;
+          });
+        }, [auditLogs, auditFilters]);
 
         function changeLang(next) {
           setLang(next);
@@ -329,16 +516,23 @@
         }
 
         function markArPaid(id) {
+          if (!guardPermission("ar", "edit")) return;
+          const row = arInvoices.find((r) => r.id === id);
           const today = new Date().toISOString().slice(0, 10);
           setArInvoices((prev) => prev.map((r) => (r.id === id ? { ...r, payment_status: "Paid", payment_received_date: r.payment_received_date || today } : r)));
+          logAudit("ar", "mark_paid", row ? row.invoice_no : String(id), `Marked AR ${row ? row.invoice_no : id} as paid`);
         }
 
         function markApPaid(id) {
+          if (!guardPermission("ap", "edit")) return;
+          const row = apBills.find((b) => b.id === id);
           const today = new Date().toISOString().slice(0, 10);
           setApBills((prev) => prev.map((b) => (b.id === id ? { ...b, pay_date: b.pay_date || today } : b)));
+          logAudit("ap", "mark_paid", row ? row.invoice_no : String(id), `Marked AP ${row ? row.invoice_no : id} as paid`);
         }
 
         function openArFromJob(j) {
+          if (!guardPermission("ar", "add")) return;
           setDetailPanel(null);
           setArModal({
             mode: "add",
@@ -462,13 +656,25 @@
           e.preventDefault();
           const data = clientModal.data;
           if (clientModal.mode === "add") {
+            if (!guardPermission("clients", "add")) return;
             setClients([{ id: Date.now(), ...data }, ...clients]);
+            logAudit("clients", "create", data.company, `Created client ${data.customer_no} · ${data.company}`);
           } else {
+            if (!guardPermission("clients", "edit")) return;
             const old = clients.find((c) => c.id === clientModal.id);
             setClients(clients.map((c) => (c.id === clientModal.id ? { ...c, ...data } : c)));
             if (old) syncCompanyName(old.company, data.company);
+            logAudit("clients", "update", data.company, `Updated client ${data.customer_no} · ${data.company}`);
           }
           setClientModal(null);
+        }
+
+        function deleteClient(id) {
+          if (!guardPermission("clients", "delete")) return;
+          const c = clients.find((x) => x.id === id);
+          if (!window.confirm(t("confirmDelete"))) return;
+          setClients(clients.filter((x) => x.id !== id));
+          logAudit("clients", "delete", c ? c.company : String(id), `Deleted client ${c ? c.company : id}`);
         }
 
         function saveJob(e) {
@@ -477,9 +683,12 @@
           const client = clients.find((c) => c.id === data.client_id);
           const payload = { ...data, company: client ? client.company : data.company };
           if (jobModal.mode === "add") {
+            if (!guardPermission("job", "add")) return;
             const newId = Date.now();
             setJobs([{ id: newId, ...payload }, ...jobs]);
+            logAudit("job", "create", payload.job_no, `Created job ${payload.job_no} for ${payload.company}`);
           } else {
+            if (!guardPermission("job", "edit")) return;
             const old = jobs.find((j) => j.id === jobModal.id);
             setJobs(jobs.map((j) => (j.id === jobModal.id ? { ...j, ...payload } : j)));
             if (old && old.job_no !== payload.job_no) {
@@ -489,38 +698,71 @@
               setArInvoices((prev) => prev.map((r) => (r.job_no === payload.job_no ? { ...r, customer: payload.company } : r)));
             }
             syncArWithJobStatus(jobModal.id, payload.job_no, payload.status);
+            logAudit("job", "update", payload.job_no, `Updated job ${payload.job_no}`);
           }
           setJobModal(null);
+        }
+
+        function deleteJob(id) {
+          if (!guardPermission("job", "delete")) return;
+          const j = jobs.find((x) => x.id === id);
+          if (!window.confirm(t("confirmDelete"))) return;
+          setJobs(jobs.filter((x) => x.id !== id));
+          logAudit("job", "delete", j ? j.job_no : String(id), `Deleted job ${j ? j.job_no : id}`);
         }
 
         function saveVendor(e) {
           e.preventDefault();
           const data = vendorModal.data;
           if (vendorModal.mode === "add") {
+            if (!guardPermission("vendors", "add")) return;
             setVendors([{ id: Date.now(), ...data }, ...vendors]);
+            logAudit("vendors", "create", data.name, `Created vendor ${data.name}`);
           } else {
+            if (!guardPermission("vendors", "edit")) return;
             const old = vendors.find((v) => v.id === vendorModal.id);
             setVendors(vendors.map((v) => (v.id === vendorModal.id ? { ...v, ...data } : v)));
             if (old && old.name !== data.name) {
               setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "Vendor" ? { ...b, company_name: data.name } : b)));
             }
+            logAudit("vendors", "update", data.name, `Updated vendor ${data.name}`);
           }
           setVendorModal(null);
+        }
+
+        function deleteVendor(id) {
+          if (!guardPermission("vendors", "delete")) return;
+          const v = vendors.find((x) => x.id === id);
+          if (!window.confirm(t("confirmDelete"))) return;
+          setVendors(vendors.filter((x) => x.id !== id));
+          logAudit("vendors", "delete", v ? v.name : String(id), `Deleted vendor ${v ? v.name : id}`);
         }
 
         function saveSi(e) {
           e.preventDefault();
           const data = siModal.data;
           if (siModal.mode === "add") {
+            if (!guardPermission("si", "add")) return;
             setSis([{ id: Date.now(), ...data }, ...sis]);
+            logAudit("si", "create", data.name, `Created SI ${data.name}`);
           } else {
+            if (!guardPermission("si", "edit")) return;
             const old = sis.find((s) => s.id === siModal.id);
             setSis(sis.map((s) => (s.id === siModal.id ? { ...s, ...data } : s)));
             if (old && old.name !== data.name) {
               setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "SI" ? { ...b, company_name: data.name } : b)));
             }
+            logAudit("si", "update", data.name, `Updated SI ${data.name}`);
           }
           setSiModal(null);
+        }
+
+        function deleteSi(id) {
+          if (!guardPermission("si", "delete")) return;
+          const s = sis.find((x) => x.id === id);
+          if (!window.confirm(t("confirmDelete"))) return;
+          setSis(sis.filter((x) => x.id !== id));
+          logAudit("si", "delete", s ? s.name : String(id), `Deleted SI ${s ? s.name : id}`);
         }
 
         function saveAR(e) {
@@ -547,11 +789,23 @@
             payment_status: f.payment_received_date ? "Paid" : (f.payment_status || "Awaiting Payment")
           };
           if (arModal.mode === "add") {
+            if (!guardPermission("ar", "add")) return;
             setArInvoices([{ id: Date.now(), ...rec }, ...arInvoices]);
+            logAudit("ar", "create", rec.invoice_no, `Created AR ${rec.invoice_no} for ${rec.customer}`);
           } else {
+            if (!guardPermission("ar", "edit")) return;
             setArInvoices(arInvoices.map((r) => (r.id === arModal.id ? { ...r, ...rec } : r)));
+            logAudit("ar", "update", rec.invoice_no, `Updated AR ${rec.invoice_no}`);
           }
           setArModal(null);
+        }
+
+        function deleteAr(id) {
+          if (!guardPermission("ar", "delete")) return;
+          const r = arInvoices.find((x) => x.id === id);
+          if (!window.confirm(t("confirmDelete"))) return;
+          setArInvoices(arInvoices.filter((x) => x.id !== id));
+          logAudit("ar", "delete", r ? r.invoice_no : String(id), `Deleted AR ${r ? r.invoice_no : id}`);
         }
 
         function saveAP(e) {
@@ -575,11 +829,51 @@
             manual_override: Math.abs(baseInput - calcValue) > 0.01
           };
           if (apModal.mode === "add") {
+            if (!guardPermission("ap", "add")) return;
             setApBills([{ id: Date.now(), ...rec }, ...apBills]);
+            logAudit("ap", "create", rec.invoice_no, `Created AP ${rec.invoice_no} for ${rec.company_name}`);
           } else {
+            if (!guardPermission("ap", "edit")) return;
             setApBills(apBills.map((b) => (b.id === apModal.id ? { ...b, ...rec } : b)));
+            logAudit("ap", "update", rec.invoice_no, `Updated AP ${rec.invoice_no}`);
           }
           setApModal(null);
+        }
+
+        function deleteAp(id) {
+          if (!guardPermission("ap", "delete")) return;
+          const b = apBills.find((x) => x.id === id);
+          if (!window.confirm(t("confirmDelete"))) return;
+          setApBills(apBills.filter((x) => x.id !== id));
+          logAudit("ap", "delete", b ? b.invoice_no : String(id), `Deleted AP ${b ? b.invoice_no : id}`);
+        }
+
+        function emptyUserForm() {
+          return { name: "", email: "", password: "", role: "user", is_active: true, permissions: emptyPermissions() };
+        }
+
+        function saveUser(e) {
+          e.preventDefault();
+          if (!isRoot()) { alert(t("rootOnly")); return; }
+          const data = userModal.data;
+          if (data.role === "root") data.permissions = fullPermissions();
+          if (userModal.mode === "add") {
+            if (users.some((u) => u.email === data.email)) { alert("Email already exists"); return; }
+            setUsers([...users, { id: Date.now(), ...data }]);
+            logAudit("settings", "user_create", data.email, `Created user ${data.name} (${data.email})`);
+          } else {
+            setUsers(users.map((u) => (u.id === userModal.id ? { ...u, ...data, id: u.id } : u)));
+            logAudit("settings", "user_update", data.email, `Updated user ${data.name} (${data.email})`);
+          }
+          setUserModal(null);
+        }
+
+        function toggleUserPerm(module, perm) {
+          if (!userModal || userModal.data.role === "root") return;
+          const perms = { ...userModal.data.permissions };
+          perms[module] = { ...perms[module], [perm]: !perms[module][perm] };
+          if (perm !== "view" && perms[module][perm]) perms[module].view = true;
+          setUserModal({ ...userModal, data: { ...userModal.data, permissions: perms } });
         }
 
         const cashFlowSeries = useMemo(() => [
@@ -593,7 +887,8 @@
 
         const maxBar = useMemo(() => Math.max(1, ...cashFlowSeries.flatMap((p) => [p.inBase, p.outBase])), [cashFlowSeries]);
 
-        function SidebarItem({ id, label }) {
+        function SidebarItem({ id, label, module }) {
+          if (module && !can(module, "view")) return null;
           const active = page === id;
           return (
             <button onClick={() => setPage(id)} className={"w-full text-left px-2.5 py-1.5 rounded-lg text-xs " + (active ? "bg-blue-600 text-white font-medium" : "text-slate-100 hover:bg-slate-800")}>
@@ -866,8 +1161,8 @@
               <td className="p-3">{getArByJob(j.job_no).length}</td>
               <td className="p-3">{getApByJob(j.job_no).length}</td>
               <td className="p-3">
-                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => setJobModal({ mode: "edit", id: j.id, data: { ...j, client_id: String(j.client_id) } })}
-                  extra={isJobCompleted(j.status) ? <button type="button" onClick={(e) => { e.stopPropagation(); openArFromJob(j); }} className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">{t("issueInvoiceToClient")}</button> : null}
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("job", "edit")} canDelete={can("job", "delete")} onDelete={() => deleteJob(j.id)} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => setJobModal({ mode: "edit", id: j.id, data: { ...j, client_id: String(j.client_id) } })}
+                  extra={isJobCompleted(j.status) && can("ar", "add") ? <button type="button" onClick={(e) => { e.stopPropagation(); openArFromJob(j); }} className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">{t("issueInvoiceToClient")}</button> : null}
                 />
               </td>
             </tr>
@@ -889,8 +1184,8 @@
               <td className="p-3">{r.payment_received_date || "-"}</td>
               <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
               <td className="p-3">
-                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "ar", id: r.id })} onEdit={() => setArModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || "") } })}
-                  extra={r.payment_status !== "Paid" ? <button type="button" onClick={(e) => { e.stopPropagation(); markArPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markPaid")}</button> : null}
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("ar", "edit")} canDelete={can("ar", "delete")} onDelete={() => deleteAr(r.id)} onView={() => setDetailPanel({ type: "ar", id: r.id })} onEdit={() => setArModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || "") } })}
+                  extra={r.payment_status !== "Paid" && can("ar", "edit") ? <button type="button" onClick={(e) => { e.stopPropagation(); markArPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markPaid")}</button> : null}
                 />
               </td>
             </tr>
@@ -909,8 +1204,8 @@
               <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(r)}>{apPaymentLabel(r, t)}</span></td>
               <td className="p-3">{r.pay_date || "-"}</td><td className="p-3">{r.remarks || "-"}</td><td className="p-3">{r.bank || "-"}</td><td className="p-3">{r.charge || "-"}</td><td className="p-3">{r.swift_code || "-"}</td><td className="p-3">{r.payment_advice_email || "-"}</td>
               <td className="p-3">
-                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "ap", id: r.id })} onEdit={() => setApModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), si_id: String(r.si_id || ""), payee_type: r.payee_type || "Vendor", exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || "") } })}
-                  extra={!isApPaid(r) ? <button type="button" onClick={(e) => { e.stopPropagation(); markApPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markApPaid")}</button> : null}
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("ap", "edit")} canDelete={can("ap", "delete")} onDelete={() => deleteAp(r.id)} onView={() => setDetailPanel({ type: "ap", id: r.id })} onEdit={() => setApModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), si_id: String(r.si_id || ""), payee_type: r.payee_type || "Vendor", exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || "") } })}
+                  extra={!isApPaid(r) && can("ap", "edit") ? <button type="button" onClick={(e) => { e.stopPropagation(); markApPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markApPaid")}</button> : null}
                 />
               </td>
             </tr>
@@ -922,14 +1217,14 @@
             <aside className="w-48 shrink-0 bg-slate-900 text-slate-100 p-3">
               <h1 className="text-sm font-semibold tracking-wide mb-4 px-1">{t("appTitle")}</h1>
               <nav className="space-y-1">
-                <SidebarItem id="dashboard" label={t("nav_dashboard")} />
-                <SidebarItem id="clients" label={t("nav_clients")} />
-                <SidebarItem id="job" label={t("nav_job")} />
-                <SidebarItem id="ar" label={t("nav_ar")} />
-                <SidebarItem id="ap" label={t("nav_ap")} />
-                <SidebarItem id="vendors" label={t("nav_vendors")} />
-                <SidebarItem id="si" label={t("nav_si")} />
-                <SidebarItem id="settings" label={t("nav_settings")} />
+                <SidebarItem id="dashboard" label={t("nav_dashboard")} module="dashboard" />
+                <SidebarItem id="clients" label={t("nav_clients")} module="clients" />
+                <SidebarItem id="job" label={t("nav_job")} module="job" />
+                <SidebarItem id="ar" label={t("nav_ar")} module="ar" />
+                <SidebarItem id="ap" label={t("nav_ap")} module="ap" />
+                <SidebarItem id="vendors" label={t("nav_vendors")} module="vendors" />
+                <SidebarItem id="si" label={t("nav_si")} module="si" />
+                <SidebarItem id="settings" label={t("nav_settings")} module="settings" />
               </nav>
             </aside>
 
@@ -948,13 +1243,23 @@
                   </h2>
                   <p className="text-sm text-slate-500">{t("baseCurrency")}: {activeBaseCurrency} · {t("hintClickRow")}</p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  <div className="text-right mr-1 hidden sm:block">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400">{t("worldTime")} · {worldTimeZone}</p>
+                    <p className="text-xs font-mono font-semibold text-slate-700 tabular-nums">{formatWorldTime(worldClock, worldTimeZone, lang)}</p>
+                  </div>
+                  <div className="text-right mr-1 hidden md:block">
+                    <p className="text-[10px] text-slate-400">{t("currentUser")}</p>
+                    <select value={currentUserId} onChange={(e) => setCurrentUserId(Number(e.target.value))} className="h-8 max-w-[9rem] rounded-lg border border-slate-300 bg-white text-xs px-2 py-1" title={t("switchUser")}>
+                      {users.filter((u) => u.is_active).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                  </div>
                   <select value={baseCurrency} onChange={(e) => setBaseCurrency(e.target.value)} className="h-8 w-[4.5rem] shrink-0 rounded-lg border border-slate-300 bg-white text-xs px-2 py-1">
                     <option value="HKD">HKD</option><option value="USD">USD</option><option value="RMB">RMB</option>
                     <option value="TWD">TWD</option><option value="SGD">SGD</option><option value="EUR">EUR</option><option value="OTHER">Other</option>
                   </select>
                   {baseCurrency === "OTHER" && <Input placeholder="e.g. MYD" className="w-16 h-8 text-xs px-2 py-1 bg-white shrink-0" value={customCurrency} onChange={(e) => setCustomCurrency(e.target.value)} />}
-                  <button type="button" onClick={() => setNewTxOpen(true)} className="h-8 shrink-0 px-2.5 text-xs leading-none rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">{t("newTransaction")}</button>
+                  {(can("ar", "add") || can("ap", "add")) && <button type="button" onClick={() => setNewTxOpen(true)} className="h-8 shrink-0 px-2.5 text-xs leading-none rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap">{t("newTransaction")}</button>}
                 </div>
               </header>
 
@@ -1013,7 +1318,7 @@
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-4 border-b flex justify-between items-center">
                     <h3 className="font-semibold">{t("nav_clients")}</h3>
-                    <button onClick={() => setClientModal({ mode: "add", data: emptyClient() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>
+                    {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: emptyClient() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
                   </div>
                   <div className="overflow-auto">
                     <table className="w-full text-sm">
@@ -1032,7 +1337,7 @@
                             <td className="p-3">{c.primary_contact}</td><td className="p-3">{c.company_phone}</td><td className="p-3">{c.mobile_phone}</td>
                             <td className="p-3">{c.email}</td><td className="p-3">{c.address}</td><td className="p-3">{c.postal_code}</td>
                             <td className="p-3">{c.account_dept_contact}</td><td className="p-3">{c.payment_terms}</td>
-                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "client", id: c.id })} onEdit={() => setClientModal({ mode: "edit", id: c.id, data: { ...c } })} /></td>
+                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("clients", "edit")} canDelete={can("clients", "delete")} onDelete={() => deleteClient(c.id)} onView={() => setDetailPanel({ type: "client", id: c.id })} onEdit={() => setClientModal({ mode: "edit", id: c.id, data: { ...c } })} /></td>
                           </tr>
                         ))}
                       </tbody>
@@ -1046,7 +1351,7 @@
                   <div className="p-4 border-b">
                     <div className="flex justify-between items-center">
                       <h3 className="font-semibold">{t("nav_job")}</h3>
-                      <button onClick={() => setJobModal({ mode: "add", data: emptyJob() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>
+                      {can("job", "add") && <button onClick={() => setJobModal({ mode: "add", data: emptyJob() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>}
                     </div>
                     <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
                   </div>
@@ -1088,7 +1393,7 @@
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-4 border-b flex justify-between items-center">
                     <h3 className="font-semibold">{t("nav_vendors")}</h3>
-                    <button onClick={() => setVendorModal({ mode: "add", data: emptyVendor() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>
+                    {can("vendors", "add") && <button onClick={() => setVendorModal({ mode: "add", data: emptyVendor() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>}
                   </div>
                   <div className="overflow-auto">
                     <table className="w-full text-sm">
@@ -1099,7 +1404,7 @@
                         {vendors.map((v) => (
                           <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
                             <td className="p-3 font-medium">{v.name}</td><td className="p-3">{v.email}</td><td className="p-3">{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
-                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "vendor", id: v.id })} onEdit={() => setVendorModal({ mode: "edit", id: v.id, data: { ...v } })} /></td>
+                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("vendors", "edit")} canDelete={can("vendors", "delete")} onDelete={() => deleteVendor(v.id)} onView={() => setDetailPanel({ type: "vendor", id: v.id })} onEdit={() => setVendorModal({ mode: "edit", id: v.id, data: { ...v } })} /></td>
                           </tr>
                         ))}
                       </tbody>
@@ -1112,7 +1417,7 @@
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-4 border-b flex justify-between items-center">
                     <h3 className="font-semibold">{t("nav_si")}</h3>
-                    <button onClick={() => setSiModal({ mode: "add", data: emptySi() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addSi")}</button>
+                    {can("si", "add") && <button onClick={() => setSiModal({ mode: "add", data: emptySi() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addSi")}</button>}
                   </div>
                   <p className="px-4 py-2 text-xs text-slate-500 border-b bg-amber-50/50">{t("siPageHint")}</p>
                   <div className="overflow-auto">
@@ -1125,7 +1430,7 @@
                           <tr key={s.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "si", id: s.id })}>
                             <td className="p-3 font-medium">{s.name}</td><td className="p-3">{s.email}</td><td className="p-3">{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
                             <td className="p-3">{getApBySi(s.name).length}</td>
-                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} onView={() => setDetailPanel({ type: "si", id: s.id })} onEdit={() => setSiModal({ mode: "edit", id: s.id, data: { ...s } })} /></td>
+                            <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("si", "edit")} canDelete={can("si", "delete")} onDelete={() => deleteSi(s.id)} onView={() => setDetailPanel({ type: "si", id: s.id })} onEdit={() => setSiModal({ mode: "edit", id: s.id, data: { ...s } })} /></td>
                           </tr>
                         ))}
                       </tbody>
@@ -1138,7 +1443,7 @@
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-4 border-b flex justify-between items-center">
                     <h3 className="font-semibold">{t("nav_ar")}</h3>
-                    <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>
+                    {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
                   </div>
                   <ListToolbar t={t} mode="ar" clients={clients} jobs={jobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} />
                   <div className="overflow-auto">
@@ -1180,7 +1485,7 @@
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-4 border-b flex justify-between items-center">
                     <h3 className="font-semibold">{t("nav_ap")}</h3>
-                    <button onClick={() => setApModal({ mode: "add", data: emptyApForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAp")}</button>
+                    {can("ap", "add") && <button onClick={() => setApModal({ mode: "add", data: emptyApForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAp")}</button>}
                   </div>
                   <ListToolbar t={t} mode="ap" clients={clients} jobs={jobs} viewMode={apViewMode} setViewMode={setApViewMode} clientFilter={apClientFilter} setClientFilter={setApClientFilter} jobFilter={apJobFilter} setJobFilter={setApJobFilter} />
                   <div className="overflow-auto">
@@ -1217,27 +1522,206 @@
               )}
 
               {page === "settings" && (
-                <section className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 max-w-xl">
-                  <h3 className="font-semibold text-lg mb-4">{t("settingsTitle")}</h3>
-                  <div className="space-y-4">
-                    <Field label={t("language")}>
-                      <Select value={lang} onChange={(e) => changeLang(e.target.value)}>
-                        <option value="en">{t("langEn")}</option>
-                        <option value="zh_TW">{t("langZhTw")}</option>
-                      </Select>
-                    </Field>
-                    <p className="text-sm text-slate-500">{t("settingsLangHint")}</p>
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="px-6 pt-5 border-b flex flex-wrap gap-2">
+                    <button type="button" onClick={() => setSettingsTab("general")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "general" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsGeneral")}</button>
+                    {isRoot() && <button type="button" onClick={() => setSettingsTab("management")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "management" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsManagement")}</button>}
+                    <button type="button" onClick={() => setSettingsTab("audit")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "audit" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsAudit")}</button>
                   </div>
+
+                  {settingsTab === "general" && (
+                    <div className="p-6 max-w-xl space-y-4">
+                      <h3 className="font-semibold text-lg">{t("settingsTitle")}</h3>
+                      <Field label={t("language")}>
+                        <Select value={lang} onChange={(e) => changeLang(e.target.value)}>
+                          <option value="en">{t("langEn")}</option>
+                          <option value="zh_TW">{t("langZhTw")}</option>
+                        </Select>
+                      </Field>
+                      <p className="text-sm text-slate-500">{t("settingsLangHint")}</p>
+                      <Field label={t("timezone")}>
+                        <Select value={worldTimeZone} onChange={(e) => setWorldTimeZone(e.target.value)}>
+                          {WORLD_TIMEZONES.map((tz) => <option key={tz.id} value={tz.id}>{lang === "zh_TW" ? tz.labelZh : tz.labelEn}</option>)}
+                        </Select>
+                      </Field>
+                      <p className="text-sm text-slate-500">{t("worldTimeHint")}</p>
+                      <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{formatWorldTime(worldClock, worldTimeZone, lang)}</p>
+                    </div>
+                  )}
+
+                  {settingsTab === "management" && isRoot() && (
+                    <div className="p-6 space-y-4">
+                      <div className="flex justify-between items-start gap-3 flex-wrap">
+                        <div>
+                          <h3 className="font-semibold text-lg">{t("mgmtTitle")}</h3>
+                          <p className="text-sm text-slate-500 mt-1">{t("mgmtHint")}</p>
+                        </div>
+                        <button type="button" onClick={() => setUserModal({ mode: "add", data: emptyUserForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addUser")}</button>
+                      </div>
+                      <div className="overflow-auto border rounded-lg">
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50 text-slate-500">
+                            <tr>
+                              <th className="p-3 text-left">{t("userName")}</th>
+                              <th className="p-3 text-left">{t("userEmail")}</th>
+                              <th className="p-3 text-left">{t("userRole")}</th>
+                              <th className="p-3 text-left">{t("userActive")}</th>
+                              <th className="p-3 text-left">{t("actions")}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {users.map((u) => (
+                              <tr key={u.id} className="hover:bg-slate-50">
+                                <td className="p-3 font-medium">{u.name}</td>
+                                <td className="p-3">{u.email}</td>
+                                <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + (u.role === "root" ? "bg-violet-100 text-violet-800" : "bg-slate-100")}>{u.role === "root" ? t("roleRoot") : t("roleUser")}</span></td>
+                                <td className="p-3">{u.is_active ? t("yes") : t("no")}</td>
+                                <td className="p-3">
+                                  <button type="button" onClick={() => setUserModal({ mode: "edit", id: u.id, data: { name: u.name, email: u.email, password: u.password || "", role: u.role, is_active: u.is_active, permissions: u.permissions || emptyPermissions() } })} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">{t("edit")}</button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsTab === "audit" && (
+                    <div className="p-6 space-y-4">
+                      <div>
+                        <h3 className="font-semibold text-lg">{t("auditTitle")}</h3>
+                        <p className="text-sm text-slate-500 mt-1">{t("auditHint")}</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 p-4 bg-slate-50 rounded-lg border">
+                        <Field label={t("auditDateFrom")}><Input type="date" value={auditFilters.dateFrom} onChange={(e) => setAuditFilters({ ...auditFilters, dateFrom: e.target.value })} /></Field>
+                        <Field label={t("auditDateTo")}><Input type="date" value={auditFilters.dateTo} onChange={(e) => setAuditFilters({ ...auditFilters, dateTo: e.target.value })} /></Field>
+                        <Field label={t("auditUser")}>
+                          <Select value={auditFilters.userId} onChange={(e) => setAuditFilters({ ...auditFilters, userId: e.target.value })}>
+                            <option value="all">{t("allUsers")}</option>
+                            {users.map((u) => <option key={u.id} value={String(u.id)}>{u.name}</option>)}
+                          </Select>
+                        </Field>
+                        <Field label={t("auditModule")}>
+                          <Select value={auditFilters.module} onChange={(e) => setAuditFilters({ ...auditFilters, module: e.target.value })}>
+                            <option value="all">{t("allModules")}</option>
+                            {ERP_MODULES.map((m) => <option key={m} value={m}>{moduleLabel(m, t)}</option>)}
+                          </Select>
+                        </Field>
+                        <Field label={t("auditAction")}>
+                          <Select value={auditFilters.action} onChange={(e) => setAuditFilters({ ...auditFilters, action: e.target.value })}>
+                            <option value="all">{t("allActions")}</option>
+                            <option value="create">{t("actionCreate")}</option>
+                            <option value="update">{t("actionUpdate")}</option>
+                            <option value="delete">{t("actionDelete")}</option>
+                            <option value="mark_paid">{t("actionMarkPaid")}</option>
+                            <option value="user_create">{t("actionUserCreate")}</option>
+                            <option value="user_update">{t("actionUserUpdate")}</option>
+                          </Select>
+                        </Field>
+                        <Field label={t("auditSearch")}><Input value={auditFilters.q} onChange={(e) => setAuditFilters({ ...auditFilters, q: e.target.value })} placeholder="..." /></Field>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setAuditFilters({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" })} className="px-3 py-2 text-sm rounded-lg border">{t("auditReset")}</button>
+                      </div>
+                      <div className="overflow-auto border rounded-lg max-h-[28rem]">
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50 text-slate-500 sticky top-0">
+                            <tr>
+                              <th className="p-3 text-left">{t("auditWhen")}</th>
+                              <th className="p-3 text-left">{t("auditUser")}</th>
+                              <th className="p-3 text-left">{t("auditModule")}</th>
+                              <th className="p-3 text-left">{t("auditAction")}</th>
+                              <th className="p-3 text-left">{t("auditEntity")}</th>
+                              <th className="p-3 text-left">{t("auditDetail")}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {filteredAuditLogs.length === 0 ? (
+                              <tr><td colSpan="6" className="p-6 text-center text-slate-500">{t("auditNoRows")}</td></tr>
+                            ) : filteredAuditLogs.map((row) => (
+                              <tr key={row.id} className="hover:bg-slate-50 align-top">
+                                <td className="p-3 font-mono text-xs whitespace-nowrap">{row.at.replace("T", " ").slice(0, 19)} UTC</td>
+                                <td className="p-3">{row.user_name}<div className="text-xs text-slate-400">{row.user_email}</div></td>
+                                <td className="p-3">{moduleLabel(row.module, t)}</td>
+                                <td className="p-3"><span className="px-2 py-0.5 rounded bg-slate-100 text-xs">{actionLabel(row.action)}</span></td>
+                                <td className="p-3">{row.entity}</td>
+                                <td className="p-3 text-slate-600">{row.detail}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </section>
+              )}
+
+              {userModal && (
+                <Modal title={userModal.mode === "add" ? t("addUser") : t("editUser")} onClose={() => setUserModal(null)} wide>
+                  <form onSubmit={saveUser} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Field label={t("userName")}><Input required value={userModal.data.name} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, name: e.target.value } })} /></Field>
+                      <Field label={t("userEmail")}><Input required type="email" value={userModal.data.email} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, email: e.target.value } })} /></Field>
+                      <Field label={t("userPassword")}><Input required type="password" value={userModal.data.password} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, password: e.target.value } })} /></Field>
+                      <Field label={t("userRole")}>
+                        <Select value={userModal.data.role} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, role: e.target.value, permissions: e.target.value === "root" ? fullPermissions() : (userModal.data.permissions || emptyPermissions()) } })}>
+                          <option value="user">{t("roleUser")}</option>
+                          <option value="root">{t("roleRoot")}</option>
+                        </Select>
+                      </Field>
+                      <Field label={t("userActive")}>
+                        <Select value={userModal.data.is_active ? "1" : "0"} onChange={(e) => setUserModal({ ...userModal, data: { ...userModal.data, is_active: e.target.value === "1" } })}>
+                          <option value="1">{t("yes")}</option>
+                          <option value="0">{t("no")}</option>
+                        </Select>
+                      </Field>
+                    </div>
+                    {userModal.data.role !== "root" && (
+                      <div>
+                        <p className="text-sm font-semibold mb-2">{t("accessRights")}</p>
+                        <div className="overflow-auto border rounded-lg">
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500">
+                              <tr>
+                                <th className="p-2 text-left">{t("auditModule")}</th>
+                                <th className="p-2 text-center">{t("permView")}</th>
+                                <th className="p-2 text-center">{t("permAdd")}</th>
+                                <th className="p-2 text-center">{t("permEdit")}</th>
+                                <th className="p-2 text-center">{t("permDelete")}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {ERP_MODULES.map((mod) => (
+                                <tr key={mod}>
+                                  <td className="p-2">{moduleLabel(mod, t)}</td>
+                                  {["view", "add", "edit", "delete"].map((perm) => (
+                                    <td key={perm} className="p-2 text-center">
+                                      <input type="checkbox" checked={!!(userModal.data.permissions && userModal.data.permissions[mod] && userModal.data.permissions[mod][perm])} onChange={() => toggleUserPerm(mod, perm)} />
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => setUserModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button>
+                      <button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button>
+                    </div>
+                  </form>
+                </Modal>
               )}
 
               {newTxOpen && (
                 <Modal title={t("newTxTitle")} onClose={() => setNewTxOpen(false)}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <button onClick={() => { setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
+                    {can("ar", "add") && <button onClick={() => { setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
                       <p className="font-semibold">{t("createArTitle")}</p><p className="text-xs text-slate-500">{t("createArDesc")}</p>
-                    </button>
-                    <button onClick={() => { setApModal({ mode: "add", data: emptyApForm() }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
+                    </button>}
+                    {can("ap", "add") && <button onClick={() => { setApModal({ mode: "add", data: emptyApForm() }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
                       <p className="font-semibold">{t("createApTitle")}</p><p className="text-xs text-slate-500">{t("createApDesc")}</p>
                     </button>
                   </div>
