@@ -23,7 +23,7 @@
       const { useMemo, useState, useEffect, useRef } = React;
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
-      const ERP_MODULES = ["dashboard", "clients", "job", "ar", "ap", "vendors", "si", "settings"];
+      const ERP_MODULES = ["dashboard", "overview", "clients", "job", "ar", "ap", "vendors", "si", "settings"];
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
       const ERP_REGIONS = [
         { id: "HK", labelEn: "HK", labelZh: "香港" },
@@ -56,6 +56,19 @@
           x: ((pin.lon - v.lonMin) / (v.lonMax - v.lonMin)) * v.width,
           y: ((v.latMax - pin.lat) / (v.latMax - v.latMin)) * v.height
         };
+      }
+
+      const REGION_CURRENCY = { HK: "HKD", TW: "TWD", SG: "SGD", MY: "MYR", ID: "IDR" };
+
+      function currencyForRegion(activeRegion, headerCurrency) {
+        if (activeRegion && activeRegion !== "ALL" && REGION_CURRENCY[activeRegion]) {
+          return REGION_CURRENCY[activeRegion];
+        }
+        return headerCurrency;
+      }
+
+      function amtInCurrencyLabel(ccy, t) {
+        return (t("amtInCurrency") || "Amt in {ccy}").replace("{ccy}", ccy);
       }
 
       function regionLabel(id, lang) {
@@ -98,6 +111,9 @@
         ERP_MODULES.forEach((m) => {
           if (perms && perms[m]) PERM_KEYS.forEach((k) => { out[m][k] = !!perms[m][k]; });
         });
+        if (!out.overview.view && perms && (perms.dashboard?.view || perms.ar?.view || perms.ap?.view)) {
+          out.overview.view = true;
+        }
         return out;
       }
 
@@ -197,6 +213,7 @@
       function moduleLabel(module, t) {
         const map = {
           dashboard: t("nav_dashboard"),
+          overview: t("nav_overview"),
           clients: t("nav_clients"),
           job: t("nav_job"),
           ar: t("nav_ar"),
@@ -210,7 +227,7 @@
 
       const I18N = {
         en: {
-          appTitle: "ERP System", nav_dashboard: "Dashboard", nav_clients: "Clients", nav_job: "Job List", nav_ar: "AR List", nav_ap: "AP List", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
+          appTitle: "ERP System", nav_dashboard: "Dashboard", nav_overview: "Overview", nav_clients: "Clients", nav_job: "Job List", nav_ar: "AR List", nav_ap: "AP List", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
           filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
@@ -249,6 +266,13 @@
           createArDesc: "Create accounts receivable invoice", createApDesc: "Create accounts payable bill",
           yes: "Yes", no: "No", goToAr: "Go to AR", goToJob: "Go to Job", goToAp: "Go to AP",
           paymentReceived: "Payment Received Date", autoPaidHint: "Entering payment date will set status to Paid",
+          arDueAutoHint: "Due date is calculated from Invoice Date + client Payment Terms (editable).",
+          overviewTitle: "AR / AP Overview", overviewHint: "Filter by invoice date range · amounts in base currency",
+          overviewStartDate: "Start Date", overviewEndDate: "End Date", overviewApply: "Apply",
+          overviewInTotal: "Cash In (AR)", overviewOutTotal: "Cash Out (AP)", overviewNet: "Net",
+          overviewNoData: "No AR/AP invoices in this date range", overviewByInvoiceDate: "Invoice date within range",
+          overviewArCount: "AR invoices", overviewApCount: "AP bills", phoneNo: "Phone", address: "Address",
+          amtInCurrency: "Amt in {ccy}",
           amountManualOverride: "editable", settingsLangHint: "The interface will switch to English immediately.",
           invoiceAmountOrig: "Amount (invoice currency)", invoiceAmountHint: "Original amount on vendor/client invoice. Editable — updates base amount when rate changes.",
           baseAmountHint: "Usually Amount × Exchange Rate. Override here if bank/rounding differs.",
@@ -275,7 +299,7 @@
           regionDataHint: "New records are saved under the currently selected region (not ALL)."
         },
         zh_TW: {
-          appTitle: "ERP 系統", nav_dashboard: "儀表板", nav_clients: "客戶", nav_job: "工作清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
+          appTitle: "ERP 系統", nav_dashboard: "儀表板", nav_overview: "總覽", nav_clients: "客戶", nav_job: "工作清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
           baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
           view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
           filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
@@ -314,6 +338,13 @@
           createArDesc: "建立應收發票", createApDesc: "建立應付單",
           yes: "是", no: "否", goToAr: "前往應收", goToJob: "前往工作", goToAp: "前往應付",
           paymentReceived: "收款日期", autoPaidHint: "輸入收款日期會自動設為已收款",
+          arDueAutoHint: "到期日依發票日期 + 客戶付款條款自動計算（可手動修改）。",
+          overviewTitle: "應收／應付總覽", overviewHint: "按發票日期篩選 · 金額以本位幣顯示",
+          overviewStartDate: "開始日期", overviewEndDate: "結束日期", overviewApply: "套用",
+          overviewInTotal: "流入（應收）", overviewOutTotal: "流出（應付）", overviewNet: "淨額",
+          overviewNoData: "此日期範圍內沒有應收／應付發票", overviewByInvoiceDate: "發票日期在範圍內",
+          overviewArCount: "應收發票", overviewApCount: "應付帳單", phoneNo: "電話", address: "地址",
+          amtInCurrency: "折合 {ccy}",
           amountManualOverride: "可手改", settingsLangHint: "切換後介面會即時更新為繁體中文（台灣）。",
           invoiceAmountOrig: "金額（發票原幣）", invoiceAmountHint: "供應商／客戶發票上嘅原幣金額，可以改；改動後會按匯率重算本位幣。",
           baseAmountHint: "一般 = 金額 × 匯率。若銀行實收、四捨五入唔同，可喺呢度手改。",
@@ -388,6 +419,10 @@
           <rect key="3" width="7" height="9" x="14" y="12" rx="1" />,
           <rect key="4" width="7" height="5" x="3" y="16" rx="1" />
         ],
+        overview: [
+          <path key="1" d="M21.21 15.89A10 10 0 1 1 8 2.83" />,
+          <path key="2" d="M22 12A10 10 0 0 0 12 2v10z" />
+        ],
         clients: [
           <path key="1" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />,
           <circle key="2" cx="9" cy="7" r="4" />,
@@ -440,7 +475,7 @@
         );
       }
 
-      const fxUsdMap = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160 };
+      const fxUsdMap = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160, MYR: 4.7, IDR: 16000 };
 
       function calcOverdueDays(dueDate) {
         if (!dueDate) return 0;
@@ -480,6 +515,47 @@
         return diff > 0 ? diff : 0;
       }
 
+      function parsePaymentTermsDays(terms) {
+        if (!terms || !String(terms).trim()) return 30;
+        const m = String(terms).match(/(\d+)/);
+        return m ? Math.max(0, parseInt(m[1], 10)) : 30;
+      }
+
+      function addDaysIso(isoDate, days) {
+        if (!isoDate) return "";
+        const d = new Date(isoDate + "T12:00:00");
+        if (Number.isNaN(d.getTime())) return "";
+        d.setDate(d.getDate() + days);
+        return d.toISOString().slice(0, 10);
+      }
+
+      function findClientForAr(data, clients, jobs) {
+        const job = data.job_id ? jobs.find((j) => j.id === Number(data.job_id)) : null;
+        if (job) {
+          const byId = clients.find((c) => c.id === job.client_id);
+          if (byId) return byId;
+          const byCo = clients.find((c) => c.company === job.company);
+          if (byCo) return byCo;
+        }
+        if (data.customer) return clients.find((c) => c.company === data.customer) || null;
+        return null;
+      }
+
+      function computeArDueDate(data, clients, jobs) {
+        if (!data.invoice_date) return data.due_date || "";
+        const client = findClientForAr(data, clients, jobs);
+        return addDaysIso(data.invoice_date, parsePaymentTermsDays(client ? client.payment_terms : ""));
+      }
+
+      function applyArDueDate(data, clients, jobs) {
+        return { ...data, due_date: computeArDueDate(data, clients, jobs) };
+      }
+
+      function dateInRange(iso, from, to) {
+        if (!iso || !from || !to) return false;
+        return iso >= from && iso <= to;
+      }
+
       function convertCurrency(amount, fromCurrency, baseCurrency) {
         if (!amount) return 0;
         const fromRate = fxUsdMap[fromCurrency] || 1;
@@ -501,9 +577,9 @@
         return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", status: "Open", description: "", start_date: "" };
       }
 
-      function emptyVendor() { return { name: "", email: "", bank: "", swift_code: "", contact: "", phone: "" }; }
+      function emptyVendor() { return { name: "", email: "", bank: "", swift_code: "", contact: "", phone: "", address: "" }; }
 
-      function emptySi() { return { name: "", email: "", bank: "", swift_code: "", contact: "", phone: "" }; }
+      function emptySi() { return { name: "", email: "", bank: "", swift_code: "", contact: "", phone: "", address: "" }; }
 
       function emptyApForm() {
         return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "" };
@@ -618,12 +694,12 @@
       ];
 
       const initialVendors = [
-        { id: 1, region: "HK", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Tom Lee", phone: "852-2111-0000" },
-        { id: 2, region: "HK", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", contact: "Sarah", phone: "852-2888-0000" }
+        { id: 1, region: "HK", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Tom Lee", phone: "852-2111-0000", address: "Unit 8, Kwun Tong Industrial Centre, Kowloon" },
+        { id: 2, region: "HK", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", contact: "Sarah", phone: "852-2888-0000", address: "15/F, Causeway Bay Plaza, Hong Kong" }
       ];
 
       const initialSis = [
-        { id: 1, region: "HK", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Mr. Cheung", phone: "852-3000-1122" }
+        { id: 1, region: "HK", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Mr. Cheung", phone: "852-3000-1122", address: "Workshop 3, Tai Po Industrial Estate" }
       ];
 
       const initialAr = [
@@ -648,6 +724,7 @@
           id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true, allowed_regions: ["HK"],
           permissions: {
             dashboard: { view: true, add: false, edit: false, delete: false, export: false, import: false },
+            overview: { view: true, add: false, edit: false, delete: false, export: false, import: false },
             clients: { view: true, add: false, edit: false, delete: false, export: true, import: false },
             job: { view: true, add: true, edit: true, delete: false, export: true, import: true },
             ar: { view: true, add: true, edit: true, delete: false, export: false, import: false },
@@ -671,6 +748,72 @@
         } catch {
           return fallback;
         }
+      }
+
+      function OverviewDonutChart({ inTotal, outTotal, currency, t }) {
+        const total = inTotal + outTotal;
+        const size = 220;
+        const r = 72;
+        const stroke = 32;
+        const cx = size / 2;
+        const cy = size / 2;
+        const circ = 2 * Math.PI * r;
+        const inPct = total > 0 ? inTotal / total : 0;
+        const outPct = total > 0 ? outTotal / total : 0;
+        const inLen = total > 0 ? circ * inPct : 0;
+        const outLen = total > 0 ? circ * outPct : circ;
+
+        return (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-4">
+            <div className="relative shrink-0" style={{ width: size, height: size }}>
+              <svg width={size} height={size} viewBox={"0 0 " + size + " " + size} className="-rotate-90">
+                <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+                {total > 0 ? (
+                  <>
+                    <circle cx={cx} cy={cy} r={r} fill="none" stroke="#2563eb" strokeWidth={stroke} strokeLinecap="butt"
+                      strokeDasharray={inLen + " " + (circ - inLen)} />
+                    <circle cx={cx} cy={cy} r={r} fill="none" stroke="#ea580c" strokeWidth={stroke} strokeLinecap="butt"
+                      strokeDasharray={outLen + " " + (circ - outLen)} strokeDashoffset={-inLen} />
+                  </>
+                ) : (
+                  <circle cx={cx} cy={cy} r={r} fill="none" stroke="#cbd5e1" strokeWidth={stroke} strokeDasharray="4 8" />
+                )}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                {total > 0 ? (
+                  <>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wide">{t("overviewNet")}</p>
+                    <p className={"text-lg font-bold tabular-nums " + (inTotal >= outTotal ? "text-emerald-700" : "text-amber-700")}>{money(inTotal - outTotal)}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">{currency}</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-400">{t("overviewNoData")}</p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-3 text-sm min-w-[10rem]">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-blue-600 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-slate-500 text-xs">{t("overviewInTotal")}</p>
+                  <p className="font-bold text-blue-700 tabular-nums">{money(inTotal)} <span className="text-xs font-normal text-slate-400">{currency}</span></p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-orange-600 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-slate-500 text-xs">{t("overviewOutTotal")}</p>
+                  <p className="font-bold text-orange-600 tabular-nums">{money(outTotal)} <span className="text-xs font-normal text-slate-400">{currency}</span></p>
+                </div>
+              </div>
+              {total > 0 && (
+                <p className="text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                  {Math.round(inPct * 100)}% / {Math.round(outPct * 100)}%
+                </p>
+              )}
+            </div>
+          </div>
+        );
       }
 
       function GlobalFinancialMap({ stats, lang, currency, onRegionClick, t }) {
@@ -963,8 +1106,17 @@
         const [userModal, setUserModal] = useState(null);
         const [importPreview, setImportPreview] = useState(null);
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
+        const [overviewFrom, setOverviewFrom] = useState(() => {
+          const d = new Date();
+          return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01";
+        });
+        const [overviewTo, setOverviewTo] = useState(() => new Date().toISOString().slice(0, 10));
 
         const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+
+        function patchArModalData(data) {
+          return applyArDueDate(data, clients, jobs);
+        }
 
         useEffect(() => {
           const timer = setInterval(() => setWorldClock(new Date()), 1000);
@@ -1151,6 +1303,8 @@
         }
 
         const activeBaseCurrency = baseCurrency === "OTHER" ? (customCurrency || "USD").toUpperCase() : baseCurrency;
+        const regionListCurrency = currencyForRegion(activeRegion, activeBaseCurrency);
+        const amtInLabel = amtInCurrencyLabel(regionListCurrency, t);
 
         const scopedClients = useMemo(() => clients.filter(recordInActiveRegion), [clients, activeRegion, users, currentUserId]);
         const scopedJobs = useMemo(() => jobs.filter(recordInActiveRegion), [jobs, activeRegion, users, currentUserId]);
@@ -1159,8 +1313,8 @@
         const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, currentUserId]);
         const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, currentUserId]);
 
-        const arDisplay = useMemo(() => scopedArInvoices.map((r) => ({ ...r, display_base_amount: convertCurrency(r.invoice_amt, r.invoice_currency, activeBaseCurrency) })), [scopedArInvoices, activeBaseCurrency]);
-        const apDisplay = useMemo(() => scopedApBills.map((r) => ({ ...r, display_base_amount: convertCurrency(r.amount, r.currency, activeBaseCurrency) })), [scopedApBills, activeBaseCurrency]);
+        const arDisplay = useMemo(() => scopedArInvoices.map((r) => ({ ...r, display_base_amount: convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency) })), [scopedArInvoices, regionListCurrency]);
+        const apDisplay = useMemo(() => scopedApBills.map((r) => ({ ...r, display_base_amount: convertCurrency(r.amount, r.currency, regionListCurrency) })), [scopedApBills, regionListCurrency]);
         const arTotal = useMemo(() => arDisplay.filter((r) => r.payment_status !== "Paid").reduce((a, b) => a + b.display_base_amount, 0), [arDisplay]);
         const apTotal = useMemo(() => apDisplay.filter((b) => !isApPaid(b)).reduce((a, b) => a + b.display_base_amount, 0), [apDisplay]);
         const netPosition = arTotal - apTotal;
@@ -1247,6 +1401,14 @@
           out: cashFlowSeries.reduce((s, p) => s + p.outBase, 0)
         }), [cashFlowSeries]);
 
+        const overviewReport = useMemo(() => {
+          const arRows = arDisplay.filter((r) => dateInRange(r.invoice_date, overviewFrom, overviewTo));
+          const apRows = apDisplay.filter((b) => dateInRange(b.invoice_date, overviewFrom, overviewTo));
+          const inTotal = arRows.reduce((s, r) => s + r.display_base_amount, 0);
+          const outTotal = apRows.reduce((s, b) => s + b.display_base_amount, 0);
+          return { arRows, apRows, inTotal, outTotal };
+        }, [arDisplay, apDisplay, overviewFrom, overviewTo]);
+
         const thisMonthKey = useMemo(() => {
           const d = new Date();
           return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
@@ -1274,13 +1436,13 @@
             const rJobs = jobs.filter((j) => (j.region || "HK") === regionId);
             const rAp = apBills.filter((b) => (b.region || "HK") === regionId);
             const arUnpaid = rAr.filter((r) => r.payment_status !== "Paid");
-            const arTotal = arUnpaid.reduce((s, r) => s + convertCurrency(r.invoice_amt, r.invoice_currency, activeBaseCurrency), 0);
-            const apTotal = rAp.filter((b) => !isApPaid(b)).reduce((s, b) => s + convertCurrency(b.amount, b.currency, activeBaseCurrency), 0);
+            const arTotal = arUnpaid.reduce((s, r) => s + convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency), 0);
+            const apTotal = rAp.filter((b) => !isApPaid(b)).reduce((s, b) => s + convertCurrency(b.amount, b.currency, regionListCurrency), 0);
             const hasOverdueAr = arUnpaid.some((r) => calcOverdueDays(r.due_date) > 0);
             const activeJobs = rJobs.filter((j) => !isJobCompleted(j.status)).length;
             return { regionId, arTotal, apTotal, activeJobs, hasOverdueAr };
           });
-        }, [arInvoices, jobs, apBills, activeBaseCurrency, users, currentUserId]);
+        }, [arInvoices, jobs, apBills, regionListCurrency, users, currentUserId]);
 
         const filteredJobs = useMemo(() => {
           let list = scopedJobs;
@@ -1507,7 +1669,8 @@
             manual_override: Math.abs(baseInput - calcValue) > 0.01,
             job_completed: selectedJob ? isJobCompleted(selectedJob.status) : false,
             payment_received_date: f.payment_received_date || "",
-            payment_status: f.payment_received_date ? "Paid" : (f.payment_status || "Awaiting Payment")
+            payment_status: f.payment_received_date ? "Paid" : (f.payment_status || "Awaiting Payment"),
+            due_date: f.due_date || computeArDueDate(f, clients, jobs)
           };
           if (arModal.mode === "add") {
             if (!guardPermission("ar", "add")) return;
@@ -1946,11 +2109,11 @@
                 <h4 className="font-semibold mb-2">{t("relatedInvoices")} ({relatedAr.length})</h4>
                 {relatedAr.length ? (
                   <table className="w-full text-sm border rounded-lg overflow-hidden mb-6">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-right">Amt in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
                     <tbody>{relatedAr.map((r) => (
                       <tr key={r.id} className="border-t">
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ar", { client: j.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></td>
-                        <td className="p-2 text-right">{money(convertCurrency(r.invoice_amt, r.invoice_currency, "SGD"))}</td>
+                        <td className="p-2 text-right">{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</td>
                         <td className="p-2">{r.due_date}</td>
                         <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
                       </tr>
@@ -1986,8 +2149,11 @@
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                   <div><p className="text-slate-500">Name</p><p className="font-medium">{s.name}</p></div>
                   <div><p className="text-slate-500">Email</p><p>{s.email}</p></div>
+                  <div><p className="text-slate-500">{t("phoneNo")}</p><p>{s.phone || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("address")}</p><p>{s.address || "-"}</p></div>
                   <div><p className="text-slate-500">Bank</p><p>{s.bank}</p></div>
                   <div><p className="text-slate-500">SWIFT</p><p>{s.swift_code || "-"}</p></div>
+                  <div><p className="text-slate-500">Contact</p><p>{s.contact || "-"}</p></div>
                 </div>
                 <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
                 {relatedAp.length ? (
@@ -1996,12 +2162,12 @@
                       {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
                     </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">Amount in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">Pay Date</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">Pay Date</th><th className="p-2 text-left"></th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
                       <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/70" : "")}>
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
                         <td className="p-2">{b.job_no || "-"}</td>
-                        <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, "SGD"))}</td>
+                        <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</td>
                         <td className="p-2">{b.due_date}</td>
                         <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></td>
                         <td className="p-2">{b.pay_date || "-"}</td>
@@ -2024,8 +2190,11 @@
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                   <div><p className="text-slate-500">Name</p><p className="font-medium">{v.name}</p></div>
                   <div><p className="text-slate-500">Email</p><p>{v.email}</p></div>
+                  <div><p className="text-slate-500">{t("phoneNo")}</p><p>{v.phone || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("address")}</p><p>{v.address || "-"}</p></div>
                   <div><p className="text-slate-500">Bank</p><p>{v.bank}</p></div>
                   <div><p className="text-slate-500">SWIFT</p><p>{v.swift_code || "-"}</p></div>
+                  <div><p className="text-slate-500">Contact</p><p>{v.contact || "-"}</p></div>
                 </div>
                 <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
                 {relatedAp.length ? (
@@ -2034,12 +2203,12 @@
                       {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
                     </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">Amount in SGD</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">Pay Date</th><th className="p-2 text-left">Remarks</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">Pay Date</th><th className="p-2 text-left">Remarks</th><th className="p-2 text-left"></th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
                       <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/70" : "")}>
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
                         <td className="p-2">{b.job_no || "-"}</td>
-                        <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, "SGD"))}</td>
+                        <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</td>
                         <td className="p-2">{b.due_date}</td>
                         <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></td>
                         <td className="p-2">{b.pay_date || "-"}</td>
@@ -2066,7 +2235,7 @@
                   <div><p className="text-slate-500">Customer PO</p><p>{r.customer_po ? <LinkBtn onClick={() => navigateToArByPo(r.customer, r.customer_po)}>{r.customer_po}</LinkBtn> : "-"}</p></div>
                   <div><p className="text-slate-500">{t("jobStatus")}</p><p>{getJobForAr(r) ? <span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(getJobForAr(r).status)}>{getJobForAr(r).status}</span> : "-"}</p></div>
                   <div><p className="text-slate-500">Invoice Amt</p><p>{money(r.invoice_amt)} {r.invoice_currency}</p></div>
-                  <div><p className="text-slate-500">Amt in SGD</p><p>{money(convertCurrency(r.invoice_amt, r.invoice_currency, "SGD"))}</p></div>
+                  <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</p></div>
                   <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></p></div>
                 </div>
                 {job && <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm"><p className="font-medium">{t("linkedJob")}</p><p><LinkBtn onClick={() => navigateTo("job", { client: r.customer, highlightId: job.id })}>{job.job_no}</LinkBtn> · {job.job_type} · <span className={"px-1.5 py-0.5 rounded text-xs " + jobStatusClass(job.status)}>{job.status}</span></p></div>}
@@ -2095,7 +2264,7 @@
                   <div><p className="text-slate-500">{t("payeeType")}</p><p>{b.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</p></div>
                   <div><p className="text-slate-500">Company</p><p>{b.company_name}</p></div>
                   <div><p className="text-slate-500">Amount</p><p>{money(b.amount)} {b.currency}</p></div>
-                  <div><p className="text-slate-500">Amount in SGD</p><p>{money(convertCurrency(b.amount, b.currency, "SGD"))}</p></div>
+                  <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</p></div>
                   <div><p className="text-slate-500">Due Date</p><p>{b.due_date}</p></div>
                   <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></p></div>
                   <div><p className="text-slate-500">Pay Date</p><p>{b.pay_date || "-"}</p></div>
@@ -2142,7 +2311,7 @@
               <td className="p-3">{r.job_no}</td><td className="p-3">{r.customer}</td><td className="p-3">{r.customer_po || "-"}</td>
               <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + (linkedJob ? jobStatusClass(linkedJob.status) : "bg-slate-100")}>{jobStatus}</span></td>
               <td className="p-3">{r.invoice_no}</td><td className="p-3">{r.invoice_currency}</td><td className="p-3 text-right">{money(r.invoice_amt)}</td>
-              <td className="p-3 text-right font-medium">{money(convertCurrency(r.invoice_amt, r.invoice_currency, "SGD"))}</td>
+              <td className="p-3 text-right font-medium">{money(r.display_base_amount)}</td>
               <td className="p-3">{r.invoice_date}</td><td className="p-3">{r.due_date}</td>
               <td className="p-3 text-right">{r.payment_status === "Paid" ? 0 : calcOverdueDays(r.due_date)}</td><td className="p-3 text-right">{calcDaysBetween(r.invoice_date, r.due_date)}</td>
               <td className="p-3">{r.payment_received_date || "-"}</td>
@@ -2164,7 +2333,7 @@
               <td className="p-3"><span className="text-xs px-1.5 py-0.5 rounded bg-slate-100">{r.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</span></td>
               <td className="p-3">{r.company_name}</td><td className="p-3">{r.invoice_no}</td><td className="p-3">{r.invoice_date || "-"}</td><td className="p-3">{r.invoice_received_date || "-"}</td>
               <td className="p-3">{r.due_date || "-"}</td><td className="p-3">{r.currency}</td><td className="p-3 text-right">{money(r.amount)}</td>
-              <td className="p-3 text-right font-medium">{money(convertCurrency(r.amount, r.currency, "SGD"))}</td>
+              <td className="p-3 text-right font-medium">{money(r.display_base_amount)}</td>
               <td className="p-3 whitespace-nowrap"><span className={apPaymentClass(r)}>{apPaymentLabel(r, t)}</span></td>
               <td className="p-3">{r.pay_date || "-"}</td><td className="p-3">{r.remarks || "-"}</td><td className="p-3">{r.bank || "-"}</td><td className="p-3">{r.charge || "-"}</td><td className="p-3">{r.swift_code || "-"}</td><td className="p-3">{r.payment_advice_email || "-"}</td>
               <td className="p-3">
@@ -2197,6 +2366,7 @@
               </div>
               <nav className="space-y-1">
                 <SidebarItem id="dashboard" label={t("nav_dashboard")} module="dashboard" collapsed={sidebarCollapsed} />
+                <SidebarItem id="overview" label={t("nav_overview")} module="overview" collapsed={sidebarCollapsed} />
                 <SidebarItem id="clients" label={t("nav_clients")} module="clients" collapsed={sidebarCollapsed} />
                 <SidebarItem id="job" label={t("nav_job")} module="job" collapsed={sidebarCollapsed} />
                 <SidebarItem id="ar" label={t("nav_ar")} module="ar" collapsed={sidebarCollapsed} />
@@ -2212,6 +2382,7 @@
                 <div className="min-w-0">
                   <h2 className="text-2xl font-bold">
                     {page === "dashboard" && t("nav_dashboard")}
+                    {page === "overview" && t("nav_overview")}
                     {page === "clients" && t("nav_clients")}
                     {page === "job" && t("nav_job")}
                     {page === "ar" && t("nav_ar")}
@@ -2221,7 +2392,7 @@
                     {page === "settings" && t("nav_settings")}
                   </h2>
                   <p className="text-sm text-slate-500">
-                    {page === "dashboard" ? t("dashSubtitle") : <>{t("baseCurrency")}: {activeBaseCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
+                    {page === "dashboard" ? t("dashSubtitle") : page === "overview" ? t("overviewHint") : <>{t("baseCurrency")}: {regionListCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-nowrap">
@@ -2259,7 +2430,7 @@
                     <DashGradientCard
                       title={t("dashCashIn")}
                       value={money(arTotal)}
-                      hint={activeBaseCurrency + " · " + t("dashCashInHint")}
+                      hint={regionListCurrency + " · " + t("dashCashInHint")}
                       badge={overdueArCount > 0 ? overdueArCount + " " + t("overdue") + " · " + money(overdueArTotal) : null}
                       gradient={DASH_GRADIENTS.blue}
                       icon={<DashCardIcon><path d="M3 3v18h18" /><path d="M7 16l4-8 4 5 4-9" /></DashCardIcon>}
@@ -2267,7 +2438,7 @@
                     <DashGradientCard
                       title={t("dashCashOut")}
                       value={money(apTotal)}
-                      hint={activeBaseCurrency + " · " + t("dashCashOutHint")}
+                      hint={regionListCurrency + " · " + t("dashCashOutHint")}
                       badge={overdueApCount > 0 ? overdueApCount + " " + t("overdue") + " · " + money(overdueApTotal) : null}
                       gradient={DASH_GRADIENTS.redOrange}
                       icon={<DashCardIcon><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><path d="M6 15h.01" /><path d="M10 15h4" /></DashCardIcon>}
@@ -2275,7 +2446,7 @@
                     <DashGradientCard
                       title={t("netPosition")}
                       value={money(netPosition)}
-                      hint={activeBaseCurrency + " · " + t("dashNetHint")}
+                      hint={regionListCurrency + " · " + t("dashNetHint")}
                       badge={t("dashThisMonthIn") + ": " + money(thisMonthIn) + "  |  " + t("dashThisMonthOut") + ": " + money(thisMonthOut)}
                       gradient={netPosition >= 0 ? DASH_GRADIENTS.purple : DASH_GRADIENTS.redOrange}
                       icon={<DashCardIcon><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /><path d="M12 8v8" /></DashCardIcon>}
@@ -2296,7 +2467,7 @@
                       <div className="flex flex-wrap items-start justify-between gap-2 mb-3 shrink-0">
                         <div>
                           <h3 className="font-semibold text-lg text-slate-800">{t("dashIncomeOut")}</h3>
-                          <p className="text-xs text-slate-500 mt-0.5">{t("dashIncomeOutHint")} · {activeBaseCurrency}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{t("dashIncomeOutHint")} · {regionListCurrency}</p>
                         </div>
                         <div className="flex items-center gap-3 text-xs shrink-0">
                           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(135deg, #1d4ed8, #38bdf8)" }}></span>{t("dashCashInLegend")}</span>
@@ -2359,7 +2530,7 @@
                       <GlobalFinancialMap
                         stats={regionalMapStats}
                         lang={lang}
-                        currency={activeBaseCurrency}
+                        currency={regionListCurrency}
                         t={t}
                         onRegionClick={(rid) => setActiveRegion(rid)}
                       />
@@ -2409,7 +2580,7 @@
                       )}
                     </article>
                     <article className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm xl:col-span-1">
-                      <h3 className="font-semibold text-slate-800 mb-4">{t("arAging")} <span className="text-xs font-normal text-slate-500">({activeBaseCurrency})</span></h3>
+                      <h3 className="font-semibold text-slate-800 mb-4">{t("arAging")} <span className="text-xs font-normal text-slate-500">({regionListCurrency})</span></h3>
                       <ul className="space-y-3.5">
                         {[
                           { key: "current", label: t("dashAgingCurrent"), color: "bg-emerald-500", val: aging.current },
@@ -2429,6 +2600,96 @@
                           </li>
                         ))}
                       </ul>
+                    </article>
+                  </section>
+                </div>
+              )}
+
+              {page === "overview" && can("overview", "view") && (
+                <div className="space-y-4">
+                  <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+                    <div className="flex flex-wrap items-end gap-3 mb-4">
+                      <Field label={t("overviewStartDate")}>
+                        <Input type="date" value={overviewFrom} onChange={(e) => setOverviewFrom(e.target.value)} className="h-9" />
+                      </Field>
+                      <Field label={t("overviewEndDate")}>
+                        <Input type="date" value={overviewTo} onChange={(e) => setOverviewTo(e.target.value)} className="h-9" />
+                      </Field>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-2">{t("overviewByInvoiceDate")} · {regionListCurrency}</p>
+                    <OverviewDonutChart inTotal={overviewReport.inTotal} outTotal={overviewReport.outTotal} currency={regionListCurrency} t={t} />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-100">
+                      <div className="rounded-lg bg-blue-50/80 px-3 py-2 text-center">
+                        <p className="text-[10px] text-slate-500">{t("overviewArCount")}</p>
+                        <p className="text-xl font-bold text-blue-700">{overviewReport.arRows.length}</p>
+                      </div>
+                      <div className="rounded-lg bg-orange-50/80 px-3 py-2 text-center">
+                        <p className="text-[10px] text-slate-500">{t("overviewApCount")}</p>
+                        <p className="text-xl font-bold text-orange-600">{overviewReport.apRows.length}</p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 px-3 py-2 text-center">
+                        <p className="text-[10px] text-slate-500">{t("overviewNet")}</p>
+                        <p className={"text-xl font-bold tabular-nums " + (overviewReport.inTotal >= overviewReport.outTotal ? "text-emerald-700" : "text-amber-700")}>{money(overviewReport.inTotal - overviewReport.outTotal)}</p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <article className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                      <div className="px-4 py-3 border-b bg-blue-50/60">
+                        <h3 className="font-semibold text-blue-900">{t("nav_ar")} ({overviewReport.arRows.length})</h3>
+                      </div>
+                      <div className="overflow-auto max-h-80">
+                        {overviewReport.arRows.length ? (
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500 sticky top-0">
+                              <tr>
+                                <th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Customer</th><th className="p-2 text-left">Date</th><th className="p-2 text-right">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {overviewReport.arRows.map((r) => (
+                                <tr key={r.id} className="hover:bg-blue-50/40 cursor-pointer" onClick={() => setDetailPanel({ type: "ar", id: r.id })}>
+                                  <td className="p-2 font-medium">{r.invoice_no}</td>
+                                  <td className="p-2">{r.customer}</td>
+                                  <td className="p-2">{r.invoice_date}</td>
+                                  <td className="p-2 text-right tabular-nums">{money(r.display_base_amount)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <p className="px-4 py-8 text-sm text-slate-400 text-center">{t("overviewNoData")}</p>
+                        )}
+                      </div>
+                    </article>
+                    <article className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                      <div className="px-4 py-3 border-b bg-orange-50/60">
+                        <h3 className="font-semibold text-orange-900">{t("nav_ap")} ({overviewReport.apRows.length})</h3>
+                      </div>
+                      <div className="overflow-auto max-h-80">
+                        {overviewReport.apRows.length ? (
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500 sticky top-0">
+                              <tr>
+                                <th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Payee</th><th className="p-2 text-left">Date</th><th className="p-2 text-right">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {overviewReport.apRows.map((b) => (
+                                <tr key={b.id} className="hover:bg-orange-50/40 cursor-pointer" onClick={() => setDetailPanel({ type: "ap", id: b.id })}>
+                                  <td className="p-2 font-medium">{b.invoice_no}</td>
+                                  <td className="p-2">{b.company_name}</td>
+                                  <td className="p-2">{b.invoice_date}</td>
+                                  <td className="p-2 text-right tabular-nums">{money(b.display_base_amount)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <p className="px-4 py-8 text-sm text-slate-400 text-center">{t("overviewNoData")}</p>
+                        )}
+                      </div>
                     </article>
                   </section>
                 </div>
@@ -2524,12 +2785,12 @@
                   <div className="overflow-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("actions")}</th></tr>
+                        <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("actions")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
                         {scopedVendors.map((v) => (
                           <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
-                            <td className="p-3 font-medium">{v.name}</td><td className="p-3">{v.email}</td><td className="p-3">{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
+                            <td className="p-3 font-medium">{v.name}</td><td className="p-3 whitespace-nowrap">{v.phone || "-"}</td><td className="p-3 max-w-[14rem] truncate" title={v.address || ""}>{v.address || "-"}</td><td className="p-3">{v.email}</td><td className="p-3">{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
                             <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("vendors", "edit")} canDelete={can("vendors", "delete")} onDelete={() => deleteVendor(v.id)} onView={() => setDetailPanel({ type: "vendor", id: v.id })} onEdit={() => setVendorModal({ mode: "edit", id: v.id, data: { ...v } })} /></td>
                           </tr>
                         ))}
@@ -2549,12 +2810,12 @@
                   <div className="overflow-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
+                        <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
                         {scopedSis.map((s) => (
                           <tr key={s.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "si", id: s.id })}>
-                            <td className="p-3 font-medium">{s.name}</td><td className="p-3">{s.email}</td><td className="p-3">{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
+                            <td className="p-3 font-medium">{s.name}</td><td className="p-3 whitespace-nowrap">{s.phone || "-"}</td><td className="p-3 max-w-[14rem] truncate" title={s.address || ""}>{s.address || "-"}</td><td className="p-3">{s.email}</td><td className="p-3">{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
                             <td className="p-3">{getApBySi(s.name).length}</td>
                             <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("si", "edit")} canDelete={can("si", "delete")} onDelete={() => deleteSi(s.id)} onView={() => setDetailPanel({ type: "si", id: s.id })} onEdit={() => setSiModal({ mode: "edit", id: s.id, data: { ...s } })} /></td>
                           </tr>
@@ -2582,7 +2843,7 @@
                               <tr>
                                 <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("jobStatus")}</th>
                                 <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
-                                <th className="p-3 text-right">Amt in SGD</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
+                                <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
                                 <th className="p-3 text-right">Overdue Days</th><th className="p-3 text-right">Days</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
                             </thead>
@@ -2596,7 +2857,7 @@
                           <tr>
                             <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("jobStatus")}</th>
                             <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
-                            <th className="p-3 text-right">Amt in SGD</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
+                            <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
                             <th className="p-3 text-right">Overdue Days</th><th className="p-3 text-right">Days</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
                         </thead>
@@ -2623,7 +2884,7 @@
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
                                 <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
-                                <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">Amount in SGD</th>
+                                <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">{amtInLabel}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">Charge</th><th className="p-3 text-left">SWIFT CODE</th><th className="p-3 text-left">Payment Advice email</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
                             </thead>
@@ -2636,7 +2897,7 @@
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
                             <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
-                            <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">Amount in SGD</th>
+                            <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">{amtInLabel}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">Charge</th><th className="p-3 text-left">SWIFT CODE</th><th className="p-3 text-left">Payment Advice email</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
                         </thead>
@@ -2970,7 +3231,8 @@
                     <Field label="Bank"><Input value={vendorModal.data.bank} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bank: e.target.value } })} /></Field>
                     <Field label="SWIFT CODE"><Input value={vendorModal.data.swift_code} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, swift_code: e.target.value } })} /></Field>
                     <Field label="Contact"><Input value={vendorModal.data.contact} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, contact: e.target.value } })} /></Field>
-                    <Field label="Phone"><Input value={vendorModal.data.phone} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, phone: e.target.value } })} /></Field>
+                    <Field label={t("phoneNo")}><Input value={vendorModal.data.phone} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, phone: e.target.value } })} /></Field>
+                    <div className="md:col-span-2"><Field label={t("address")}><Input value={vendorModal.data.address || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, address: e.target.value } })} /></Field></div>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setVendorModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
@@ -2984,7 +3246,8 @@
                     <Field label="Bank"><Input value={siModal.data.bank} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, bank: e.target.value } })} /></Field>
                     <Field label="SWIFT CODE"><Input value={siModal.data.swift_code} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, swift_code: e.target.value } })} /></Field>
                     <Field label="Contact"><Input value={siModal.data.contact} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, contact: e.target.value } })} /></Field>
-                    <Field label="Phone"><Input value={siModal.data.phone} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, phone: e.target.value } })} /></Field>
+                    <Field label={t("phoneNo")}><Input value={siModal.data.phone} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, phone: e.target.value } })} /></Field>
+                    <div className="md:col-span-2"><Field label={t("address")}><Input value={siModal.data.address || ""} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, address: e.target.value } })} /></Field></div>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setSiModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
@@ -2996,13 +3259,13 @@
                     <Field label="Link Job">
                       <Select value={arModal.data.job_id} onChange={(e) => {
                         const job = jobs.find((j) => j.id === Number(e.target.value));
-                        setArModal({ ...arModal, data: { ...arModal.data, job_id: e.target.value, job_no: job ? job.job_no : "", customer: job ? job.company : arModal.data.customer, customer_po: job ? job.customer_po : arModal.data.customer_po } });
+                        setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, job_id: e.target.value, job_no: job ? job.job_no : "", customer: job ? job.company : arModal.data.customer, customer_po: job ? job.customer_po : arModal.data.customer_po }) });
                       }}>
                         <option value="">Select Job (optional)</option>
                         {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company} · {j.job_type}</option>)}
                       </Select>
                     </Field>
-                    <Field label="Customer"><Input value={arModal.data.customer} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, customer: e.target.value } })} /></Field>
+                    <Field label="Customer"><Input value={arModal.data.customer} onChange={(e) => setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, customer: e.target.value }) })} /></Field>
                     <Field label="Customer PO"><Input value={arModal.data.customer_po} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, customer_po: e.target.value } })} /></Field>
                     {(() => {
                       const linked = jobs.find((j) => j.id === Number(arModal.data.job_id));
@@ -3015,12 +3278,15 @@
                       <p className="text-[10px] text-slate-400 mt-1">{t("invoiceAmountHint")}</p>
                     </Field>
                     <Field label="Exchange Rate"><Input type="number" step="0.0001" required value={arModal.data.exchange_rate} onChange={(e) => calcBaseEditable({ exchange_rate: e.target.value }, arModal.data, (d) => setArModal((prev) => ({ ...prev, data: d })))} /></Field>
-                    <Field label={`Amount in ${activeBaseCurrency} (${t("amountManualOverride")})`}>
+                    <Field label={`Amount in ${regionListCurrency} (${t("amountManualOverride")})`}>
                       <Input type="number" step="0.01" value={arModal.data.base_amount} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, base_amount: e.target.value } })} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("baseAmountHint")}</p>
                     </Field>
-                    <Field label="Invoice Date"><Input type="date" required value={arModal.data.invoice_date} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_date: e.target.value } })} /></Field>
-                    <Field label="Due Date"><Input type="date" required value={arModal.data.due_date} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, due_date: e.target.value } })} /></Field>
+                    <Field label="Invoice Date"><Input type="date" required value={arModal.data.invoice_date} onChange={(e) => setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, invoice_date: e.target.value }) })} /></Field>
+                    <Field label="Due Date">
+                      <Input type="date" required value={arModal.data.due_date} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, due_date: e.target.value } })} />
+                      <p className="text-[10px] text-slate-400 mt-1">{t("arDueAutoHint")}</p>
+                    </Field>
                     <Field label={t("paymentReceived")}><Input type="date" value={arModal.data.payment_received_date} onChange={(e) => {
                       const v = e.target.value;
                       setArModal({ ...arModal, data: { ...arModal.data, payment_received_date: v, payment_status: v ? "Paid" : arModal.data.payment_status } });
@@ -3079,7 +3345,7 @@
                       <p className="text-[10px] text-slate-400 mt-1">{t("invoiceAmountHint")}</p>
                     </Field>
                     <Field label="Exchange Rate"><Input type="number" step="0.0001" required value={apModal.data.exchange_rate} onChange={(e) => calcBaseEditable({ exchange_rate: e.target.value }, apModal.data, (d) => setApModal((prev) => ({ ...prev, data: d })))} /></Field>
-                    <Field label={`Amount in ${activeBaseCurrency} (${t("amountManualOverride")})`}>
+                    <Field label={`Amount in ${regionListCurrency} (${t("amountManualOverride")})`}>
                       <Input type="number" step="0.01" value={apModal.data.base_amount} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, base_amount: e.target.value } })} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("baseAmountHint")}</p>
                     </Field>
