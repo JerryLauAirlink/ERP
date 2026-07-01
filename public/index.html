@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -32,12 +33,101 @@
         { id: "America/New_York", labelEn: "New York", labelZh: "紐約" }
       ];
 
+      const PERM_KEYS = ["view", "add", "edit", "delete", "export", "import"];
+
       function fullPermissions() {
-        return Object.fromEntries(ERP_MODULES.map((m) => [m, { view: true, add: true, edit: true, delete: true }]));
+        return Object.fromEntries(ERP_MODULES.map((m) => [m, { view: true, add: true, edit: true, delete: true, export: true, import: true }]));
       }
 
       function emptyPermissions() {
-        return Object.fromEntries(ERP_MODULES.map((m) => [m, { view: false, add: false, edit: false, delete: false }]));
+        return Object.fromEntries(ERP_MODULES.map((m) => [m, { view: false, add: false, edit: false, delete: false, export: false, import: false }]));
+      }
+
+      function normalizePermissions(perms) {
+        const out = emptyPermissions();
+        ERP_MODULES.forEach((m) => {
+          if (perms && perms[m]) PERM_KEYS.forEach((k) => { out[m][k] = !!perms[m][k]; });
+        });
+        return out;
+      }
+
+      const EXCEL_SCHEMAS = {
+        clients: {
+          sheetName: "Clients",
+          filePrefix: "clients",
+          keyField: "customer_no",
+          columns: [
+            { header: "Customer No", field: "customer_no", required: true, hint: "Required, unique key" },
+            { header: "COMPANY", field: "company", required: true, hint: "Required" },
+            { header: "GST#", field: "gst_no", hint: "" },
+            { header: "Primary Contact", field: "primary_contact", hint: "" },
+            { header: "Company Phone #", field: "company_phone", hint: "" },
+            { header: "Mobile Phone #", field: "mobile_phone", hint: "" },
+            { header: "E-mail", field: "email", hint: "" },
+            { header: "Address", field: "address", hint: "" },
+            { header: "Postal Code", field: "postal_code", hint: "" },
+            { header: "Account Dept Contact", field: "account_dept_contact", hint: "" },
+            { header: "Payment Terms", field: "payment_terms", hint: "e.g. 30 Days" }
+          ]
+        },
+        job: {
+          sheetName: "Jobs",
+          filePrefix: "jobs",
+          keyField: "job_no",
+          columns: [
+            { header: "Job No", field: "job_no", required: true, hint: "Required, unique key" },
+            { header: "Client Company", field: "company", required: true, hint: "Must match existing client" },
+            { header: "Type", field: "job_type", required: true, hint: "Project / Service / Maintenance / Trading(Buy) / Trading(Sell)" },
+            { header: "Customer PO", field: "customer_po", hint: "" },
+            { header: "Status", field: "status", hint: "Open / In Progress / Completed / On Hold" },
+            { header: "Start Date", field: "start_date", hint: "YYYY-MM-DD" },
+            { header: "Description", field: "description", hint: "" }
+          ]
+        }
+      };
+
+      function downloadWorkbook(wb, filename) {
+        XLSX.writeFile(wb, filename);
+      }
+
+      function buildWorkbook(schema, dataRows, includeHints) {
+        const headerRow = schema.columns.map((c) => c.header);
+        const hintRow = schema.columns.map((c) => c.hint || "");
+        const body = dataRows.map((r) => schema.columns.map((c) => (r[c.field] != null ? r[c.field] : "")));
+        const aoa = includeHints ? [headerRow, hintRow, ...body] : [headerRow, ...body];
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, schema.sheetName);
+        return wb;
+      }
+
+      function parseExcelRows(arrayBuffer, schema) {
+        const wb = XLSX.read(arrayBuffer, { type: "array" });
+        const sheet = wb.Sheets[schema.sheetName] || wb.Sheets[wb.SheetNames[0]];
+        if (!sheet) return { rows: [], errors: ["No worksheet found"] };
+        const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        if (!raw.length) return { rows: [], errors: ["Empty file"] };
+        const headers = raw[0].map((h) => String(h).trim());
+        const fieldByCol = {};
+        schema.columns.forEach((col) => {
+          const idx = headers.findIndex((h) => h.toLowerCase() === col.header.toLowerCase());
+          if (idx >= 0) fieldByCol[idx] = col.field;
+        });
+        const missing = schema.columns.filter((c) => c.required && !Object.values(fieldByCol).includes(c.field));
+        if (missing.length) return { rows: [], errors: ["Missing columns: " + missing.map((c) => c.header).join(", ")] };
+        const rows = [];
+        for (let i = 1; i < raw.length; i++) {
+          const line = raw[i];
+          if (!line || line.every((cell) => String(cell).trim() === "")) continue;
+          const first = String(line[0] || "").trim();
+          if (first.startsWith("(") || first.toLowerCase().includes("required")) continue;
+          const rec = {};
+          Object.entries(fieldByCol).forEach(([idx, field]) => {
+            rec[field] = String(line[Number(idx)] != null ? line[Number(idx)] : "").trim();
+          });
+          rows.push(rec);
+        }
+        return { rows, errors: [] };
       }
 
       function formatWorldTime(date, timeZone, lang) {
@@ -104,7 +194,12 @@
           auditDateFrom: "From date", auditDateTo: "To date", auditSearch: "Search", auditReset: "Reset filters", auditNoRows: "No log entries match your filters.",
           actionCreate: "Create", actionUpdate: "Update", actionDelete: "Delete", actionMarkPaid: "Mark Paid", actionUserCreate: "User Created", actionUserUpdate: "User Updated",
           confirmDelete: "Delete this record?", noPermission: "You do not have permission for this action.", rootOnly: "Root admin only.",
-          delete: "Delete", allUsers: "All users", allModules: "All modules", allActions: "All actions"
+          delete: "Delete", allUsers: "All users", allModules: "All modules", allActions: "All actions",
+          permExport: "Export", permImport: "Import", exportData: "Export Data", exportTemplate: "Download Template",
+          importExcel: "Import Excel", importPreviewTitle: "Import Preview", importConfirm: "Confirm Import",
+          importRowCreate: "New", importRowUpdate: "Update", importRowError: "Error", importSummary: "Summary",
+          importNoRows: "No valid rows found.", importFileError: "Could not read file.",
+          actionExport: "Export", actionImport: "Import", importModeHint: "Existing keys will be updated; new keys will be created."
         },
         zh_TW: {
           appTitle: "ERP 系統", nav_dashboard: "儀表板", nav_clients: "客戶", nav_job: "工作清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
@@ -141,7 +236,12 @@
           auditDateFrom: "開始日期", auditDateTo: "結束日期", auditSearch: "搜尋", auditReset: "重設篩選", auditNoRows: "沒有符合條件的記錄。",
           actionCreate: "新增", actionUpdate: "修改", actionDelete: "刪除", actionMarkPaid: "標記已付款", actionUserCreate: "建立用戶", actionUserUpdate: "更新用戶",
           confirmDelete: "確定刪除此記錄？", noPermission: "你沒有此操作權限。", rootOnly: "僅 Root 管理員可用。",
-          delete: "刪除", allUsers: "全部用戶", allModules: "全部模組", allActions: "全部動作"
+          delete: "刪除", allUsers: "全部用戶", allModules: "全部模組", allActions: "全部動作",
+          permExport: "匯出", permImport: "匯入", exportData: "匯出資料", exportTemplate: "下載範本",
+          importExcel: "匯入 Excel", importPreviewTitle: "匯入預覽", importConfirm: "確認匯入",
+          importRowCreate: "新增", importRowUpdate: "更新", importRowError: "錯誤", importSummary: "摘要",
+          importNoRows: "找不到有效資料列。", importFileError: "無法讀取檔案。",
+          actionExport: "匯出", actionImport: "匯入", importModeHint: "已存在的主鍵會更新；新主鍵會新增。"
         },
       };
 
@@ -346,14 +446,14 @@
         {
           id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true,
           permissions: {
-            dashboard: { view: true, add: false, edit: false, delete: false },
-            clients: { view: true, add: false, edit: false, delete: false },
-            job: { view: true, add: true, edit: true, delete: false },
-            ar: { view: true, add: true, edit: true, delete: false },
-            ap: { view: true, add: true, edit: true, delete: false },
-            vendors: { view: true, add: false, edit: false, delete: false },
-            si: { view: true, add: false, edit: false, delete: false },
-            settings: { view: true, add: false, edit: false, delete: false }
+            dashboard: { view: true, add: false, edit: false, delete: false, export: false, import: false },
+            clients: { view: true, add: false, edit: false, delete: false, export: true, import: false },
+            job: { view: true, add: true, edit: true, delete: false, export: true, import: true },
+            ar: { view: true, add: true, edit: true, delete: false, export: false, import: false },
+            ap: { view: true, add: true, edit: true, delete: false, export: false, import: false },
+            vendors: { view: true, add: false, edit: false, delete: false, export: false, import: false },
+            si: { view: true, add: false, edit: false, delete: false, export: false, import: false },
+            settings: { view: true, add: false, edit: false, delete: false, export: false, import: false }
           }
         }
       ];
@@ -404,13 +504,17 @@
         const [arModal, setArModal] = useState(null);
         const [apModal, setApModal] = useState(null);
 
-        const [users, setUsers] = useState(() => loadJson("erp_users", initialUsers));
+        const [users, setUsers] = useState(() => {
+          const loaded = loadJson("erp_users", initialUsers);
+          return Array.isArray(loaded) ? loaded.map((u) => ({ ...u, permissions: u.role === "root" ? fullPermissions() : normalizePermissions(u.permissions) })) : initialUsers;
+        });
         const [auditLogs, setAuditLogs] = useState(() => loadJson("erp_audit_logs", initialAuditLogs));
         const [currentUserId, setCurrentUserId] = useState(() => Number(localStorage.getItem("erp_current_user_id") || 1));
-        const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "UTC");
+        const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "Asia/Taipei");
         const [worldClock, setWorldClock] = useState(() => new Date());
         const [settingsTab, setSettingsTab] = useState("general");
         const [userModal, setUserModal] = useState(null);
+        const [importPreview, setImportPreview] = useState(null);
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
 
         const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
@@ -446,7 +550,8 @@
         function actionLabel(action) {
           const map = {
             create: t("actionCreate"), update: t("actionUpdate"), delete: t("actionDelete"),
-            mark_paid: t("actionMarkPaid"), user_create: t("actionUserCreate"), user_update: t("actionUserUpdate")
+            mark_paid: t("actionMarkPaid"), user_create: t("actionUserCreate"), user_update: t("actionUserUpdate"),
+            export: t("actionExport"), import: t("actionImport")
           };
           return map[action] || action;
         }
@@ -879,7 +984,169 @@
           const perms = { ...userModal.data.permissions };
           perms[module] = { ...perms[module], [perm]: !perms[module][perm] };
           if (perm !== "view" && perms[module][perm]) perms[module].view = true;
+          if ((perm === "import" || perm === "export") && perms[module][perm]) perms[module].view = true;
           setUserModal({ ...userModal, data: { ...userModal.data, permissions: perms } });
+        }
+
+        function exportModuleExcel(module, mode) {
+          if (!guardPermission(module, "export")) return;
+          const schema = EXCEL_SCHEMAS[module];
+          if (!schema || typeof XLSX === "undefined") { alert("Excel library not loaded"); return; }
+          const stamp = new Date().toISOString().slice(0, 10);
+          if (module === "clients") {
+            const rows = mode === "data" ? clients.map((c) => ({ ...c })) : [];
+            downloadWorkbook(buildWorkbook(schema, rows, true), schema.filePrefix + (mode === "data" ? "_data_" : "_template_") + stamp + ".xlsx");
+            logAudit(module, "export", schema.sheetName, `Exported ${mode} (${rows.length} rows)`);
+          } else if (module === "job") {
+            const rows = mode === "data" ? jobs.map((j) => ({ job_no: j.job_no, company: j.company, job_type: j.job_type, customer_po: j.customer_po || "", status: j.status || "Open", start_date: j.start_date || "", description: j.description || "" })) : [];
+            downloadWorkbook(buildWorkbook(schema, rows, true), schema.filePrefix + (mode === "data" ? "_data_" : "_template_") + stamp + ".xlsx");
+            logAudit(module, "export", schema.sheetName, `Exported ${mode} (${rows.length} rows)`);
+          }
+        }
+
+        function buildImportPreview(module, parsedRows) {
+          const schema = EXCEL_SCHEMAS[module];
+          const preview = [];
+          const seen = new Set();
+          parsedRows.forEach((row, idx) => {
+            const lineNo = idx + 1;
+            const key = String(row[schema.keyField] || "").trim();
+            const errors = [];
+            schema.columns.filter((c) => c.required).forEach((c) => {
+              if (!String(row[c.field] || "").trim()) errors.push(c.header + " required");
+            });
+            if (!key) errors.push(schema.keyField + " required");
+            if (key && seen.has(key.toLowerCase())) errors.push("Duplicate key in file: " + key);
+            if (key) seen.add(key.toLowerCase());
+
+            if (module === "job") {
+              const company = String(row.company || "").trim();
+              const client = clients.find((c) => c.company.toLowerCase() === company.toLowerCase());
+              if (!client) errors.push("Client not found: " + (company || "(empty)"));
+              const jt = String(row.job_type || "").trim();
+              if (jt && !JOB_TYPES.includes(jt)) errors.push("Invalid Type: " + jt);
+              if (!String(row.status || "").trim()) row.status = "Open";
+            }
+
+            if (errors.length) {
+              preview.push({ lineNo, action: "error", key, data: row, errors });
+              return;
+            }
+
+            if (module === "clients") {
+              const existing = clients.find((c) => c.customer_no.toLowerCase() === key.toLowerCase());
+              preview.push({ lineNo, action: existing ? "update" : "create", key, data: row, errors: [] });
+            } else if (module === "job") {
+              const existing = jobs.find((j) => j.job_no.toLowerCase() === key.toLowerCase());
+              preview.push({ lineNo, action: existing ? "update" : "create", key, data: row, errors: [] });
+            }
+          });
+          return preview;
+        }
+
+        function handleImportFile(module, file) {
+          if (!guardPermission(module, "import")) return;
+          if (!file) return;
+          const schema = EXCEL_SCHEMAS[module];
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const { rows, errors } = parseExcelRows(e.target.result, schema);
+              if (errors.length) { alert(errors.join("\n")); return; }
+              if (!rows.length) { alert(t("importNoRows")); return; }
+              const preview = buildImportPreview(module, rows);
+              setImportPreview({ module, preview, fileName: file.name });
+            } catch (err) {
+              alert(t("importFileError") + " " + (err.message || ""));
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        }
+
+        function applyImportPreview() {
+          if (!importPreview) return;
+          const { module, preview, fileName } = importPreview;
+          const valid = preview.filter((p) => p.action !== "error");
+          if (!valid.length) { alert(t("importNoRows")); return; }
+
+          let created = 0;
+          let updated = 0;
+          if (module === "clients") {
+            let next = [...clients];
+            valid.forEach((p) => {
+              const payload = { ...p.data };
+              const existing = next.find((c) => c.customer_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) {
+                const oldCompany = existing.company;
+                Object.assign(existing, payload);
+                if (oldCompany !== payload.company) syncCompanyName(oldCompany, payload.company);
+                updated++;
+              } else {
+                next = [{ id: Date.now() + Math.floor(Math.random() * 10000), ...payload }, ...next];
+                created++;
+              }
+            });
+            setClients(next);
+          } else if (module === "job") {
+            let next = [...jobs];
+            valid.forEach((p) => {
+              const client = clients.find((c) => c.company.toLowerCase() === String(p.data.company || "").toLowerCase());
+              const payload = {
+                job_no: p.data.job_no,
+                company: client ? client.company : p.data.company,
+                client_id: client ? client.id : null,
+                job_type: p.data.job_type || "Project",
+                customer_po: p.data.customer_po || "",
+                status: p.data.status || "Open",
+                start_date: p.data.start_date || "",
+                description: p.data.description || ""
+              };
+              const existing = next.find((j) => j.job_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) {
+                const oldNo = existing.job_no;
+                Object.assign(existing, payload);
+                if (oldNo !== payload.job_no) {
+                  setArInvoices((prev) => prev.map((r) => (r.job_no === oldNo ? { ...r, job_no: payload.job_no, job_id: existing.id } : r)));
+                }
+                syncArWithJobStatus(existing.id, payload.job_no, payload.status);
+                updated++;
+              } else {
+                const newId = Date.now() + Math.floor(Math.random() * 10000);
+                next = [{ id: newId, ...payload }, ...next];
+                created++;
+              }
+            });
+            setJobs(next);
+          }
+
+          logAudit(module, "import", fileName, `Imported ${created} new, ${updated} updated, ${preview.length - valid.length} errors`);
+          setImportPreview(null);
+          alert(t("importSummary") + ": " + created + " " + t("importRowCreate") + ", " + updated + " " + t("importRowUpdate"));
+        }
+
+        function ListImportExportBar({ module }) {
+          const schema = EXCEL_SCHEMAS[module];
+          if (!schema) return null;
+          const showExport = can(module, "export");
+          const showImport = can(module, "import");
+          if (!showExport && !showImport) return null;
+          const inputId = "erp-import-" + module;
+          return (
+            <div className="flex items-center gap-2">
+              {showExport && (
+                <>
+                  <button type="button" onClick={() => exportModuleExcel(module, "template")} className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white hover:bg-slate-50">{t("exportTemplate")}</button>
+                  {can(module, "view") && <button type="button" onClick={() => exportModuleExcel(module, "data")} className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white hover:bg-slate-50">{t("exportData")}</button>}
+                </>
+              )}
+              {showImport && (
+                <>
+                  <input id={inputId} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => { handleImportFile(module, e.target.files && e.target.files[0]); e.target.value = ""; }} />
+                  <button type="button" onClick={() => { const el = document.getElementById(inputId); if (el) el.click(); }} className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100">{t("importExcel")}</button>
+                </>
+              )}
+            </div>
+          );
         }
 
         const cashFlowSeries = useMemo(() => [
@@ -1322,9 +1589,12 @@
 
               {page === "clients" && (
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-4 border-b flex justify-between items-center">
+                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
                     <h3 className="font-semibold">{t("nav_clients")}</h3>
-                    {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: emptyClient() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ListImportExportBar module="clients" />
+                      {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: emptyClient() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
+                    </div>
                   </div>
                   <div className="overflow-auto">
                     <table className="w-full text-sm">
@@ -1355,9 +1625,12 @@
               {page === "job" && (
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-4 border-b">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center gap-2 flex-wrap">
                       <h3 className="font-semibold">{t("nav_job")}</h3>
-                      {can("job", "add") && <button onClick={() => setJobModal({ mode: "add", data: emptyJob() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <ListImportExportBar module="job" />
+                        {can("job", "add") && <button onClick={() => setJobModal({ mode: "add", data: emptyJob() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>}
+                      </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
                   </div>
@@ -1623,6 +1896,8 @@
                             <option value="mark_paid">{t("actionMarkPaid")}</option>
                             <option value="user_create">{t("actionUserCreate")}</option>
                             <option value="user_update">{t("actionUserUpdate")}</option>
+                            <option value="export">{t("actionExport")}</option>
+                            <option value="import">{t("actionImport")}</option>
                           </Select>
                         </Field>
                         <Field label={t("auditSearch")}><Input value={auditFilters.q} onChange={(e) => setAuditFilters({ ...auditFilters, q: e.target.value })} placeholder="..." /></Field>
@@ -1695,13 +1970,15 @@
                                 <th className="p-2 text-center">{t("permAdd")}</th>
                                 <th className="p-2 text-center">{t("permEdit")}</th>
                                 <th className="p-2 text-center">{t("permDelete")}</th>
+                                <th className="p-2 text-center">{t("permExport")}</th>
+                                <th className="p-2 text-center">{t("permImport")}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y">
                               {ERP_MODULES.map((mod) => (
                                 <tr key={mod}>
                                   <td className="p-2">{moduleLabel(mod, t)}</td>
-                                  {["view", "add", "edit", "delete"].map((perm) => (
+                                  {PERM_KEYS.map((perm) => (
                                     <td key={perm} className="p-2 text-center">
                                       <input type="checkbox" checked={!!(userModal.data.permissions && userModal.data.permissions[mod] && userModal.data.permissions[mod][perm])} onChange={() => toggleUserPerm(mod, perm)} />
                                     </td>
@@ -1718,6 +1995,45 @@
                       <button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button>
                     </div>
                   </form>
+                </Modal>
+              )}
+
+              {importPreview && (
+                <Modal title={t("importPreviewTitle") + " — " + moduleLabel(importPreview.module, t)} onClose={() => setImportPreview(null)} wide>
+                  <p className="text-sm text-slate-500 mb-3">{t("importModeHint")} · {importPreview.fileName}</p>
+                  <div className="overflow-auto border rounded-lg max-h-80 mb-4">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-500 sticky top-0">
+                        <tr>
+                          <th className="p-2 text-left">#</th>
+                          <th className="p-2 text-left">{t("auditAction")}</th>
+                          <th className="p-2 text-left">Key</th>
+                          <th className="p-2 text-left">{t("auditDetail")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {importPreview.preview.map((p) => (
+                          <tr key={p.lineNo} className={p.action === "error" ? "bg-red-50" : p.action === "create" ? "bg-green-50" : "bg-amber-50"}>
+                            <td className="p-2">{p.lineNo}</td>
+                            <td className="p-2">{p.action === "error" ? t("importRowError") : p.action === "create" ? t("importRowCreate") : t("importRowUpdate")}</td>
+                            <td className="p-2 font-mono text-xs">{p.key || "-"}</td>
+                            <td className="p-2 text-xs">{p.errors.length ? p.errors.join("; ") : (p.data.company || p.data.job_no || "")}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex justify-between items-center gap-2 flex-wrap">
+                    <p className="text-sm text-slate-600">
+                      {t("importSummary")}: {importPreview.preview.filter((p) => p.action === "create").length} {t("importRowCreate")},{" "}
+                      {importPreview.preview.filter((p) => p.action === "update").length} {t("importRowUpdate")},{" "}
+                      {importPreview.preview.filter((p) => p.action === "error").length} {t("importRowError")}
+                    </p>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setImportPreview(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button>
+                      <button type="button" onClick={applyImportPreview} disabled={!importPreview.preview.some((p) => p.action !== "error")} className="px-4 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-40">{t("importConfirm")}</button>
+                    </div>
+                  </div>
                 </Modal>
               )}
 
