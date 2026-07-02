@@ -155,6 +155,7 @@
             { header: "Amount", field: "amount", hint: "Numeric" },
             { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / RMB" },
             { header: "Customer PO", field: "customer_po", hint: "" },
+            { header: "Customer PO Amount", field: "customer_po_amount", hint: "Numeric" },
             { header: "Status", field: "status", hint: "Open / In Progress / Completed / On Hold" },
             { header: "Start Date", field: "start_date", hint: "YYYY-MM-DD" },
             { header: "Description", field: "description", hint: "Project name" },
@@ -175,7 +176,7 @@
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
             { header: "Payment Received Date", field: "payment_received_date", hint: "YYYY-MM-DD" },
-            { header: "Payment Status", field: "payment_status", hint: "Awaiting Payment / Overdue / Paid" }
+            { header: "Payment Status", field: "payment_status", hint: "Awaiting Payment / Overdue / Paid / Cancel" }
           ]
         },
         ap: {
@@ -265,6 +266,20 @@
         return wb;
       }
 
+      function excelCellToString(v) {
+        if (v == null || v === "") return "";
+        if (typeof v === "number") {
+          if (v > 25000 && v < 65000 && typeof XLSX !== "undefined" && XLSX.SSF && XLSX.SSF.parse_date_code) {
+            const d = XLSX.SSF.parse_date_code(v);
+            if (d && d.y >= 1990 && d.y <= 2100) {
+              return d.y + "-" + String(d.m).padStart(2, "0") + "-" + String(d.d).padStart(2, "0");
+            }
+          }
+          return String(v);
+        }
+        return String(v).trim();
+      }
+
       function parseExcelRows(arrayBuffer, schema) {
         const wb = XLSX.read(arrayBuffer, { type: "array" });
         const sheet = wb.Sheets[schema.sheetName] || wb.Sheets[wb.SheetNames[0]];
@@ -275,9 +290,10 @@
         const fieldByCol = {};
         schema.columns.forEach((col) => {
           const idx = headers.findIndex((h) => {
-            const a = String(h).trim().toLowerCase().replace(/\s+/g, "");
-            const b = col.header.toLowerCase().replace(/\s+/g, "");
-            return a === b || a.includes(b) || b.includes(a);
+            const a = String(h).trim().toLowerCase().replace(/[\s_#]+/g, "");
+            const b = col.header.toLowerCase().replace(/[\s_#]+/g, "");
+            const field = col.field.toLowerCase();
+            return a === b || a === field || a.includes(b) || b.includes(a);
           });
           if (idx >= 0) fieldByCol[idx] = col.field;
         });
@@ -286,12 +302,12 @@
         const rows = [];
         for (let i = 1; i < raw.length; i++) {
           const line = raw[i];
-          if (!line || line.every((cell) => String(cell).trim() === "")) continue;
-          const first = String(line[0] || "").trim();
-          if (first.startsWith("(") || first.toLowerCase().includes("required")) continue;
+          if (!line || line.every((cell) => excelCellToString(cell) === "")) continue;
+          const first = excelCellToString(line[0]);
+          if (first.startsWith("(") || first.toLowerCase().includes("required") || first.toLowerCase().includes("hint")) continue;
           const rec = {};
           Object.entries(fieldByCol).forEach(([idx, field]) => {
-            rec[field] = String(line[Number(idx)] != null ? line[Number(idx)] : "").trim();
+            rec[field] = excelCellToString(line[Number(idx)]);
           });
           rows.push(rec);
         }
@@ -372,16 +388,16 @@
           monthlyPoReceived: "PO Received (Current Month)",
           monthlyInvoiceIssued: "Invoice Issued (Current Month)",
           monthlyArExpected: "AR Expected",
-          monthlyArExpectedHint: "Expected receivables for the following month — e.g. the July column shows amounts with due date in August.",
+          monthlyArExpectedHint: "Expected receivables for the following month (e.g. July shows August due dates). Unpaid overdue items are included; Paid/Cancel excluded. Past months are frozen once the next month starts.",
           monthlyReportChartTitle: "{region} Monthly Report {year}",
           monthlyChartPo: "PO Received", monthlyChartInvoice: "Invoice Issued", monthlyChartArExpected: "AR Expected",
           monthlyTabReport: "Report", monthlyTabPoReceived: "PO Received", monthlyTabArInvoice: "AR Invoice",
-          monthlyColJobNo: "Job#", monthlyColOtherCurrency: "Other Currency", monthlyTotal: "TOTAL",
+          monthlyColJobNo: "Job#", monthlyColOtherCurrency: "Currency", monthlyColSourceAmount: "Amount", monthlyTotal: "TOTAL",
           monthlySyncFromJobs: "Sync from Jobs", monthlySyncFromAr: "Sync from AR",
-          monthlyPoDetailHint: "PO received by month — Job#, Other Currency (editable), amount in {currency}. Report tab uses monthly TOTAL.",
-          monthlyArDetailHint: "AR invoices by month — Job#, Other Currency (editable), amount in {currency}. Report tab uses monthly TOTAL.",
+          monthlyPoDetailHint: "PO by month — Job#, currency, original PO amount (Customer PO Amount), then converted to {currency}. Click Sync from Jobs after editing jobs. Report tab uses the {currency} TOTAL.",
+          monthlyArDetailHint: "AR by month — Job#, currency, original invoice amount, then converted to {currency}. Report tab uses the {currency} TOTAL.",
           monthlySyncSaved: "Synced and saved to this browser. Data remains after refresh (F5).",
-          monthlyStorageHint: "Data is saved in your browser (localStorage). A database later will keep data on the server for all users.",
+          monthlyStorageHint: "Data is saved in your browser (localStorage), not a server database. Use Settings → Backup to save a copy. Import applies to the current region filter.",
           monthlyExportPdf: "Export PDF",
           importReading: "Reading file…",
           importPreviewReady: "Import preview ready — please confirm.",
@@ -446,7 +462,12 @@
           actionExport: "Export", actionImport: "Import",           importModeHint: "Existing keys will be updated; new keys will be created.",
           filterStatus: "Filter Status", searchPlaceholder: "Search...", searchHint: "Matches invoice no., client, job no., PO, etc.",
           region: "Region", regionAccess: "Region Access", regionScopeHint: "Data you create is tagged to the active region. ALL shows every region you can access.",
-          regionDataHint: "New records are saved under the currently selected region (not ALL)."
+          regionDataHint: "New records are saved under the currently selected region (not ALL).",
+          importRegionHint: "Imported under region: {region}. Switch region (top-right) or set ALL to see records.",
+          settingsBackup: "Backup & Restore", backupTitle: "Backup & Restore", backupHint: "All lists are stored in this browser only (localStorage). Download a backup file to move data to another PC or browser. Restore replaces all current data.",
+          backupDownload: "Download Backup", restoreUpload: "Restore from Backup", restoreConfirm: "Restore will REPLACE all current ERP data in this browser. Continue?",
+          restoreDone: "Restore completed. Page will reload.", restoreInvalid: "Invalid backup file.", backupDone: "Backup file downloaded.",
+          noDatabaseNote: "No server database yet — Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
         },
         zh_TW: {
           appTitle: "ERP 系統", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
@@ -489,16 +510,16 @@
           monthlyPoReceived: "PO Received (Current Month)",
           monthlyInvoiceIssued: "Invoice Issued (Current Month)",
           monthlyArExpected: "AR Expected",
-          monthlyArExpectedHint: "預計下月應收：例如 7 月欄位顯示 due date 喺 8 月嘅金額。",
+          monthlyArExpectedHint: "預計下月應收（例如 7 月欄顯示 8 月 due date）。未收 overdue 會計入；Paid/Cancel 唔計。月份一過就凍結，之後收款唔會改返之前月份。",
           monthlyReportChartTitle: "{region} Monthly Report {year}",
           monthlyChartPo: "PO Received", monthlyChartInvoice: "Invoice Issued", monthlyChartArExpected: "AR Expected",
           monthlyTabReport: "Report", monthlyTabPoReceived: "PO Received", monthlyTabArInvoice: "AR Invoice",
-          monthlyColJobNo: "Job#", monthlyColOtherCurrency: "Other Currency", monthlyTotal: "TOTAL",
+          monthlyColJobNo: "Job#", monthlyColOtherCurrency: "幣別", monthlyColSourceAmount: "原幣金額", monthlyTotal: "TOTAL",
           monthlySyncFromJobs: "從 Job 同步", monthlySyncFromAr: "從 AR 同步",
-          monthlyPoDetailHint: "按月 PO 收單 — Job#、Other Currency（可改）、{currency} 金額。Report 頁用每月 TOTAL。",
-          monthlyArDetailHint: "按月 AR Invoice — Job#、Other Currency（可改）、{currency} 金額。Report 頁用每月 TOTAL。",
+          monthlyPoDetailHint: "按月 PO — Job#、幣別、原幣 PO 金額（Customer PO Amount）、換算成 {currency}。改完 Job 請按「從 Job 同步」。Report 頁用 {currency} TOTAL。",
+          monthlyArDetailHint: "按月 AR — Job#、幣別、原幣 Invoice 金額、換算成 {currency}。Report 頁用 {currency} TOTAL。",
           monthlySyncSaved: "已同步並儲存到本機瀏覽器，F5 重新整理後仍會保留。",
-          monthlyStorageHint: "資料儲存在瀏覽器（localStorage）。之後接 DATABASE 就可以喺伺服器永久保存、多人共用。",
+          monthlyStorageHint: "資料儲存在瀏覽器（localStorage），唔係伺服器 database。請用 設定→備份 下載備份。匯入會跟目前右上角地區。",
           monthlyExportPdf: "匯出 PDF",
           importReading: "正在讀取檔案…",
           importPreviewReady: "匯入預覽已準備好，請確認。",
@@ -563,12 +584,18 @@
           actionExport: "匯出", actionImport: "匯入",           importModeHint: "已存在的主鍵會更新；新主鍵會新增。",
           filterStatus: "篩選狀態", searchPlaceholder: "搜尋...", searchHint: "可搜發票號、客戶、工作編號、PO 等。",
           region: "地區", regionAccess: "地區權限", regionScopeHint: "你新增嘅資料會標記為目前地區；ALL 顯示你有權限嘅所有地區。",
-          regionDataHint: "新增資料會儲存於目前所選地區（ALL 時用你有權限嘅第一個地區）。"
+          regionDataHint: "新增資料會儲存於目前所選地區（ALL 時用你有權限嘅第一個地區）。",
+          importRegionHint: "已匯入至地區：{region}。請確認右上角 Region 設為 ALL 或正確地區先會見到資料。",
+          settingsBackup: "備份與還原", backupTitle: "備份與還原", backupHint: "所有 LIST 資料只儲存在此瀏覽器。下載備份檔可搬到另一部電腦／瀏覽器。還原會覆蓋目前所有資料。",
+          backupDownload: "下載備份", restoreUpload: "還原備份", restoreConfirm: "還原會覆蓋此瀏覽器內所有 ERP 資料，確定繼續？",
+          restoreDone: "還原完成，頁面將重新載入。", restoreInvalid: "備份檔案無效。", backupDone: "已下載備份檔。",
+          noDatabaseNote: "目前未有 server database — Excel 匯入只會更新瀏覽器資料。上傳後請在預覽視窗按「確認匯入」。"
         },
       };
 
       function paymentStatusLabel(status, t) {
         if (status === "Paid") return t("paid");
+        if (status === "Cancel" || status === "Cancelled" || status === "Canceled") return "Cancel";
         if (status === "Overdue") return t("overdue");
         return t("awaitingPayment");
       }
@@ -792,14 +819,58 @@
         return monthRangeFor(year, monthIndex + 1);
       }
 
-      function buildMonthlyReportSeries(year, currency, lang, poMonthTotals, invoiceMonthTotals, arInvoices) {
+      function monthEndIso(year, monthIndex) {
+        return monthRangeFor(year, monthIndex).to;
+      }
+
+      function reportMonthHasEnded(year, monthIndex, todayIso) {
+        return todayIso > monthEndIso(year, monthIndex);
+      }
+
+      function arExpectedSnapshotKey(year, monthIndex, region) {
+        return year + "-" + String(monthIndex + 1).padStart(2, "0") + "-" + region;
+      }
+
+      function isArCancelled(r) {
+        const s = String(r && r.payment_status || "").toLowerCase();
+        return s === "cancel" || s === "cancelled" || s === "canceled";
+      }
+
+      function wasArUnpaidAsOf(r, asOfIso) {
+        if (!r || isArCancelled(r)) return false;
+        const paidDate = r.payment_received_date || "";
+        if (paidDate) return paidDate > asOfIso;
+        if (r.payment_status === "Paid") {
+          const fallback = r.invoice_date || r.due_date || "";
+          return !fallback || fallback > asOfIso;
+        }
+        return true;
+      }
+
+      function arCountsForExpectedMonth(r, year, monthIndex, asOfIso) {
+        if (!wasArUnpaidAsOf(r, asOfIso) || !r.due_date) return false;
+        const { from: nextFrom, to: nextTo } = nextMonthRange(year, monthIndex);
+        if (dateInRange(r.due_date, nextFrom, nextTo)) return true;
+        if (r.due_date < nextFrom && r.due_date <= asOfIso) return true;
+        return false;
+      }
+
+      function computeArExpectedForReportMonth(year, monthIndex, arInvoices, currency, asOfIso) {
+        return arInvoices
+          .filter((r) => arCountsForExpectedMonth(r, year, monthIndex, asOfIso))
+          .reduce((s, r) => s + resolveArDisplayAmount(r, currency), 0);
+      }
+
+      function buildMonthlyReportSeries(year, currency, lang, poMonthTotals, invoiceMonthTotals, arInvoices, snapshots, region, todayIso) {
         const y = Number(year);
         return Array.from({ length: 12 }, (_, m) => {
           const { key } = monthRangeFor(y, m);
-          const { from: nextFrom, to: nextTo } = nextMonthRange(y, m);
-          const arExpected = arInvoices
-            .filter((r) => r.due_date && dateInRange(r.due_date, nextFrom, nextTo))
-            .reduce((s, r) => s + resolveArDisplayAmount(r, currency), 0);
+          const snapKey = arExpectedSnapshotKey(y, m, region);
+          const monthEnded = reportMonthHasEnded(y, m, todayIso);
+          const asOfIso = monthEnded ? monthEndIso(y, m) : todayIso;
+          const arExpected = monthEnded && snapshots[snapKey] != null
+            ? snapshots[snapKey]
+            : computeArExpectedForReportMonth(y, m, arInvoices, currency, asOfIso);
           return {
             monthIndex: m,
             key,
@@ -833,14 +904,17 @@
             const sourceKey = "job-" + job.id + "-" + y + "-" + (m + 1);
             const idx = next.findIndex((l) => l.source_key === sourceKey);
             const lineCurrency = REGION_CURRENCY[job.region] || baseCurrency;
-            const baseAmt = convertCurrency(Number(job.amount || 0), job.currency || lineCurrency, lineCurrency);
+            const jobCurrency = job.currency || "USD";
+            const sourceAmt = Number(job.customer_po_amount ?? job.amount ?? 0);
+            const baseAmt = convertCurrency(sourceAmt, jobCurrency, lineCurrency);
             const patch = {
               region: job.region || "HK",
               year: y,
               month: m + 1,
               job_no: job.job_no,
               source_key: sourceKey,
-              other_currency: job.currency || "USD",
+              other_currency: jobCurrency,
+              source_amount: sourceAmt,
               base_currency: lineCurrency,
               base_amount: baseAmt
             };
@@ -867,6 +941,8 @@
             const sourceKey = "ar-" + r.id;
             const idx = next.findIndex((l) => l.source_key === sourceKey);
             const lineCurrency = REGION_CURRENCY[r.region] || baseCurrency;
+            const invCurrency = r.invoice_currency || "USD";
+            const sourceAmt = Number(r.invoice_amt || 0);
             const baseAmt = resolveArDisplayAmount(r, lineCurrency);
             const patch = {
               region: r.region || "HK",
@@ -874,7 +950,8 @@
               month: m + 1,
               job_no: r.job_no || "",
               source_key: sourceKey,
-              other_currency: r.invoice_currency || "USD",
+              other_currency: invCurrency,
+              source_amount: sourceAmt,
               base_currency: lineCurrency,
               base_amount: baseAmt
             };
@@ -963,7 +1040,7 @@
       }
 
       function emptyJob() {
-        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", quotation_no: "", amount: "", currency: "USD", status: "Open", description: "", remarks: "", start_date: "" };
+        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", customer_po_amount: "", quotation_no: "", amount: "", currency: "USD", status: "Open", description: "", remarks: "", start_date: "" };
       }
 
       function jobNatureCategory(jobType) {
@@ -1016,13 +1093,13 @@
         ) || null;
       }
 
-      function syncJobOnQuotationSave(jobId, jobNo, quotationNo, oldJobNo, oldQuotationNo) {
+      function syncJobsOnQuotationSave(list, jobId, jobNo, quotationNo, oldJobNo, oldQuotationNo) {
         const nextJobNo = String(jobNo || "").trim();
         const nextQuotationNo = String(quotationNo || "").trim();
         const prevJobNo = String(oldJobNo || "").trim();
         const prevQuotationNo = String(oldQuotationNo || "").trim();
-        if (!nextJobNo && !prevJobNo) return;
-        setJobs((prev) => prev.map((j) => {
+        if (!nextJobNo && !prevJobNo) return list;
+        return list.map((j) => {
           if (prevJobNo && j.job_no === prevJobNo && (!nextJobNo || j.job_no !== nextJobNo) && (!prevQuotationNo || String(j.quotation_no || "").trim().toLowerCase() === prevQuotationNo.toLowerCase())) {
             return { ...j, quotation_no: "" };
           }
@@ -1030,26 +1107,7 @@
             return { ...j, quotation_no: nextQuotationNo };
           }
           return j;
-        }));
-      }
-
-      function aggregateJobArForOngoing(jobAr) {
-        if (!jobAr.length) return { currency: "", poAmt: 0, poAmtLabel: "" };
-        const cur = jobAr[0].invoice_currency || "USD";
-        const allSame = jobAr.every((r) => (r.invoice_currency || "USD") === cur);
-        if (allSame) {
-          const poAmt = jobAr.reduce((s, r) => s + Number(r.invoice_amt || 0), 0);
-          return { currency: cur, poAmt, poAmtLabel: "" };
-        }
-        const curList = [...new Set(jobAr.map((r) => r.invoice_currency || "USD"))];
-        const poAmtLabel = curList.map((c) => {
-          const amt = jobAr.filter((r) => (r.invoice_currency || "USD") === c).reduce((s, r) => s + Number(r.invoice_amt || 0), 0);
-          return c + " " + amt;
-        }).join(" + ");
-        const primaryAmt = jobAr
-          .filter((r) => (r.invoice_currency || "USD") === cur)
-          .reduce((s, r) => s + Number(r.invoice_amt || 0), 0);
-        return { currency: curList.join("/"), poAmt: primaryAmt, poAmtLabel };
+        });
       }
 
       function resolveJsPDF() {
@@ -1327,9 +1385,9 @@
       ];
 
       const initialJobs = [
-        { id: 1, region: "HK", job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", quotation_no: "QT-2026-001", amount: 150000, currency: "USD", status: "In Progress", description: "ERP rollout phase 1", remarks: "", start_date: "2026-04-01" },
-        { id: 2, region: "HK", job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", quotation_no: "QT-2026-002", amount: 88000, currency: "HKD", status: "Completed", description: "Annual maintenance", remarks: "", start_date: "2026-05-15" },
-        { id: 3, region: "TW", job_no: "JB-TW-001", client_id: 3, company: "Taipei Tech Co.", job_type: "Project", customer_po: "PO-TW-100", quotation_no: "QT-TW-001", amount: 3200000, currency: "TWD", status: "Open", description: "TW office setup", remarks: "", start_date: "2026-06-01" }
+        { id: 1, region: "HK", job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", customer_po_amount: 150000, quotation_no: "QT-2026-001", amount: 150000, currency: "USD", status: "In Progress", description: "ERP rollout phase 1", remarks: "", start_date: "2026-04-01" },
+        { id: 2, region: "HK", job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", customer_po_amount: 88000, quotation_no: "QT-2026-002", amount: 88000, currency: "HKD", status: "Completed", description: "Annual maintenance", remarks: "", start_date: "2026-05-15" },
+        { id: 3, region: "TW", job_no: "JB-TW-001", client_id: 3, company: "Taipei Tech Co.", job_type: "Project", customer_po: "PO-TW-100", customer_po_amount: 3200000, quotation_no: "QT-TW-001", amount: 3200000, currency: "TWD", status: "Open", description: "TW office setup", remarks: "", start_date: "2026-06-01" }
       ];
 
       const initialQuotations = [
@@ -1493,7 +1551,7 @@
                   {months.map((m, i) => (
                     <React.Fragment key={"mh-" + m.monthIndex}>
                       {i > 0 && <th className="w-2 border-0 bg-white"></th>}
-                      <th colSpan={3} className="p-2 border border-slate-300 text-center font-semibold whitespace-nowrap">{m.header}</th>
+                      <th colSpan={4} className="p-2 border border-slate-300 text-center font-semibold whitespace-nowrap">{m.header}</th>
                     </React.Fragment>
                   ))}
                 </tr>
@@ -1503,6 +1561,7 @@
                       {i > 0 && <th className="w-2 border-0 bg-white"></th>}
                       <th className="p-1.5 border border-slate-300 font-medium whitespace-nowrap">{t("monthlyColJobNo")}</th>
                       <th className="p-1.5 border border-slate-300 font-medium whitespace-nowrap">{t("monthlyColOtherCurrency")}</th>
+                      <th className="p-1.5 border border-slate-300 font-medium text-right whitespace-nowrap">{t("monthlyColSourceAmount")}</th>
                       <th className="p-1.5 border border-slate-300 font-medium text-right whitespace-nowrap">{baseCurrency}</th>
                     </React.Fragment>
                   ))}
@@ -1527,6 +1586,7 @@
                               />
                             ) : (row ? row.other_currency : "")}
                           </td>
+                          <td className="p-1.5 border border-slate-200 text-right tabular-nums whitespace-nowrap">{row ? moneyFn(row.source_amount ?? 0) : ""}</td>
                           <td className="p-1.5 border border-slate-200 text-right tabular-nums whitespace-nowrap">{row ? moneyFn(row.base_amount || 0) : ""}</td>
                         </React.Fragment>
                       );
@@ -1537,6 +1597,7 @@
                   {months.map((m, i) => (
                     <React.Fragment key={"t-" + m.monthIndex}>
                       {i > 0 && <td className="border-0 bg-white"></td>}
+                      <td className="p-1.5 border border-slate-300"></td>
                       <td className="p-1.5 border border-slate-300"></td>
                       <td className="p-1.5 border border-slate-300">{t("monthlyTotal")}</td>
                       <td className="p-1.5 border border-slate-300 text-right tabular-nums border-t-2 border-slate-500">{m.total ? moneyFn(m.total) : "-"}</td>
@@ -1955,6 +2016,7 @@
         const [monthlyReportTab, setMonthlyReportTab] = useState("report");
         const [monthlyPoLines, setMonthlyPoLines] = useState(() => loadJson("erp_monthly_po_lines", []));
         const [monthlyArLines, setMonthlyArLines] = useState(() => loadJson("erp_monthly_ar_lines", []));
+        const [monthlyArExpectedSnapshots, setMonthlyArExpectedSnapshots] = useState(() => loadJson("erp_monthly_ar_expected", {}));
 
         const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
 
@@ -1978,6 +2040,7 @@
         useEffect(() => { localStorage.setItem("erp_ap", JSON.stringify(apBills)); }, [apBills]);
         useEffect(() => { if (saveErpStorage("erp_monthly_po_lines", monthlyPoLines)) localStorage.setItem("erp_monthly_po_saved_at", new Date().toISOString()); }, [monthlyPoLines]);
         useEffect(() => { if (saveErpStorage("erp_monthly_ar_lines", monthlyArLines)) localStorage.setItem("erp_monthly_ar_saved_at", new Date().toISOString()); }, [monthlyArLines]);
+        useEffect(() => { saveErpStorage("erp_monthly_ar_expected", monthlyArExpectedSnapshots); }, [monthlyArExpectedSnapshots]);
         useEffect(() => { localStorage.setItem("erp_current_user_id", String(currentUserId)); }, [currentUserId]);
         useEffect(() => { localStorage.setItem("erp_world_timezone", worldTimeZone); }, [worldTimeZone]);
         useEffect(() => { localStorage.setItem("erp_sidebar_collapsed", sidebarCollapsed ? "1" : "0"); }, [sidebarCollapsed]);
@@ -2347,19 +2410,18 @@
         const ongoingJobsList = useMemo(() => scopedJobs
           .filter((j) => !isJobCompleted(j.status))
           .map((j) => {
-            const jobAr = scopedArInvoices.filter((r) => r.job_no === j.job_no);
-            const { currency: arCurrency, poAmt, poAmtLabel } = aggregateJobArForOngoing(jobAr);
+            const poAmt = Number(j.customer_po_amount || 0);
+            const jobCurrency = j.currency || "USD";
             const billedAmt = Number(j.ongoing_billed_amt || 0);
             const poBalance = poAmt - billedAmt;
-            const curForFx = (arCurrency || "USD").split("/")[0];
-            const balanceUsd = convertCurrency(poBalance, curForFx, "USD");
-            const poUsd = convertCurrency(poAmt, curForFx, "USD");
+            const balanceUsd = convertCurrency(poBalance, jobCurrency, "USD");
+            const poUsd = convertCurrency(poAmt, jobCurrency, "USD");
             return {
               ...j,
               nature: jobNatureCategory(j.job_type),
-              arCurrency,
+              arCurrency: jobCurrency,
               poAmt,
-              poAmtLabel,
+              poAmtLabel: "",
               billedAmt,
               poBalance,
               balanceUsd,
@@ -2367,7 +2429,7 @@
             };
           })
           .sort((a, b) => (a.job_no || "").localeCompare(b.job_no || "")),
-        [scopedJobs, scopedArInvoices]);
+        [scopedJobs]);
 
         const ongoingTotals = useMemo(() => {
           let totalPoUsd = 0;
@@ -2413,7 +2475,25 @@
         const monthlyPoGrid = useMemo(() => buildMonthDetailGrid(scopedMonthlyPoLines, monthlyReportYear, lang), [scopedMonthlyPoLines, monthlyReportYear, lang]);
         const monthlyArGrid = useMemo(() => buildMonthDetailGrid(scopedMonthlyArLines, monthlyReportYear, lang), [scopedMonthlyArLines, monthlyReportYear, lang]);
 
-        const monthlyReportSeries = useMemo(() => buildMonthlyReportSeries(Number(monthlyReportYear), regionListCurrency, lang, poMonthTotals, arInvoiceMonthTotals, scopedArInvoices), [monthlyReportYear, regionListCurrency, lang, poMonthTotals, arInvoiceMonthTotals, scopedArInvoices]);
+        const monthlyReportSeries = useMemo(() => {
+          const today = new Date().toISOString().slice(0, 10);
+          return buildMonthlyReportSeries(Number(monthlyReportYear), regionListCurrency, lang, poMonthTotals, arInvoiceMonthTotals, scopedArInvoices, monthlyArExpectedSnapshots, activeRegion, today);
+        }, [monthlyReportYear, regionListCurrency, lang, poMonthTotals, arInvoiceMonthTotals, scopedArInvoices, monthlyArExpectedSnapshots, activeRegion]);
+
+        useEffect(() => {
+          const today = new Date().toISOString().slice(0, 10);
+          const y = Number(monthlyReportYear);
+          const pending = {};
+          for (let m = 0; m < 12; m++) {
+            if (!reportMonthHasEnded(y, m, today)) continue;
+            const key = arExpectedSnapshotKey(y, m, activeRegion);
+            if (monthlyArExpectedSnapshots[key] != null) continue;
+            pending[key] = computeArExpectedForReportMonth(y, m, scopedArInvoices, regionListCurrency, monthEndIso(y, m));
+          }
+          if (Object.keys(pending).length) {
+            setMonthlyArExpectedSnapshots((prev) => ({ ...prev, ...pending }));
+          }
+        }, [monthlyReportYear, activeRegion, scopedArInvoices, regionListCurrency, monthlyArExpectedSnapshots]);
 
         const monthlyReportMaxBar = useMemo(() => Math.max(1, ...monthlyReportSeries.flatMap((m) => [m.poReceived, m.invoiceIssued, m.arExpected])), [monthlyReportSeries]);
 
@@ -2529,7 +2609,7 @@
 
         function saveJob(e) {
           e.preventDefault();
-          const data = { ...jobModal.data, client_id: Number(jobModal.data.client_id), amount: Number(jobModal.data.amount || 0) };
+          const data = { ...jobModal.data, client_id: Number(jobModal.data.client_id), amount: Number(jobModal.data.amount || 0), customer_po_amount: Number(jobModal.data.customer_po_amount || 0) };
           const client = clients.find((c) => c.id === data.client_id);
           const payload = { ...data, company: client ? client.company : data.company };
           const oldJob = jobModal.mode === "edit" ? jobs.find((j) => j.id === jobModal.id) : null;
@@ -2691,6 +2771,7 @@
             month: l.month,
             job_no: l.job_no,
             other_currency: l.other_currency,
+            source_amount: l.source_amount ?? "",
             amount: l.base_amount,
             currency: l.base_currency || regionListCurrency
           }));
@@ -2700,7 +2781,8 @@
             columns: [
               { header: "Month", field: "month" },
               { header: "Job#", field: "job_no" },
-              { header: "Other Currency", field: "other_currency" },
+              { header: "Currency", field: "other_currency" },
+              { header: "Source Amount", field: "source_amount" },
               { header: "Amount", field: "amount" },
               { header: "Currency", field: "currency" }
             ]
@@ -2741,12 +2823,12 @@
             if (!guardPermission("quotation", "add")) return;
             const newId = Date.now();
             setQuotations([{ id: newId, region: regionForNewRecord(), ...payload }, ...quotations]);
-            syncJobOnQuotationSave(payload.job_id, payload.job_no, payload.quotation_no, "", "");
+            setJobs((prev) => syncJobsOnQuotationSave(prev, payload.job_id, payload.job_no, payload.quotation_no, "", ""));
             logAudit("quotation", "create", payload.quotation_no, `Created quotation ${payload.quotation_no}`);
           } else {
             if (!guardPermission("quotation", "edit")) return;
             setQuotations(quotations.map((q) => (q.id === quotationModal.id ? { ...q, ...payload } : q)));
-            syncJobOnQuotationSave(payload.job_id, payload.job_no, payload.quotation_no, oldJobNo, oldQuotationNo);
+            setJobs((prev) => syncJobsOnQuotationSave(prev, payload.job_id, payload.job_no, payload.quotation_no, oldJobNo, oldQuotationNo));
             logAudit("quotation", "update", payload.quotation_no, `Updated quotation ${payload.quotation_no}`);
           }
           setQuotationModal(null);
@@ -2756,7 +2838,7 @@
           if (!guardPermission("quotation", "delete")) return;
           const q = quotations.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          if (q && q.job_no) syncJobOnQuotationSave(null, "", "", q.job_no, q.quotation_no);
+          if (q && q.job_no) setJobs((prev) => syncJobsOnQuotationSave(prev, null, "", "", q.job_no, q.quotation_no));
           setQuotations(quotations.filter((x) => x.id !== id));
           logAudit("quotation", "delete", q ? q.quotation_no : String(id), `Deleted quotation ${q ? q.quotation_no : id}`);
         }
@@ -3073,6 +3155,91 @@
           reader.readAsArrayBuffer(file);
         }
 
+        function persistErpLists(snapshot) {
+          if (snapshot.clients != null) { localStorage.setItem("erp_clients", JSON.stringify(snapshot.clients)); }
+          if (snapshot.jobs != null) { localStorage.setItem("erp_jobs", JSON.stringify(snapshot.jobs)); }
+          if (snapshot.quotations != null) { localStorage.setItem("erp_quotations", JSON.stringify(snapshot.quotations)); }
+          if (snapshot.vendors != null) { localStorage.setItem("erp_vendors", JSON.stringify(snapshot.vendors)); }
+          if (snapshot.sis != null) { localStorage.setItem("erp_sis", JSON.stringify(snapshot.sis)); }
+          if (snapshot.arInvoices != null) { localStorage.setItem("erp_ar", JSON.stringify(snapshot.arInvoices)); }
+          if (snapshot.apBills != null) { localStorage.setItem("erp_ap", JSON.stringify(snapshot.apBills)); }
+        }
+
+        function downloadErpBackup() {
+          if (!can("settings", "view")) { alert(t("noPermission")); return; }
+          const payload = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            app: "ERP System",
+            data: {
+              users, auditLogs, clients, jobs, quotations, vendors, sis,
+              arInvoices, apBills, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots,
+              settings: { lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed }
+            }
+          };
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "erp_backup_" + new Date().toISOString().slice(0, 10) + ".json";
+          a.click();
+          URL.revokeObjectURL(a.href);
+          logAudit("settings", "export", "backup", "Downloaded ERP backup");
+          alert(t("backupDone"));
+        }
+
+        function handleRestoreBackup(file) {
+          if (!file) return;
+          if (!isRoot()) { alert(t("rootOnly")); return; }
+          const reader = new FileReader();
+          reader.onerror = () => alert(t("importFileError"));
+          reader.onload = (e) => {
+            try {
+              const payload = JSON.parse(e.target.result);
+              const d = payload && payload.data;
+              if (!d || !Array.isArray(d.clients) || !Array.isArray(d.jobs)) { alert(t("restoreInvalid")); return; }
+              if (!window.confirm(t("restoreConfirm"))) return;
+              setUsers(d.users || users);
+              setAuditLogs(d.auditLogs || []);
+              setClients(ensureRegionOnRecords(d.clients));
+              setJobs(ensureRegionOnRecords(d.jobs));
+              setQuotations(ensureRegionOnRecords(d.quotations || []));
+              setVendors(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || [])));
+              setSis(ensureSiNumbers(ensureRegionOnRecords(d.sis || [])));
+              setArInvoices(ensureRegionOnRecords(d.arInvoices || []));
+              setApBills(ensureRegionOnRecords(d.apBills || []));
+              setMonthlyPoLines(d.monthlyPoLines || []);
+              setMonthlyArLines(d.monthlyArLines || []);
+              setMonthlyArExpectedSnapshots(d.monthlyArExpectedSnapshots || {});
+              localStorage.setItem("erp_users", JSON.stringify(d.users || users));
+              localStorage.setItem("erp_audit_logs", JSON.stringify(d.auditLogs || []));
+              localStorage.setItem("erp_clients", JSON.stringify(ensureRegionOnRecords(d.clients)));
+              localStorage.setItem("erp_jobs", JSON.stringify(ensureRegionOnRecords(d.jobs)));
+              localStorage.setItem("erp_quotations", JSON.stringify(ensureRegionOnRecords(d.quotations || [])));
+              localStorage.setItem("erp_vendors", JSON.stringify(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || []))));
+              localStorage.setItem("erp_sis", JSON.stringify(ensureSiNumbers(ensureRegionOnRecords(d.sis || []))));
+              localStorage.setItem("erp_ar", JSON.stringify(ensureRegionOnRecords(d.arInvoices || [])));
+              localStorage.setItem("erp_ap", JSON.stringify(ensureRegionOnRecords(d.apBills || [])));
+              saveErpStorage("erp_monthly_po_lines", d.monthlyPoLines || []);
+              saveErpStorage("erp_monthly_ar_lines", d.monthlyArLines || []);
+              saveErpStorage("erp_monthly_ar_expected", d.monthlyArExpectedSnapshots || {});
+              if (d.settings) {
+                if (d.settings.lang) { localStorage.setItem("erp_lang", d.settings.lang); setLang(d.settings.lang); }
+                if (d.settings.activeRegion) { localStorage.setItem("erp_active_region", d.settings.activeRegion); setActiveRegion(d.settings.activeRegion); }
+                if (d.settings.worldTimeZone) setWorldTimeZone(d.settings.worldTimeZone);
+                if (d.settings.companyName != null) { localStorage.setItem("erp_company_name", d.settings.companyName); setCompanyName(d.settings.companyName); }
+                if (d.settings.companyLogo != null) { localStorage.setItem("erp_company_logo", d.settings.companyLogo); setCompanyLogo(d.settings.companyLogo); }
+                if (d.settings.currentUserId) setCurrentUserId(Number(d.settings.currentUserId));
+              }
+              logAudit("settings", "import", "backup", "Restored ERP backup from file");
+              alert(t("restoreDone"));
+              window.location.reload();
+            } catch (err) {
+              alert(t("restoreInvalid") + " " + (err.message || ""));
+            }
+          };
+          reader.readAsText(file);
+        }
+
         function applyImportPreview() {
           if (!importPreview) return;
           const { module, preview, fileName } = importPreview;
@@ -3081,26 +3248,33 @@
 
           let created = 0;
           let updated = 0;
+          let nextClients = clients;
+          let nextJobs = jobs;
+          let nextQuotations = quotations;
+          let nextVendors = vendors;
+          let nextSis = sis;
+          let nextAr = arInvoices;
+          let nextAp = apBills;
           if (module === "clients") {
-            let next = [...clients];
+            nextClients = [...clients];
             valid.forEach((p) => {
               const payload = { ...p.data };
-              const existing = next.find((c) => c.customer_no.toLowerCase() === p.key.toLowerCase());
+              const existing = nextClients.find((c) => c.customer_no.toLowerCase() === p.key.toLowerCase());
               if (existing) {
                 const oldCompany = existing.company;
-                Object.assign(existing, payload);
+                nextClients = nextClients.map((c) => (c.id === existing.id ? { ...c, ...payload } : c));
                 if (oldCompany !== payload.company) syncCompanyName(oldCompany, payload.company);
                 updated++;
               } else {
-                next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...next];
+                nextClients = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextClients];
                 created++;
               }
             });
-            setClients(next);
+            setClients(nextClients);
           } else if (module === "job") {
-            let next = [...jobs];
+            nextJobs = [...jobs];
             valid.forEach((p) => {
-              const client = clients.find((c) => c.company.toLowerCase() === String(p.data.company || "").toLowerCase());
+              const client = clients.find((c) => c.company.toLowerCase() === String(p.data.company || "").trim().toLowerCase());
               const payload = {
                 job_no: p.data.job_no,
                 company: client ? client.company : p.data.company,
@@ -3108,6 +3282,7 @@
                 job_type: p.data.job_type || "Project",
                 quotation_no: p.data.quotation_no || "",
                 amount: Number(p.data.amount || 0),
+                customer_po_amount: Number(p.data.customer_po_amount || p.data.amount || 0),
                 currency: p.data.currency || "USD",
                 customer_po: p.data.customer_po || "",
                 status: p.data.status || "Open",
@@ -3115,10 +3290,10 @@
                 description: p.data.description || "",
                 remarks: p.data.remarks || ""
               };
-              const existing = next.find((j) => j.job_no.toLowerCase() === p.key.toLowerCase());
+              const existing = nextJobs.find((j) => j.job_no.toLowerCase() === p.key.toLowerCase());
               if (existing) {
                 const oldNo = existing.job_no;
-                Object.assign(existing, payload);
+                nextJobs = nextJobs.map((j) => (j.id === existing.id ? { ...j, ...payload } : j));
                 if (oldNo !== payload.job_no) {
                   setArInvoices((prev) => prev.map((r) => (r.job_no === oldNo ? { ...r, job_no: payload.job_no, job_id: existing.id } : r)));
                 }
@@ -3126,13 +3301,13 @@
                 updated++;
               } else {
                 const newId = Date.now() + Math.floor(Math.random() * 10000);
-                next = [{ id: newId, region: regionForNewRecord(), ...payload }, ...next];
+                nextJobs = [{ id: newId, region: regionForNewRecord(), ...payload }, ...nextJobs];
                 created++;
               }
             });
-            setJobs(next);
+            setJobs(nextJobs);
           } else if (module === "ar") {
-            let next = [...arInvoices];
+            nextAr = [...arInvoices];
             valid.forEach((p) => {
               const job = jobs.find((j) => j.job_no.toLowerCase() === String(p.data.job_no || "").toLowerCase());
               const invAmt = Number(p.data.invoice_amt || 0);
@@ -3159,18 +3334,18 @@
                 payment_status: p.data.payment_received_date ? "Paid" : (p.data.payment_status || "Awaiting Payment"),
                 job_completed: job ? isJobCompleted(job.status) : false
               };
-              const existing = next.find((r) => r.invoice_no.toLowerCase() === p.key.toLowerCase());
+              const existing = nextAr.find((r) => r.invoice_no.toLowerCase() === p.key.toLowerCase());
               if (existing) {
-                Object.assign(existing, payload);
+                nextAr = nextAr.map((r) => (r.id === existing.id ? { ...r, ...payload } : r));
                 updated++;
               } else {
-                next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: job?.region || regionForNewRecord(), ...payload }, ...next];
+                nextAr = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: job?.region || regionForNewRecord(), ...payload }, ...nextAr];
                 created++;
               }
             });
-            setArInvoices(next);
+            setArInvoices(nextAr);
           } else if (module === "ap") {
-            let next = [...apBills];
+            nextAp = [...apBills];
             valid.forEach((p) => {
               const job = jobs.find((j) => j.job_no.toLowerCase() === String(p.data.job_no || "").toLowerCase());
               const amt = Number(p.data.amount || 0);
@@ -3199,38 +3374,38 @@
                 remarks: p.data.remarks || "",
                 bank: "", charge: "OUR", swift_code: "", payment_advice_email: ""
               };
-              const existing = next.find((b) => b.invoice_no.toLowerCase() === p.key.toLowerCase());
+              const existing = nextAp.find((b) => b.invoice_no.toLowerCase() === p.key.toLowerCase());
               if (existing) {
-                Object.assign(existing, payload);
+                nextAp = nextAp.map((b) => (b.id === existing.id ? { ...b, ...payload } : b));
                 updated++;
               } else {
-                next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: job?.region || regionForNewRecord(), ...payload }, ...next];
+                nextAp = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: job?.region || regionForNewRecord(), ...payload }, ...nextAp];
                 created++;
               }
             });
-            setApBills(next);
+            setApBills(nextAp);
           } else if (module === "vendors") {
-            let next = [...vendors];
+            nextVendors = [...vendors];
             valid.forEach((p) => {
               const payload = { vendor_no: p.data.vendor_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", contact: p.data.contact || "" };
-              const existing = next.find((v) => v.vendor_no.toLowerCase() === p.key.toLowerCase());
-              if (existing) { Object.assign(existing, payload); updated++; }
-              else { next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...next]; created++; }
+              const existing = nextVendors.find((v) => v.vendor_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) { nextVendors = nextVendors.map((v) => (v.id === existing.id ? { ...v, ...payload } : v)); updated++; }
+              else { nextVendors = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextVendors]; created++; }
             });
-            setVendors(next);
+            setVendors(nextVendors);
           } else if (module === "si") {
-            let next = [...sis];
+            nextSis = [...sis];
             valid.forEach((p) => {
               const payload = { si_no: p.data.si_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", contact: p.data.contact || "" };
-              const existing = next.find((s) => s.si_no.toLowerCase() === p.key.toLowerCase());
-              if (existing) { Object.assign(existing, payload); updated++; }
-              else { next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...next]; created++; }
+              const existing = nextSis.find((s) => s.si_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) { nextSis = nextSis.map((s) => (s.id === existing.id ? { ...s, ...payload } : s)); updated++; }
+              else { nextSis = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextSis]; created++; }
             });
-            setSis(next);
+            setSis(nextSis);
           } else if (module === "quotation") {
-            let next = [...quotations];
+            nextQuotations = [...quotations];
             valid.forEach((p) => {
-              const client = clients.find((c) => c.company.toLowerCase() === String(p.data.company || "").toLowerCase());
+              const client = clients.find((c) => c.company.toLowerCase() === String(p.data.company || "").trim().toLowerCase());
               const job = p.data.job_no ? jobs.find((j) => j.job_no.toLowerCase() === String(p.data.job_no).toLowerCase()) : null;
               const payload = {
                 quotation_no: p.data.quotation_no,
@@ -3245,16 +3420,19 @@
                 job_no: job ? job.job_no : (p.data.job_no || ""),
                 job_id: job ? job.id : null
               };
-              const existing = next.find((q) => q.quotation_no.toLowerCase() === p.key.toLowerCase());
-              if (existing) { Object.assign(existing, payload); updated++; }
-              else { next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...next]; created++; }
+              const existing = nextQuotations.find((q) => q.quotation_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) { nextQuotations = nextQuotations.map((q) => (q.id === existing.id ? { ...q, ...payload } : q)); updated++; }
+              else { nextQuotations = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextQuotations]; created++; }
             });
-            setQuotations(next);
+            setQuotations(nextQuotations);
           }
+
+          persistErpLists({ clients: nextClients, jobs: nextJobs, quotations: nextQuotations, vendors: nextVendors, sis: nextSis, arInvoices: nextAr, apBills: nextAp });
 
           logAudit(module, "import", fileName, `Imported ${created} new, ${updated} updated, ${preview.length - valid.length} errors`);
           setImportPreview(null);
-          alert(t("importSummary") + ": " + created + " " + t("importRowCreate") + ", " + updated + " " + t("importRowUpdate"));
+          const regionNote = t("importRegionHint").replace("{region}", activeRegion === "ALL" ? "ALL" : regionLabel(activeRegion, lang));
+          alert(t("importSummary") + ": " + created + " " + t("importRowCreate") + ", " + updated + " " + t("importRowUpdate") + "\n" + regionNote);
         }
 
         function exportOngoingExcel() {
@@ -3517,6 +3695,7 @@
                   <div><p className="text-slate-500">{t("type")}</p><p>{j.job_type}</p></div>
                   <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
                   <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotation ? <LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: linkedQuotation.id })}>{linkedQuotation.quotation_no}</LinkBtn> : (j.quotation_no || "-")}</p></div>
+                  <div><p className="text-slate-500">Customer PO Amount</p><p>{j.customer_po_amount ? money(j.customer_po_amount) + " " + (j.currency || "") : "-"}</p></div>
                   <div><p className="text-slate-500">{t("amount")}</p><p>{j.amount ? money(j.amount) + " " + (j.currency || "") : "-"}</p></div>
                   <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
                   <div><p className="text-slate-500">Start Date</p><p>{j.start_date || "-"}</p></div>
@@ -3724,12 +3903,13 @@
               <td className="p-3 text-right tabular-nums">{j.amount ? money(j.amount) : "-"}</td>
               <td className="p-3">{j.currency || "-"}</td>
               <td className="p-3">{j.customer_po || "-"}</td>
+              <td className="p-3 text-right tabular-nums">{j.customer_po_amount ? money(j.customer_po_amount) : "-"}</td>
               <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></td>
               <td className="p-3">{j.start_date || "-"}</td>
               <td className="p-3">{getArByJob(j.job_no).length}</td>
               <td className="p-3">{getApByJob(j.job_no).length}</td>
               <td className="p-3">
-                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("job", "edit")} canDelete={can("job", "delete")} onDelete={() => deleteJob(j.id)} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => setJobModal({ mode: "edit", id: j.id, data: { ...j, client_id: String(j.client_id), amount: String(j.amount ?? "") } })}
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("job", "edit")} canDelete={can("job", "delete")} onDelete={() => deleteJob(j.id)} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => setJobModal({ mode: "edit", id: j.id, data: { ...j, client_id: String(j.client_id), amount: String(j.amount ?? ""), customer_po_amount: String(j.customer_po_amount ?? "") } })}
                   extra={isJobCompleted(j.status) && can("ar", "add") ? <button type="button" onClick={(e) => { e.stopPropagation(); openArFromJob(j); }} className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">{t("issueInvoiceToClient")}</button> : null}
                 />
               </td>
@@ -4274,7 +4454,7 @@
                               <tr>
                                 <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
                                 <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
-                                <th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
+                                <th className="p-3 text-left">Customer PO</th><th className="p-3 text-right">Customer PO Amount</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
                                 <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
                             </thead>
@@ -4288,7 +4468,7 @@
                           <tr>
                                 <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
                                 <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
-                                <th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
+                                <th className="p-3 text-left">Customer PO</th><th className="p-3 text-right">Customer PO Amount</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
                                 <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
                         </thead>
@@ -4691,6 +4871,7 @@
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="px-6 pt-5 border-b flex flex-wrap gap-2">
                     <button type="button" onClick={() => setSettingsTab("general")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "general" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsGeneral")}</button>
+                    <button type="button" onClick={() => setSettingsTab("backup")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "backup" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsBackup")}</button>
                     {isRoot() && <button type="button" onClick={() => setSettingsTab("management")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "management" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsManagement")}</button>}
                     <button type="button" onClick={() => setSettingsTab("audit")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "audit" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsAudit")}</button>
                   </div>
@@ -4713,6 +4894,24 @@
                       <p className="text-sm text-slate-500">{t("worldTimeHint")}</p>
                       <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{timezoneLabel(worldTimeZone, lang)} · {formatWorldTime(worldClock, worldTimeZone, lang)}</p>
                       <p className="text-sm text-slate-500">{t("regionDataHint")}</p>
+                      <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("noDatabaseNote")}</p>
+                    </div>
+                  )}
+
+                  {settingsTab === "backup" && (
+                    <div className="p-6 max-w-xl space-y-4">
+                      <h3 className="font-semibold text-lg">{t("backupTitle")}</h3>
+                      <p className="text-sm text-slate-500">{t("backupHint")}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={downloadErpBackup} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">{t("backupDownload")}</button>
+                        {isRoot() && (
+                          <>
+                            <input id="erp-restore-backup" type="file" accept=".json,application/json" className="hidden" onChange={(e) => { handleRestoreBackup(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+                            <button type="button" onClick={() => { const el = document.getElementById("erp-restore-backup"); if (el) el.click(); }} className="px-4 py-2 text-sm rounded-lg border border-amber-400 bg-amber-50 text-amber-900 hover:bg-amber-100">{t("restoreUpload")}</button>
+                          </>
+                        )}
+                      </div>
+                      {!isRoot() && <p className="text-xs text-slate-500">{t("rootOnly")}</p>}
                     </div>
                   )}
 
@@ -5027,6 +5226,11 @@
                         {JOB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </Select>
                     </Field>
+                    <Field label={t("currency")}>
+                      <Select value={jobModal.data.currency || "USD"} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, currency: e.target.value } })}>
+                        {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
+                      </Select>
+                    </Field>
                     <Field label={t("quotationNo")}>
                       <Input
                         list="erp-accepted-quotations"
@@ -5041,21 +5245,17 @@
                       </datalist>
                       <p className="text-[10px] text-slate-400 mt-1">{t("quotationSelectHint")}</p>
                     </Field>
-                    <Field label={t("amount")}><Input type="number" step="0.01" value={jobModal.data.amount} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, amount: e.target.value } })} /></Field>
-                    <Field label={t("currency")}>
-                      <Select value={jobModal.data.currency || "USD"} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, currency: e.target.value } })}>
-                        {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
-                      </Select>
-                    </Field>
+                    <Field label="Quotation Amount"><Input type="number" step="0.01" value={jobModal.data.amount} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, amount: e.target.value } })} /></Field>
                     <Field label="Customer PO"><Input value={jobModal.data.customer_po} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po: e.target.value } })} /></Field>
+                    <Field label="Customer PO Amount"><Input type="number" step="0.01" value={jobModal.data.customer_po_amount || ""} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po_amount: e.target.value } })} /></Field>
+                    <Field label="Start Date"><Input type="date" value={jobModal.data.start_date} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, start_date: e.target.value } })} /></Field>
                     <Field label="Status">
                       <Select value={jobModal.data.status} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, status: e.target.value } })}>
                         <option>Open</option><option>In Progress</option><option>Completed</option><option>On Hold</option>
                       </Select>
                     </Field>
-                    <Field label="Start Date"><Input type="date" value={jobModal.data.start_date} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, start_date: e.target.value } })} /></Field>
-                    <div className="md:col-span-2"><Field label="Description"><Input value={jobModal.data.description} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, description: e.target.value } })} /></Field></div>
-                    <div className="md:col-span-2"><Field label={t("ongoingColRemarks")}><Input value={jobModal.data.remarks || ""} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, remarks: e.target.value } })} /></Field></div>
+                    <div className="md:col-span-1"><Field label="Description"><Input value={jobModal.data.description} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, description: e.target.value } })} /></Field></div>
+                    <div className="md:col-span-1"><Field label={t("ongoingColRemarks")}><Input value={jobModal.data.remarks || ""} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, remarks: e.target.value } })} /></Field></div>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setJobModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
@@ -5132,7 +5332,7 @@
                       setArModal({ ...arModal, data: { ...arModal.data, payment_received_date: v, payment_status: v ? "Paid" : arModal.data.payment_status } });
                     }} /></Field>
                     <p className="md:col-span-2 text-xs text-slate-500">{t("autoPaidHint")}</p>
-                    <Field label={t("paymentStatus")}><Select value={arModal.data.payment_status} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, payment_status: e.target.value } })}><option value="Awaiting Payment">{t("awaitingPayment")}</option><option value="Overdue">{t("overdue")}</option><option value="Paid">{t("paid")}</option></Select></Field>
+                    <Field label={t("paymentStatus")}><Select value={arModal.data.payment_status} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, payment_status: e.target.value } })}><option value="Awaiting Payment">{t("awaitingPayment")}</option><option value="Overdue">{t("overdue")}</option><option value="Paid">{t("paid")}</option><option value="Cancel">Cancel</option></Select></Field>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setArModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
