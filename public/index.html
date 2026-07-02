@@ -1100,18 +1100,62 @@
         const doc = new JsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
         doc.setFontSize(13);
         doc.text(title, 40, 32);
-        const head = [[""].concat(series.map((m) => m.header))];
-        const body = [
-          [""].concat(series.map((m) => m.currency)),
-          [t("monthlyPoReceived")].concat(series.map((m) => (m.poReceived ? moneyFn(m.poReceived) : ""))),
-          [t("monthlyInvoiceIssued")].concat(series.map((m) => (m.invoiceIssued ? moneyFn(m.invoiceIssued) : ""))),
-          [t("monthlyArExpected")].concat(series.map((m) => (m.arExpected ? moneyFn(m.arExpected) : "")))
+        const monthCount = series.length;
+        const margin = { left: 28, right: 28 };
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const tableWidth = pageWidth - margin.left - margin.right;
+        const labelWidth = 132;
+        const monthColWidth = (tableWidth - labelWidth) / monthCount;
+        const fmtAmt = (v) => (v ? moneyFn(v) : "");
+        const head = [
+          [""].concat(series.map((m) => m.header)),
+          [""].concat(series.map((m) => m.currency))
         ];
+        const body = [
+          [t("monthlyPoReceived")].concat(series.map((m) => fmtAmt(m.poReceived))),
+          [t("monthlyInvoiceIssued")].concat(series.map((m) => fmtAmt(m.invoiceIssued))),
+          [t("monthlyArExpected")].concat(series.map((m) => fmtAmt(m.arExpected)))
+        ];
+        const columnStyles = { 0: { cellWidth: labelWidth, halign: "left" } };
+        for (let i = 1; i <= monthCount; i++) {
+          columnStyles[i] = { cellWidth: monthColWidth, halign: "right" };
+        }
         doc.autoTable({
-          head, body, startY: 42,
-          styles: { fontSize: 8, cellPadding: 3 },
-          headStyles: { fillColor: [218, 227, 243], textColor: [30, 41, 59], fontStyle: "bold" },
-          columnStyles: Object.fromEntries(series.map((_, i) => [i + 1, { halign: "right" }]))
+          head,
+          body,
+          startY: 42,
+          theme: "grid",
+          margin,
+          tableWidth,
+          styles: {
+            fontSize: 7.5,
+            cellPadding: { top: 4, right: 5, bottom: 4, left: 5 },
+            lineWidth: 0.1,
+            lineColor: [190, 198, 210],
+            valign: "middle"
+          },
+          headStyles: {
+            fillColor: [218, 227, 243],
+            textColor: [30, 41, 59],
+            fontStyle: "bold",
+            halign: "center"
+          },
+          columnStyles,
+          didParseCell: function (data) {
+            if (data.column.index === 0) {
+              data.cell.styles.halign = "left";
+              if (data.section === "body") data.cell.styles.fontStyle = "bold";
+              return;
+            }
+            if (data.section === "head") {
+              data.cell.styles.halign = "center";
+              return;
+            }
+            if (data.section === "body") {
+              data.cell.styles.halign = "right";
+              if (data.row.index === 2) data.cell.styles.textColor = [185, 28, 28];
+            }
+          }
         });
         const safeName = title.replace(/[^\w\u4e00-\u9fff-]+/g, "_").slice(0, 80);
         doc.save(safeName + ".pdf");
