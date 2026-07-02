@@ -364,6 +364,7 @@
           quotationNotAccepted: "Quotation not found or status is not Accepted.",
           quotationNotFound: "No matching quotation in this region.",
           quotationAlreadyLinked: "This quotation is already linked to job {job}.",
+          jobAlreadyHasQuotation: "This job is already linked to quotation {quotation}.",
           quotationLinkedOk: "Linked to Accepted quotation.",
           monthlyReportTitle: "Monthly Report",
           monthlyReportHint: "Full-year PO received, invoices issued, and AR expected (next-month due dates).",
@@ -480,6 +481,7 @@
           quotationNotAccepted: "搵唔到報價單，或狀態唔係 Accepted。",
           quotationNotFound: "此區域冇呢張報價單。",
           quotationAlreadyLinked: "呢張報價單已連結去工作 {job}。",
+          jobAlreadyHasQuotation: "呢個工作已連結咗報價單 {quotation}。",
           quotationLinkedOk: "已對應 Accepted 報價單。",
           monthlyReportTitle: "月報表",
           monthlyReportHint: "全年各月 PO 收單、開票同預計應收（AR Expected = 下月 due date）。",
@@ -998,6 +1000,37 @@
           currency: q.currency || "USD",
           description: q.description || ""
         };
+      }
+
+      function findLinkedQuotationForJob(job, quotations) {
+        if (!job) return null;
+        const jobNo = String(job.job_no || "").trim().toLowerCase();
+        const jobQuotationNo = String(job.quotation_no || "").trim().toLowerCase();
+        if (jobQuotationNo) {
+          const exact = quotations.find((q) => String(q.quotation_no || "").trim().toLowerCase() === jobQuotationNo);
+          if (exact) return exact;
+        }
+        return quotations.find((q) =>
+          (job.id != null && q.job_id === job.id) ||
+          (jobNo && String(q.job_no || "").trim().toLowerCase() === jobNo)
+        ) || null;
+      }
+
+      function syncJobOnQuotationSave(jobId, jobNo, quotationNo, oldJobNo, oldQuotationNo) {
+        const nextJobNo = String(jobNo || "").trim();
+        const nextQuotationNo = String(quotationNo || "").trim();
+        const prevJobNo = String(oldJobNo || "").trim();
+        const prevQuotationNo = String(oldQuotationNo || "").trim();
+        if (!nextJobNo && !prevJobNo) return;
+        setJobs((prev) => prev.map((j) => {
+          if (prevJobNo && j.job_no === prevJobNo && (!nextJobNo || j.job_no !== nextJobNo) && (!prevQuotationNo || String(j.quotation_no || "").trim().toLowerCase() === prevQuotationNo.toLowerCase())) {
+            return { ...j, quotation_no: "" };
+          }
+          if (nextJobNo && j.job_no === nextJobNo) {
+            return { ...j, quotation_no: nextQuotationNo };
+          }
+          return j;
+        }));
       }
 
       function aggregateJobArForOngoing(jobAr) {
@@ -2687,13 +2720,33 @@
             job_id: job ? job.id : null,
             job_no: job ? job.job_no : (data.job_no || "")
           };
+          const currentQuotation = quotationModal.mode === "edit" ? quotations.find((q) => q.id === quotationModal.id) : null;
+          const oldJobNo = currentQuotation ? currentQuotation.job_no || "" : "";
+          const oldQuotationNo = currentQuotation ? currentQuotation.quotation_no || "" : "";
+          const conflictQuotation = payload.job_no
+            ? quotations.find((q) => q.id !== quotationModal.id && String(q.job_no || "").trim().toLowerCase() === String(payload.job_no).trim().toLowerCase())
+            : null;
+          if (conflictQuotation) {
+            alert(t("jobAlreadyHasQuotation").replace("{quotation}", conflictQuotation.quotation_no || ""));
+            return;
+          }
+          if (job) {
+            const jobLinkedQuotationNo = String(job.quotation_no || "").trim();
+            if (jobLinkedQuotationNo && jobLinkedQuotationNo.toLowerCase() !== String(payload.quotation_no || "").trim().toLowerCase()) {
+              alert(t("jobAlreadyHasQuotation").replace("{quotation}", jobLinkedQuotationNo));
+              return;
+            }
+          }
           if (quotationModal.mode === "add") {
             if (!guardPermission("quotation", "add")) return;
-            setQuotations([{ id: Date.now(), region: regionForNewRecord(), ...payload }, ...quotations]);
+            const newId = Date.now();
+            setQuotations([{ id: newId, region: regionForNewRecord(), ...payload }, ...quotations]);
+            syncJobOnQuotationSave(payload.job_id, payload.job_no, payload.quotation_no, "", "");
             logAudit("quotation", "create", payload.quotation_no, `Created quotation ${payload.quotation_no}`);
           } else {
             if (!guardPermission("quotation", "edit")) return;
             setQuotations(quotations.map((q) => (q.id === quotationModal.id ? { ...q, ...payload } : q)));
+            syncJobOnQuotationSave(payload.job_id, payload.job_no, payload.quotation_no, oldJobNo, oldQuotationNo);
             logAudit("quotation", "update", payload.quotation_no, `Updated quotation ${payload.quotation_no}`);
           }
           setQuotationModal(null);
@@ -2703,6 +2756,7 @@
           if (!guardPermission("quotation", "delete")) return;
           const q = quotations.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
+          if (q && q.job_no) syncJobOnQuotationSave(null, "", "", q.job_no, q.quotation_no);
           setQuotations(quotations.filter((x) => x.id !== id));
           logAudit("quotation", "delete", q ? q.quotation_no : String(id), `Deleted quotation ${q ? q.quotation_no : id}`);
         }
@@ -3454,6 +3508,7 @@
             const relatedAr = getArByJob(j.job_no);
             const relatedAp = getApByJob(j.job_no);
             const client = clients.find((c) => c.id === j.client_id);
+            const linkedQuotation = findLinkedQuotationForJob(j, quotations);
             return (
               <Modal title={t("jobDetail") + " - " + j.job_no} onClose={() => setDetailPanel(null)} wide>
                 <p className="text-xs text-slate-500 mb-4">{t("jobFlowHint")}</p>
@@ -3461,7 +3516,7 @@
                   <div><p className="text-slate-500">Client</p><p className="font-medium">{j.company}</p></div>
                   <div><p className="text-slate-500">{t("type")}</p><p>{j.job_type}</p></div>
                   <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
-                  <div><p className="text-slate-500">{t("quotationNo")}</p><p>{j.quotation_no || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotation ? <LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: linkedQuotation.id })}>{linkedQuotation.quotation_no}</LinkBtn> : (j.quotation_no || "-")}</p></div>
                   <div><p className="text-slate-500">{t("amount")}</p><p>{j.amount ? money(j.amount) + " " + (j.currency || "") : "-"}</p></div>
                   <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
                   <div><p className="text-slate-500">Start Date</p><p>{j.start_date || "-"}</p></div>
