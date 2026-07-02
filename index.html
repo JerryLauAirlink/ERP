@@ -8,8 +8,14 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
     <script src="world-map-data.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      html, body { overflow-x: auto; }
+      .erp-app-shell { min-width: 1280px; }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
     <div id="app"><p class="p-6 text-slate-500 text-sm">Loading ERP System...</p></div>
@@ -23,7 +29,8 @@
       const { useMemo, useState, useEffect, useRef } = React;
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
-      const ERP_MODULES = ["dashboard", "overview", "clients", "job", "ar", "ap", "vendors", "si", "settings"];
+      const ERP_MODULES = ["dashboard", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "si", "settings"];
+      const QUOTATION_STATUSES = ["Draft", "Sent", "Accepted", "Rejected", "Expired"];
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
       const ERP_REGIONS = [
         { id: "HK", labelEn: "HK", labelZh: "香港" },
@@ -144,13 +151,104 @@
             { header: "Job No", field: "job_no", required: true, hint: "Required, unique key" },
             { header: "Client Company", field: "company", required: true, hint: "Must match existing client" },
             { header: "Type", field: "job_type", required: true, hint: "Project / Service / Maintenance / Trading(Buy) / Trading(Sell)" },
+            { header: "Quotation No", field: "quotation_no", hint: "" },
+            { header: "Amount", field: "amount", hint: "Numeric" },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / RMB" },
             { header: "Customer PO", field: "customer_po", hint: "" },
             { header: "Status", field: "status", hint: "Open / In Progress / Completed / On Hold" },
             { header: "Start Date", field: "start_date", hint: "YYYY-MM-DD" },
+            { header: "Description", field: "description", hint: "Project name" },
+            { header: "Remarks", field: "remarks", hint: "" }
+          ]
+        },
+        ar: {
+          sheetName: "AR",
+          filePrefix: "ar",
+          keyField: "invoice_no",
+          columns: [
+            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key" },
+            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
+            { header: "Customer", field: "customer", hint: "Optional if job exists" },
+            { header: "Customer PO", field: "customer_po", hint: "" },
+            { header: "Invoice Currency", field: "invoice_currency", hint: "USD / HKD / SGD" },
+            { header: "Invoice Amt", field: "invoice_amt", required: true, hint: "Numeric" },
+            { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
+            { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
+            { header: "Payment Received Date", field: "payment_received_date", hint: "YYYY-MM-DD" },
+            { header: "Payment Status", field: "payment_status", hint: "Awaiting Payment / Overdue / Paid" }
+          ]
+        },
+        ap: {
+          sheetName: "AP",
+          filePrefix: "ap",
+          keyField: "invoice_no",
+          columns: [
+            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key" },
+            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
+            { header: "Payee Type", field: "payee_type", hint: "Vendor / SI" },
+            { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name" },
+            { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
+            { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD" },
+            { header: "Amount", field: "amount", required: true, hint: "Numeric" },
+            { header: "Pay Date", field: "pay_date", hint: "YYYY-MM-DD" },
+            { header: "Remarks", field: "remarks", hint: "" }
+          ]
+        },
+        vendors: {
+          sheetName: "Vendors",
+          filePrefix: "vendors",
+          keyField: "vendor_no",
+          columns: [
+            { header: "Vendor No", field: "vendor_no", required: true, hint: "Required, unique key" },
+            { header: "Name", field: "name", required: true, hint: "Required" },
+            { header: "Email", field: "email", hint: "" },
+            { header: "Phone", field: "phone", hint: "" },
+            { header: "Address", field: "address", hint: "" },
+            { header: "Bank", field: "bank", hint: "" },
+            { header: "SWIFT", field: "swift_code", hint: "" },
+            { header: "Contact", field: "contact", hint: "" }
+          ]
+        },
+        si: {
+          sheetName: "SI",
+          filePrefix: "si",
+          keyField: "si_no",
+          columns: [
+            { header: "SI No", field: "si_no", required: true, hint: "Required, unique key" },
+            { header: "Name", field: "name", required: true, hint: "Required" },
+            { header: "Address", field: "address", hint: "" },
+            { header: "Bank", field: "bank", hint: "" },
+            { header: "SWIFT", field: "swift_code", hint: "" },
+            { header: "Contact", field: "contact", hint: "" }
+          ]
+        },
+        quotation: {
+          sheetName: "Quotations",
+          filePrefix: "quotations",
+          keyField: "quotation_no",
+          columns: [
+            { header: "Quotation No", field: "quotation_no", required: true, hint: "Required, unique key" },
+            { header: "Client Company", field: "company", required: true, hint: "Must match existing client" },
+            { header: "Quotation Date", field: "quotation_date", hint: "YYYY-MM-DD" },
+            { header: "Valid Until", field: "valid_until", hint: "YYYY-MM-DD" },
+            { header: "Amount", field: "amount", required: true, hint: "Numeric" },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD" },
+            { header: "Status", field: "status", hint: "Draft / Sent / Accepted / Rejected / Expired" },
+            { header: "Job No", field: "job_no", hint: "Optional linked job" },
             { header: "Description", field: "description", hint: "" }
           ]
         }
       };
+
+      function rowFromSchema(schema, record) {
+        const row = {};
+        schema.columns.forEach((c) => {
+          const v = record[c.field];
+          row[c.field] = v != null && v !== "" ? v : "";
+        });
+        return row;
+      }
 
       function downloadWorkbook(wb, filename) {
         XLSX.writeFile(wb, filename);
@@ -215,9 +313,12 @@
           dashboard: t("nav_dashboard"),
           overview: t("nav_overview"),
           clients: t("nav_clients"),
+          quotation: t("nav_quotation"),
           job: t("nav_job"),
+          ongoing: t("nav_ongoing"),
           ar: t("nav_ar"),
           ap: t("nav_ap"),
+          monthly_report: t("nav_monthly_report"),
           vendors: t("nav_vendors"),
           si: t("nav_si"),
           settings: t("nav_settings")
@@ -227,7 +328,7 @@
 
       const I18N = {
         en: {
-          appTitle: "ERP System", nav_dashboard: "Dashboard", nav_overview: "Overview", nav_clients: "Clients", nav_job: "Job List", nav_ar: "AR List", nav_ap: "AP List", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
+          appTitle: "ERP System", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
           filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
@@ -240,7 +341,40 @@
           relatedJobs: "Related Jobs", relatedInvoices: "AR Invoices (to Client)", relatedPo: "Related PO", relatedAp: "AP Bills (Vendor/SI costs)", noJobs: "No jobs", noInvoices: "No invoices", noPo: "No PO", noAp: "No AP bills",
           ownedClient: "Linked Client", linkedJob: "Linked Job", markPaid: "Mark Paid", paymentStatus: "Payment Status", paid: "Paid", awaitingPayment: "Awaiting Payment", overdue: "Overdue",
           addClient: "+ Add Client", addJob: "+ Add Job", addVendor: "+ Add Vendor", addSi: "+ Add SI", createAr: "+ Create AR Invoice", createAp: "+ Create AP Bill",
+          vendorNo: "Vendor No.", siNo: "SI No.",
           actions: "Actions", invoices: "Invoices", clientGroup: "Client (Group)", type: "Type", status: "Status",
+          quotationNo: "Quotation No.", amount: "Amount", currency: "Currency", description: "Description",
+          addQuotation: "+ Add Quotation", addQuotationTitle: "Create Quotation", editQuotation: "Edit Quotation", quotationDetail: "Quotation Details",
+          quotationDate: "Quotation Date", validUntil: "Valid Until", quotationStatus: "Status",
+          ongoingHint: "Currency & PO Amt from AR invoices (summed per job). Click Edit to change Billed Amt or Remarks, then Save.",
+          ongoingListTitle: "Ongoing Projects List",
+          ongoingColJobNo: "Job No.", ongoingColNature: "Job Nature", ongoingColCustomer: "Customer",
+          ongoingColProject: "Project Name", ongoingColPo: "Customer PO", ongoingColStart: "Start Date",
+          ongoingColCurrency: "Currency", ongoingColPoAmt: "PO Amt", ongoingColBilled: "Billed Amt",
+          ongoingColBalance: "PO Balance", ongoingColBalanceUsd: "Balance Amt in USD", ongoingColRemarks: "Remarks",
+          ongoingNatureHint: "(Maintenance/Service/Project/Trade)",
+          ongoingTotalPoUsd: "Total PO Amount in USD", ongoingTotalMaintUsd: "Total Amount for Maintenance in USD",
+          ongoingTotalServiceUsd: "Total Amount for Service in USD", ongoingTotalProjectUsd: "Total Amount for Project in USD",
+          ongoingTotalTradeUsd: "Total Amount for Trade in USD", exportPdf: "Export PDF",
+          quotationSelectHint: "Type or pick an Accepted quotation no. — client, amount & description auto-fill.",
+          quotationNotAccepted: "Quotation not found or status is not Accepted.",
+          quotationNotFound: "No matching quotation in this region.",
+          quotationAlreadyLinked: "This quotation is already linked to job {job}.",
+          quotationLinkedOk: "Linked to Accepted quotation.",
+          monthlyReportTitle: "Monthly Report",
+          monthlyReportHint: "Full-year PO received, invoices issued, and AR expected (next-month due dates).",
+          monthlyReportYear: "Report Year",
+          monthlyPoReceived: "PO Received (Current Month)",
+          monthlyInvoiceIssued: "Invoice Issued (Current Month)",
+          monthlyArExpected: "AR Expected",
+          monthlyArExpectedHint: "Expected receivables for the following month — e.g. the July column shows amounts with due date in August.",
+          monthlyReportChartTitle: "{region} Monthly Report {year}",
+          monthlyChartPo: "PO Received", monthlyChartInvoice: "Invoice Issued", monthlyChartArExpected: "AR Expected",
+          monthlyTabReport: "Report", monthlyTabPoReceived: "PO Received", monthlyTabArInvoice: "AR Invoice",
+          monthlyColJobNo: "Job#", monthlyColOtherCurrency: "Other Currency", monthlyTotal: "TOTAL",
+          monthlySyncFromJobs: "Sync from Jobs", monthlySyncFromAr: "Sync from AR",
+          monthlyPoDetailHint: "PO received by month — Job#, Other Currency (editable), amount in {currency}. Report tab uses monthly TOTAL.",
+          monthlyArDetailHint: "AR invoices by month — Job#, Other Currency (editable), amount in {currency}. Report tab uses monthly TOTAL.",
           arOutstanding: "AR Outstanding", apOutstanding: "AP Outstanding", netPosition: "Net Position", dueSoon: "Due Soon", overdueCount: "overdue", pendingBills: "bills pending", dueSoonHint: "unpaid, due soon",
           topOverdue: "Top Overdue Invoices", approvalQueue: "Approval Queue", cashFlow: "Cash In vs Cash Out (90 Days)", arAging: "A/R Aging",
           dashSubtitle: "Executive summary — cash position & what needs attention",
@@ -304,7 +438,7 @@
           regionDataHint: "New records are saved under the currently selected region (not ALL)."
         },
         zh_TW: {
-          appTitle: "ERP 系統", nav_dashboard: "儀表板", nav_overview: "總覽", nav_clients: "客戶", nav_job: "工作清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
+          appTitle: "ERP 系統", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
           baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
           view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
           filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
@@ -317,7 +451,40 @@
           relatedJobs: "相關工作", relatedInvoices: "應收發票（向客戶）", relatedPo: "相關採購單", relatedAp: "應付單（供應商／分包商成本）", noJobs: "暫無工作", noInvoices: "暫無發票", noPo: "暫無 PO", noAp: "暫無應付單",
           ownedClient: "所屬客戶", linkedJob: "關聯工作", markPaid: "標記已收款", paymentStatus: "付款狀態", paid: "已收款", awaitingPayment: "待收款", overdue: "逾期",
           addClient: "+ 新增客戶", addJob: "+ 新增工作", addVendor: "+ 新增供應商", addSi: "+ 新增分包商", createAr: "+ 新增應收發票", createAp: "+ 新增應付單",
+          vendorNo: "供應商編號", siNo: "分包商編號",
           actions: "操作", invoices: "發票數", clientGroup: "客戶（分組）", type: "類型", status: "狀態",
+          quotationNo: "報價單號", amount: "金額", currency: "幣別", description: "說明",
+          addQuotation: "+ 新增報價", addQuotationTitle: "新增報價單", editQuotation: "修改報價單", quotationDetail: "報價詳情",
+          quotationDate: "報價日期", validUntil: "有效期至", quotationStatus: "狀態",
+          ongoingHint: "幣別同 PO Amt 來自 AR Invoice（同一 Job 會加總）。按「修改」先可改 Billed Amt 同 Remarks，儲存後鎖定。",
+          ongoingListTitle: "進行中項目清單",
+          ongoingColJobNo: "Job No.", ongoingColNature: "Job Nature", ongoingColCustomer: "Customer",
+          ongoingColProject: "Project Name", ongoingColPo: "Customer PO", ongoingColStart: "Start Date",
+          ongoingColCurrency: "Currency", ongoingColPoAmt: "PO Amt", ongoingColBilled: "Billed Amt",
+          ongoingColBalance: "PO Balance", ongoingColBalanceUsd: "Balance Amt in USD", ongoingColRemarks: "Remarks",
+          ongoingNatureHint: "(Maintenance/Service/Project/Trade)",
+          ongoingTotalPoUsd: "Total PO Amount in USD", ongoingTotalMaintUsd: "Total Amount for Maintenance in USD",
+          ongoingTotalServiceUsd: "Total Amount for Service in USD", ongoingTotalProjectUsd: "Total Amount for Project in USD",
+          ongoingTotalTradeUsd: "Total Amount for Trade in USD", exportPdf: "匯出 PDF",
+          quotationSelectHint: "輸入或選擇已 Accepted 嘅報價單號 — 會自動帶入客戶、金額同說明。",
+          quotationNotAccepted: "搵唔到報價單，或狀態唔係 Accepted。",
+          quotationNotFound: "此區域冇呢張報價單。",
+          quotationAlreadyLinked: "呢張報價單已連結去工作 {job}。",
+          quotationLinkedOk: "已對應 Accepted 報價單。",
+          monthlyReportTitle: "月報表",
+          monthlyReportHint: "全年各月 PO 收單、開票同預計應收（AR Expected = 下月 due date）。",
+          monthlyReportYear: "報表年份",
+          monthlyPoReceived: "PO Received (Current Month)",
+          monthlyInvoiceIssued: "Invoice Issued (Current Month)",
+          monthlyArExpected: "AR Expected",
+          monthlyArExpectedHint: "預計下月應收：例如 7 月欄位顯示 due date 喺 8 月嘅金額。",
+          monthlyReportChartTitle: "{region} Monthly Report {year}",
+          monthlyChartPo: "PO Received", monthlyChartInvoice: "Invoice Issued", monthlyChartArExpected: "AR Expected",
+          monthlyTabReport: "Report", monthlyTabPoReceived: "PO Received", monthlyTabArInvoice: "AR Invoice",
+          monthlyColJobNo: "Job#", monthlyColOtherCurrency: "Other Currency", monthlyTotal: "TOTAL",
+          monthlySyncFromJobs: "從 Job 同步", monthlySyncFromAr: "從 AR 同步",
+          monthlyPoDetailHint: "按月 PO 收單 — Job#、Other Currency（可改）、{currency} 金額。Report 頁用每月 TOTAL。",
+          monthlyArDetailHint: "按月 AR Invoice — Job#、Other Currency（可改）、{currency} 金額。Report 頁用每月 TOTAL。",
           arOutstanding: "應收未結", apOutstanding: "應付未結", netPosition: "淨部位", dueSoon: "即將到期", overdueCount: "筆已逾期", pendingBills: "筆待處理", dueSoonHint: "未收款、即將到期",
           topOverdue: "逾期發票排行", approvalQueue: "審批佇列", cashFlow: "現金流入 vs 流出（90 天）", arAging: "應收帳齡",
           dashSubtitle: "管理層總覽 — 現金狀況同需要跟進嘅單",
@@ -447,6 +614,23 @@
           <path key="5" d="M8 11h.01" />,
           <path key="6" d="M8 16h.01" />
         ],
+        quotation: [
+          <path key="1" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />,
+          <path key="2" d="M14 2v6h6" />,
+          <path key="3" d="M16 13H8" />,
+          <path key="4" d="M16 17H8" />,
+          <path key="5" d="M10 9H8" />
+        ],
+        ongoing: [
+          <circle key="1" cx="12" cy="12" r="10" />,
+          <path key="2" d="M12 6v6l4 2" />
+        ],
+        monthly_report: [
+          <path key="1" d="M3 3v18h18" />,
+          <path key="2" d="M18 17V9" />,
+          <path key="3" d="M13 17V5" />,
+          <path key="4" d="M8 17v-3" />
+        ],
         ar: [
           <path key="1" d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />,
           <path key="2" d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />,
@@ -561,6 +745,123 @@
         return { ...data, due_date: computeArDueDate(data, clients, jobs) };
       }
 
+      function monthChartLabel(year, monthIndex, lang) {
+        const locale = lang === "zh_TW" ? "zh-TW" : "en-US";
+        return new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(year, monthIndex, 1));
+      }
+
+      function monthShortLabel(year, monthIndex, lang) {
+        const locale = lang === "zh_TW" ? "zh-TW" : "en-US";
+        return new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(year, monthIndex, 1));
+      }
+
+      function monthTableHeader(year, monthIndex, lang) {
+        const locale = lang === "zh_TW" ? "zh-TW" : "en-US";
+        return new Intl.DateTimeFormat(locale, { month: "long" }).format(new Date(year, monthIndex, 1));
+      }
+
+      function monthRangeFor(year, monthIndex) {
+        const monthNum = monthIndex + 1;
+        const key = year + "-" + String(monthNum).padStart(2, "0");
+        const from = key + "-01";
+        const lastDay = new Date(year, monthNum, 0).getDate();
+        const to = key + "-" + String(lastDay).padStart(2, "0");
+        return { from, to, key };
+      }
+
+      function nextMonthRange(year, monthIndex) {
+        if (monthIndex >= 11) return monthRangeFor(year + 1, 0);
+        return monthRangeFor(year, monthIndex + 1);
+      }
+
+      function buildMonthlyReportSeries(year, currency, lang, poMonthTotals, invoiceMonthTotals, arInvoices) {
+        const y = Number(year);
+        return Array.from({ length: 12 }, (_, m) => {
+          const { key } = monthRangeFor(y, m);
+          const { from: nextFrom, to: nextTo } = nextMonthRange(y, m);
+          const arExpected = arInvoices
+            .filter((r) => r.due_date && dateInRange(r.due_date, nextFrom, nextTo))
+            .reduce((s, r) => s + resolveArDisplayAmount(r, currency), 0);
+          return {
+            monthIndex: m,
+            key,
+            label: monthChartLabel(y, m, lang),
+            header: monthTableHeader(y, m, lang),
+            currency,
+            poReceived: poMonthTotals[m] || 0,
+            invoiceIssued: invoiceMonthTotals[m] || 0,
+            arExpected
+          };
+        });
+      }
+
+      function buildMonthDetailGrid(lines, year, lang) {
+        const y = Number(year);
+        const months = Array.from({ length: 12 }, (_, m) => {
+          const monthLines = lines.filter((l) => l.year === y && l.month === m + 1);
+          const total = monthLines.reduce((s, l) => s + Number(l.base_amount || 0), 0);
+          return { monthIndex: m, header: monthShortLabel(y, m, lang), rows: monthLines, total };
+        });
+        const maxRows = Math.max(1, ...months.map((m) => m.rows.length));
+        return { months, maxRows };
+      }
+
+      function syncPoLinesFromJobs(jobs, year, baseCurrency, existing) {
+        const y = Number(year);
+        const next = [...existing];
+        for (let m = 0; m < 12; m++) {
+          const { from, to } = monthRangeFor(y, m);
+          jobs.filter((j) => j.start_date && dateInRange(j.start_date, from, to)).forEach((job) => {
+            const sourceKey = "job-" + job.id + "-" + y + "-" + (m + 1);
+            const idx = next.findIndex((l) => l.source_key === sourceKey);
+            const baseAmt = convertCurrency(Number(job.amount || 0), job.currency || baseCurrency, baseCurrency);
+            const patch = {
+              region: job.region || "HK",
+              year: y,
+              month: m + 1,
+              job_no: job.job_no,
+              source_key: sourceKey,
+              other_currency: job.currency || "USD",
+              base_amount: baseAmt
+            };
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], job_no: patch.job_no, base_amount: patch.base_amount };
+            } else {
+              next.push({ id: Date.now() + Math.floor(Math.random() * 100000), ...patch });
+            }
+          });
+        }
+        return next;
+      }
+
+      function syncArLinesFromInvoices(arInvoices, year, baseCurrency, existing) {
+        const y = Number(year);
+        const next = [...existing];
+        for (let m = 0; m < 12; m++) {
+          const { from, to } = monthRangeFor(y, m);
+          arInvoices.filter((r) => r.invoice_date && dateInRange(r.invoice_date, from, to)).forEach((r) => {
+            const sourceKey = "ar-" + r.id;
+            const idx = next.findIndex((l) => l.source_key === sourceKey);
+            const baseAmt = resolveArDisplayAmount(r, baseCurrency);
+            const patch = {
+              region: r.region || "HK",
+              year: y,
+              month: m + 1,
+              job_no: r.job_no || "",
+              source_key: sourceKey,
+              other_currency: r.invoice_currency || "USD",
+              base_amount: baseAmt
+            };
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], job_no: patch.job_no, base_amount: patch.base_amount, month: patch.month, year: patch.year };
+            } else {
+              next.push({ id: Date.now() + Math.floor(Math.random() * 100000), ...patch });
+            }
+          });
+        }
+        return next;
+      }
+
       function dateInRange(iso, from, to) {
         if (!iso || !from || !to) return false;
         return iso >= from && iso <= to;
@@ -632,12 +933,131 @@
       }
 
       function emptyJob() {
-        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", status: "Open", description: "", start_date: "" };
+        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", quotation_no: "", amount: "", currency: "USD", status: "Open", description: "", remarks: "", start_date: "" };
       }
 
-      function emptyVendor() { return { name: "", email: "", bank: "", swift_code: "", contact: "", phone: "", address: "" }; }
+      function jobNatureCategory(jobType) {
+        const s = String(jobType || "");
+        if (/trading/i.test(s)) return "Trade";
+        if (s === "Maintenance") return "Maintenance";
+        if (s === "Service") return "Service";
+        return "Project";
+      }
 
-      function emptySi() { return { name: "", email: "", bank: "", swift_code: "", contact: "", phone: "", address: "" }; }
+      function findQuotationByNo(quotationNo, quotations) {
+        const k = String(quotationNo || "").trim().toLowerCase();
+        if (!k) return null;
+        return quotations.find((q) => String(q.quotation_no || "").toLowerCase() === k) || null;
+      }
+
+      function canLinkQuotationToJob(q, jobModal, jobs) {
+        if (!q) return { ok: false, key: "quotationNotFound" };
+        if (q.status !== "Accepted") return { ok: false, key: "quotationNotAccepted" };
+        if (!q.job_no) return { ok: true };
+        if (jobModal && jobModal.mode === "edit") {
+          const job = jobs.find((j) => j.id === jobModal.id);
+          if (job && job.job_no === q.job_no) return { ok: true };
+        }
+        return { ok: false, key: "quotationAlreadyLinked", jobNo: q.job_no };
+      }
+
+      function fieldsFromQuotation(q) {
+        return {
+          quotation_no: q.quotation_no,
+          client_id: String(q.client_id || ""),
+          company: q.company,
+          amount: String(q.amount ?? ""),
+          currency: q.currency || "USD",
+          description: q.description || ""
+        };
+      }
+
+      function aggregateJobArForOngoing(jobAr) {
+        if (!jobAr.length) return { currency: "", poAmt: 0, poAmtLabel: "" };
+        const cur = jobAr[0].invoice_currency || "USD";
+        const allSame = jobAr.every((r) => (r.invoice_currency || "USD") === cur);
+        if (allSame) {
+          const poAmt = jobAr.reduce((s, r) => s + Number(r.invoice_amt || 0), 0);
+          return { currency: cur, poAmt, poAmtLabel: "" };
+        }
+        const curList = [...new Set(jobAr.map((r) => r.invoice_currency || "USD"))];
+        const poAmtLabel = curList.map((c) => {
+          const amt = jobAr.filter((r) => (r.invoice_currency || "USD") === c).reduce((s, r) => s + Number(r.invoice_amt || 0), 0);
+          return c + " " + amt;
+        }).join(" + ");
+        const primaryAmt = jobAr
+          .filter((r) => (r.invoice_currency || "USD") === cur)
+          .reduce((s, r) => s + Number(r.invoice_amt || 0), 0);
+        return { currency: curList.join("/"), poAmt: primaryAmt, poAmtLabel };
+      }
+
+      function exportOngoingPdfReport({ rows, totals, title, t, moneyFn }) {
+        if (typeof window.jspdf === "undefined") { alert("PDF library not loaded"); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+        doc.setFontSize(13);
+        doc.text(title, 40, 32);
+        const head = [[
+          t("ongoingColJobNo"), t("ongoingColNature") + " " + t("ongoingNatureHint"), t("ongoingColCustomer"), t("ongoingColProject"),
+          t("ongoingColPo"), t("ongoingColStart"), t("ongoingColCurrency"), t("ongoingColPoAmt"),
+          t("ongoingColBilled"), t("ongoingColBalance"), t("ongoingColBalanceUsd"), t("ongoingColRemarks")
+        ]];
+        const body = rows.map((j) => [
+          j.job_no, j.nature, j.company, j.description || "", j.customer_po || "", j.start_date || "",
+          j.arCurrency || "", j.poAmtLabel || moneyFn(j.poAmt), moneyFn(j.billedAmt), moneyFn(j.poBalance), moneyFn(j.balanceUsd), j.remarks || ""
+        ]);
+        doc.autoTable({
+          head, body, startY: 42,
+          styles: { fontSize: 7.5, cellPadding: 3 },
+          headStyles: { fillColor: [218, 227, 243], textColor: [30, 41, 59], fontStyle: "bold" },
+          columnStyles: {
+            7: { halign: "right" }, 8: { halign: "right" }, 9: { halign: "right" }, 10: { halign: "right" }
+          }
+        });
+        const summaryY = doc.lastAutoTable.finalY + 16;
+        doc.autoTable({
+          body: [
+            [t("ongoingTotalPoUsd"), moneyFn(totals.totalPoUsd)],
+            [t("ongoingTotalMaintUsd"), moneyFn(totals.Maintenance)],
+            [t("ongoingTotalServiceUsd"), moneyFn(totals.Service)],
+            [t("ongoingTotalProjectUsd"), moneyFn(totals.Project)],
+            [t("ongoingTotalTradeUsd"), moneyFn(totals.Trade)]
+          ],
+          startY: summaryY,
+          margin: { left: 420 },
+          styles: { fontSize: 9, cellPadding: 4 },
+          columnStyles: { 0: { fontStyle: "bold", cellWidth: 220 }, 1: { halign: "right", cellWidth: 100 } },
+          theme: "plain"
+        });
+        const safeName = title.replace(/[^\w\u4e00-\u9fff-]+/g, "_").slice(0, 80);
+        doc.save(safeName + ".pdf");
+      }
+
+      function emptyQuotation() {
+        return { quotation_no: "", client_id: "", company: "", quotation_date: "", valid_until: "", amount: "", currency: "USD", status: "Draft", description: "", job_no: "" };
+      }
+
+      function emptyVendor() { return { vendor_no: "", name: "", email: "", bank: "", swift_code: "", contact: "", phone: "", address: "" }; }
+
+      function emptySi() { return { si_no: "", name: "", email: "", bank: "", swift_code: "", contact: "", phone: "", address: "" }; }
+
+      function ensureVendorNumbers(list) {
+        let n = 1;
+        return list.map((v) => {
+          if (v.vendor_no) return v;
+          const no = "VEND-" + String(n++).padStart(4, "0");
+          return { ...v, vendor_no: no };
+        });
+      }
+
+      function ensureSiNumbers(list) {
+        let n = 1;
+        return list.map((s) => {
+          if (s.si_no) return s;
+          const no = "SI-" + String(n++).padStart(4, "0");
+          return { ...s, si_no: no };
+        });
+      }
 
       function emptyApForm() {
         return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "" };
@@ -746,18 +1166,24 @@
       ];
 
       const initialJobs = [
-        { id: 1, region: "HK", job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", status: "In Progress", description: "ERP rollout phase 1", start_date: "2026-04-01" },
-        { id: 2, region: "HK", job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", status: "Completed", description: "Annual maintenance", start_date: "2026-05-15" },
-        { id: 3, region: "TW", job_no: "JB-TW-001", client_id: 3, company: "Taipei Tech Co.", job_type: "Project", customer_po: "PO-TW-100", status: "Open", description: "TW office setup", start_date: "2026-06-01" }
+        { id: 1, region: "HK", job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", quotation_no: "QT-2026-001", amount: 150000, currency: "USD", status: "In Progress", description: "ERP rollout phase 1", remarks: "", start_date: "2026-04-01" },
+        { id: 2, region: "HK", job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", quotation_no: "QT-2026-002", amount: 88000, currency: "HKD", status: "Completed", description: "Annual maintenance", remarks: "", start_date: "2026-05-15" },
+        { id: 3, region: "TW", job_no: "JB-TW-001", client_id: 3, company: "Taipei Tech Co.", job_type: "Project", customer_po: "PO-TW-100", quotation_no: "QT-TW-001", amount: 3200000, currency: "TWD", status: "Open", description: "TW office setup", remarks: "", start_date: "2026-06-01" }
+      ];
+
+      const initialQuotations = [
+        { id: 1, region: "HK", quotation_no: "QT-2026-001", client_id: 1, company: "Pacific Systems", quotation_date: "2026-03-01", valid_until: "2026-03-31", amount: 150000, currency: "USD", status: "Accepted", description: "ERP rollout phase 1", job_no: "JB-001", job_id: 1 },
+        { id: 2, region: "HK", quotation_no: "QT-2026-002", client_id: 2, company: "Kingston Trading", quotation_date: "2026-04-20", valid_until: "2026-05-20", amount: 88000, currency: "HKD", status: "Accepted", description: "Annual maintenance contract", job_no: "JB-002", job_id: 2 },
+        { id: 3, region: "HK", quotation_no: "QT-2026-003", client_id: 1, company: "Pacific Systems", quotation_date: "2026-06-15", valid_until: "2026-07-15", amount: 45000, currency: "USD", status: "Sent", description: "Phase 2 optional modules", job_no: "", job_id: null }
       ];
 
       const initialVendors = [
-        { id: 1, region: "HK", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Tom Lee", phone: "852-2111-0000", address: "Unit 8, Kwun Tong Industrial Centre, Kowloon" },
-        { id: 2, region: "HK", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", contact: "Sarah", phone: "852-2888-0000", address: "15/F, Causeway Bay Plaza, Hong Kong" }
+        { id: 1, region: "HK", vendor_no: "VEND-0001", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Tom Lee", phone: "852-2111-0000", address: "Unit 8, Kwun Tong Industrial Centre, Kowloon" },
+        { id: 2, region: "HK", vendor_no: "VEND-0002", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", contact: "Sarah", phone: "852-2888-0000", address: "15/F, Causeway Bay Plaza, Hong Kong" }
       ];
 
       const initialSis = [
-        { id: 1, region: "HK", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Mr. Cheung", phone: "852-3000-1122", address: "Workshop 3, Tai Po Industrial Estate" }
+        { id: 1, region: "HK", si_no: "SI-0001", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Mr. Cheung", phone: "852-3000-1122", address: "Workshop 3, Tai Po Industrial Estate" }
       ];
 
       const initialAr = [
@@ -782,13 +1208,16 @@
           id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true, allowed_regions: ["HK"],
           permissions: {
             dashboard: { view: true, add: false, edit: false, delete: false, export: false, import: false },
-            overview: { view: true, add: false, edit: false, delete: false, export: false, import: false },
-            clients: { view: true, add: false, edit: false, delete: false, export: true, import: false },
+            overview: { view: true, add: false, edit: false, delete: false, export: true, import: false },
+            clients: { view: true, add: false, edit: false, delete: false, export: true, import: true },
+            quotation: { view: true, add: true, edit: true, delete: false, export: true, import: true },
             job: { view: true, add: true, edit: true, delete: false, export: true, import: true },
-            ar: { view: true, add: true, edit: true, delete: false, export: false, import: false },
-            ap: { view: true, add: true, edit: true, delete: false, export: false, import: false },
-            vendors: { view: true, add: false, edit: false, delete: false, export: false, import: false },
-            si: { view: true, add: false, edit: false, delete: false, export: false, import: false },
+            ongoing: { view: true, add: false, edit: false, delete: false, export: true, import: false },
+            ar: { view: true, add: true, edit: true, delete: false, export: true, import: true },
+            ap: { view: true, add: true, edit: true, delete: false, export: true, import: true },
+            monthly_report: { view: true, add: false, edit: true, delete: false, export: true, import: false },
+            vendors: { view: true, add: false, edit: false, delete: false, export: true, import: true },
+            si: { view: true, add: false, edit: false, delete: false, export: true, import: true },
             settings: { view: true, add: false, edit: false, delete: false, export: false, import: false }
           }
         }
@@ -884,6 +1313,104 @@
         return "";
       }
 
+      function MonthlyDetailGrid({ grid, baseCurrency, canEdit, moneyFn, t, onOtherCurrencyChange }) {
+        const { months, maxRows } = grid;
+        return (
+          <div className="overflow-x-auto">
+            <table className="text-xs border-collapse min-w-[1100px]">
+              <thead>
+                <tr className="bg-[#dae3f3] text-slate-800">
+                  {months.map((m, i) => (
+                    <React.Fragment key={"mh-" + m.monthIndex}>
+                      {i > 0 && <th className="w-2 border-0 bg-white"></th>}
+                      <th colSpan={3} className="p-2 border border-slate-300 text-center font-semibold whitespace-nowrap">{m.header}</th>
+                    </React.Fragment>
+                  ))}
+                </tr>
+                <tr className="bg-slate-50 text-slate-600">
+                  {months.map((m, i) => (
+                    <React.Fragment key={"sh-" + m.monthIndex}>
+                      {i > 0 && <th className="w-2 border-0 bg-white"></th>}
+                      <th className="p-1.5 border border-slate-300 font-medium whitespace-nowrap">{t("monthlyColJobNo")}</th>
+                      <th className="p-1.5 border border-slate-300 font-medium whitespace-nowrap">{t("monthlyColOtherCurrency")}</th>
+                      <th className="p-1.5 border border-slate-300 font-medium text-right whitespace-nowrap">{baseCurrency}</th>
+                    </React.Fragment>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: maxRows }, (_, rowIdx) => (
+                  <tr key={"r-" + rowIdx}>
+                    {months.map((m, i) => {
+                      const row = m.rows[rowIdx];
+                      return (
+                        <React.Fragment key={"c-" + m.monthIndex + "-" + rowIdx}>
+                          {i > 0 && <td className="border-0 bg-white"></td>}
+                          <td className="p-1.5 border border-slate-200 whitespace-nowrap">{row ? row.job_no : ""}</td>
+                          <td className="p-1.5 border border-slate-200">
+                            {row && canEdit ? (
+                              <input
+                                type="text"
+                                className="w-full min-w-[3.5rem] text-xs border border-slate-300 rounded px-1 py-0.5 uppercase"
+                                value={row.other_currency || ""}
+                                onChange={(e) => onOtherCurrencyChange(row.id, e.target.value.toUpperCase())}
+                              />
+                            ) : (row ? row.other_currency : "")}
+                          </td>
+                          <td className="p-1.5 border border-slate-200 text-right tabular-nums whitespace-nowrap">{row && row.base_amount ? moneyFn(row.base_amount) : ""}</td>
+                        </React.Fragment>
+                      );
+                    })}
+                  </tr>
+                ))}
+                <tr className="font-semibold bg-slate-50">
+                  {months.map((m, i) => (
+                    <React.Fragment key={"t-" + m.monthIndex}>
+                      {i > 0 && <td className="border-0 bg-white"></td>}
+                      <td className="p-1.5 border border-slate-300"></td>
+                      <td className="p-1.5 border border-slate-300">{t("monthlyTotal")}</td>
+                      <td className="p-1.5 border border-slate-300 text-right tabular-nums border-t-2 border-slate-500">{m.total ? moneyFn(m.total) : "-"}</td>
+                    </React.Fragment>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+
+      function MonthlyReportBarChart({ series, maxBar, t, moneyFn }) {
+        const barAreaPx = 140;
+        function renderMonth(p) {
+          const poH = p.poReceived > 0 ? Math.max(4, Math.round((p.poReceived / maxBar) * barAreaPx)) : 2;
+          const invH = p.invoiceIssued > 0 ? Math.max(4, Math.round((p.invoiceIssued / maxBar) * barAreaPx)) : 2;
+          const arH = p.arExpected > 0 ? Math.max(4, Math.round((p.arExpected / maxBar) * barAreaPx)) : 2;
+          return (
+            <div key={p.key} className="flex-1 flex flex-col items-center min-w-[3.25rem]">
+              <div className="w-full flex items-end justify-center gap-0.5" style={{ height: barAreaPx }}>
+                <div title={t("monthlyChartPo") + ": " + moneyFn(p.poReceived)} className="w-[30%] max-w-5 rounded-t-sm" style={{ height: poH, opacity: p.poReceived ? 1 : 0.15, background: "linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)" }} />
+                <div title={t("monthlyChartInvoice") + ": " + moneyFn(p.invoiceIssued)} className="w-[30%] max-w-5 rounded-t-sm" style={{ height: invH, opacity: p.invoiceIssued ? 1 : 0.15, background: "linear-gradient(180deg, #fdba74 0%, #ea580c 100%)" }} />
+                <div title={t("monthlyChartArExpected") + ": " + moneyFn(p.arExpected)} className="w-[30%] max-w-5 rounded-t-sm" style={{ height: arH, opacity: p.arExpected ? 1 : 0.15, background: "linear-gradient(180deg, #cbd5e1 0%, #64748b 100%)" }} />
+              </div>
+              <span className="text-[8px] sm:text-[9px] text-slate-500 font-medium mt-1.5 leading-tight text-center px-0.5">{p.label}</span>
+            </div>
+          );
+        }
+        const firstHalf = series.slice(0, 6);
+        const secondHalf = series.slice(6, 12);
+        return (
+          <div className="space-y-3">
+            <div className="flex items-end gap-1 w-full overflow-x-auto pb-1">{firstHalf.map(renderMonth)}</div>
+            <div className="flex items-end gap-1 w-full overflow-x-auto pb-1 border-t border-slate-100 pt-3">{secondHalf.map(renderMonth)}</div>
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs text-slate-600">
+              <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-600" />{t("monthlyChartPo")}</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-orange-600" />{t("monthlyChartInvoice")}</span>
+              <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-500" />{t("monthlyChartArExpected")}</span>
+            </div>
+          </div>
+        );
+      }
+
       function MonthlyBarChart({ firstHalf, secondHalf, maxBar, t, inLegend, outLegend, h1Label, h2Label, totals, netLabel }) {
         const barAreaPx = 80;
         function renderMonths(series) {
@@ -912,7 +1439,7 @@
                     }}
                   />
                 </div>
-                <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium mt-1.5 leading-none">{p.label}</span>
+                <span className="text-[8px] sm:text-[9px] text-slate-500 font-medium mt-1.5 leading-tight text-center px-0.5">{p.label}</span>
                 {(p.inBase > 0 || p.outBase > 0) && (
                   <div className="text-[8px] leading-tight mt-0.5 text-center w-full tabular-nums hidden sm:block">
                     {p.inBase > 0 && <span className="text-blue-600 block truncate">{money(p.inBase)}</span>}
@@ -1197,8 +1724,9 @@
         const [customCurrency, setCustomCurrency] = useState("");
         const [clients, setClients] = useState(() => ensureRegionOnRecords(loadJson("erp_clients", initialClients)));
         const [jobs, setJobs] = useState(() => ensureRegionOnRecords(loadJson("erp_jobs", initialJobs)));
-        const [vendors, setVendors] = useState(() => ensureRegionOnRecords(loadJson("erp_vendors", initialVendors)));
-        const [sis, setSis] = useState(() => ensureRegionOnRecords(loadJson("erp_sis", initialSis)));
+        const [quotations, setQuotations] = useState(() => ensureRegionOnRecords(loadJson("erp_quotations", initialQuotations)));
+        const [vendors, setVendors] = useState(() => ensureVendorNumbers(ensureRegionOnRecords(loadJson("erp_vendors", initialVendors))));
+        const [sis, setSis] = useState(() => ensureSiNumbers(ensureRegionOnRecords(loadJson("erp_sis", initialSis))));
         const [arInvoices, setArInvoices] = useState(() => ensureRegionOnRecords(loadJson("erp_ar", initialAr)));
         const [apBills, setApBills] = useState(() => ensureRegionOnRecords(loadJson("erp_ap", initialAp)));
         const [approvals] = useState(initialApprovals);
@@ -1222,6 +1750,7 @@
 
         const [clientModal, setClientModal] = useState(null);
         const [jobModal, setJobModal] = useState(null);
+        const [quotationModal, setQuotationModal] = useState(null);
         const [vendorModal, setVendorModal] = useState(null);
         const [siModal, setSiModal] = useState(null);
         const [arModal, setArModal] = useState(null);
@@ -1240,14 +1769,22 @@
         const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "Asia/Taipei");
         const [worldClock, setWorldClock] = useState(() => new Date());
         const [settingsTab, setSettingsTab] = useState("general");
+        const [companyName, setCompanyName] = useState(() => localStorage.getItem("erp_company_name") || "");
+        const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem("erp_company_logo") || "");
         const [userModal, setUserModal] = useState(null);
         const [importPreview, setImportPreview] = useState(null);
+        const [ongoingEditId, setOngoingEditId] = useState(null);
+        const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
         const [overviewFrom, setOverviewFrom] = useState(() => {
           const d = new Date();
           return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01";
         });
         const [overviewTo, setOverviewTo] = useState(() => new Date().toISOString().slice(0, 10));
+        const [monthlyReportYear, setMonthlyReportYear] = useState(() => String(new Date().getFullYear()));
+        const [monthlyReportTab, setMonthlyReportTab] = useState("report");
+        const [monthlyPoLines, setMonthlyPoLines] = useState(() => loadJson("erp_monthly_po_lines", []));
+        const [monthlyArLines, setMonthlyArLines] = useState(() => loadJson("erp_monthly_ar_lines", []));
 
         const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
 
@@ -1264,10 +1801,13 @@
         useEffect(() => { localStorage.setItem("erp_audit_logs", JSON.stringify(auditLogs)); }, [auditLogs]);
         useEffect(() => { localStorage.setItem("erp_clients", JSON.stringify(clients)); }, [clients]);
         useEffect(() => { localStorage.setItem("erp_jobs", JSON.stringify(jobs)); }, [jobs]);
+        useEffect(() => { localStorage.setItem("erp_quotations", JSON.stringify(quotations)); }, [quotations]);
         useEffect(() => { localStorage.setItem("erp_vendors", JSON.stringify(vendors)); }, [vendors]);
         useEffect(() => { localStorage.setItem("erp_sis", JSON.stringify(sis)); }, [sis]);
         useEffect(() => { localStorage.setItem("erp_ar", JSON.stringify(arInvoices)); }, [arInvoices]);
         useEffect(() => { localStorage.setItem("erp_ap", JSON.stringify(apBills)); }, [apBills]);
+        useEffect(() => { localStorage.setItem("erp_monthly_po_lines", JSON.stringify(monthlyPoLines)); }, [monthlyPoLines]);
+        useEffect(() => { localStorage.setItem("erp_monthly_ar_lines", JSON.stringify(monthlyArLines)); }, [monthlyArLines]);
         useEffect(() => { localStorage.setItem("erp_current_user_id", String(currentUserId)); }, [currentUserId]);
         useEffect(() => { localStorage.setItem("erp_world_timezone", worldTimeZone); }, [worldTimeZone]);
         useEffect(() => { localStorage.setItem("erp_sidebar_collapsed", sidebarCollapsed ? "1" : "0"); }, [sidebarCollapsed]);
@@ -1445,6 +1985,7 @@
 
         const scopedClients = useMemo(() => clients.filter(recordInActiveRegion), [clients, activeRegion, users, currentUserId]);
         const scopedJobs = useMemo(() => jobs.filter(recordInActiveRegion), [jobs, activeRegion, users, currentUserId]);
+        const scopedQuotations = useMemo(() => quotations.filter(recordInActiveRegion), [quotations, activeRegion, users, currentUserId]);
         const scopedVendors = useMemo(() => vendors.filter(recordInActiveRegion), [vendors, activeRegion, users, currentUserId]);
         const scopedSis = useMemo(() => sis.filter(recordInActiveRegion), [sis, activeRegion, users, currentUserId]);
         const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, currentUserId]);
@@ -1528,7 +2069,7 @@
           const months = [];
           for (let m = 0; m < 12; m++) {
             const key = year + "-" + String(m + 1).padStart(2, "0");
-            const label = String(m + 1).padStart(2, "0") + "/" + String(year).slice(2);
+            const label = monthChartLabel(year, m, lang);
             months.push({ key, label, inBase: 0, outBase: 0 });
           }
           const monthMap = Object.fromEntries(months.map((x) => [x.key, x]));
@@ -1541,7 +2082,7 @@
             if (key && monthMap[key]) monthMap[key].outBase += b.display_base_amount;
           });
           return months;
-        }, [arDisplay, apDisplay]);
+        }, [arDisplay, apDisplay, lang]);
 
         const cashFlowFirstHalf = useMemo(() => cashFlowSeries.slice(0, 6), [cashFlowSeries]);
         const cashFlowSecondHalf = useMemo(() => cashFlowSeries.slice(6, 12), [cashFlowSeries]);
@@ -1566,7 +2107,7 @@
           const months = [];
           for (let m = 0; m < 12; m++) {
             const key = year + "-" + String(m + 1).padStart(2, "0");
-            const label = String(m + 1).padStart(2, "0") + "/" + String(year).slice(2);
+            const label = monthChartLabel(year, m, lang);
             months.push({ key, label, inBase: 0, outBase: 0 });
           }
           const monthMap = Object.fromEntries(months.map((x) => [x.key, x]));
@@ -1581,7 +2122,7 @@
             if (key && monthMap[key]) monthMap[key].outBase += b.display_base_amount;
           });
           return months;
-        }, [arDisplay, apDisplay]);
+        }, [arDisplay, apDisplay, lang]);
 
         const overviewCollectedFirstHalf = useMemo(() => overviewCollectedSeries.slice(0, 6), [overviewCollectedSeries]);
         const overviewCollectedSecondHalf = useMemo(() => overviewCollectedSeries.slice(6, 12), [overviewCollectedSeries]);
@@ -1632,6 +2173,80 @@
           if (jobStatusFilter !== "all") list = list.filter((j) => j.status === jobStatusFilter);
           return list;
         }, [scopedJobs, jobClientFilter, jobStatusFilter]);
+
+        const ongoingJobsList = useMemo(() => scopedJobs
+          .filter((j) => !isJobCompleted(j.status))
+          .map((j) => {
+            const jobAr = scopedArInvoices.filter((r) => r.job_no === j.job_no);
+            const { currency: arCurrency, poAmt, poAmtLabel } = aggregateJobArForOngoing(jobAr);
+            const billedAmt = Number(j.ongoing_billed_amt || 0);
+            const poBalance = poAmt - billedAmt;
+            const curForFx = (arCurrency || "USD").split("/")[0];
+            const balanceUsd = convertCurrency(poBalance, curForFx, "USD");
+            const poUsd = convertCurrency(poAmt, curForFx, "USD");
+            return {
+              ...j,
+              nature: jobNatureCategory(j.job_type),
+              arCurrency,
+              poAmt,
+              poAmtLabel,
+              billedAmt,
+              poBalance,
+              balanceUsd,
+              poUsd
+            };
+          })
+          .sort((a, b) => (a.job_no || "").localeCompare(b.job_no || "")),
+        [scopedJobs, scopedArInvoices]);
+
+        const ongoingTotals = useMemo(() => {
+          let totalPoUsd = 0;
+          const byNature = { Maintenance: 0, Service: 0, Project: 0, Trade: 0 };
+          ongoingJobsList.forEach((j) => {
+            totalPoUsd += j.poUsd;
+            if (byNature[j.nature] != null) byNature[j.nature] += j.poUsd;
+            else byNature.Project += j.poUsd;
+          });
+          return { totalPoUsd, Maintenance: byNature.Maintenance, Service: byNature.Service, Project: byNature.Project, Trade: byNature.Trade };
+        }, [ongoingJobsList]);
+
+        function filterMonthlySheetLines(lines, year) {
+          const y = Number(year);
+          const allowed = getUserRegions();
+          return lines.filter((l) => {
+            if (l.year !== y) return false;
+            const rg = l.region || "HK";
+            if (activeRegion === "ALL") return allowed.includes("ALL") || allowed.includes(rg);
+            return rg === activeRegion;
+          });
+        }
+
+        const scopedMonthlyPoLines = useMemo(() => filterMonthlySheetLines(monthlyPoLines, monthlyReportYear), [monthlyPoLines, monthlyReportYear, activeRegion, currentUserId, users]);
+        const scopedMonthlyArLines = useMemo(() => filterMonthlySheetLines(monthlyArLines, monthlyReportYear), [monthlyArLines, monthlyReportYear, activeRegion, currentUserId, users]);
+
+        const poMonthTotals = useMemo(() => {
+          const totals = Array(12).fill(0);
+          scopedMonthlyPoLines.forEach((l) => {
+            if (l.month >= 1 && l.month <= 12) totals[l.month - 1] += Number(l.base_amount || 0);
+          });
+          return totals;
+        }, [scopedMonthlyPoLines]);
+
+        const arInvoiceMonthTotals = useMemo(() => {
+          const totals = Array(12).fill(0);
+          scopedMonthlyArLines.forEach((l) => {
+            if (l.month >= 1 && l.month <= 12) totals[l.month - 1] += Number(l.base_amount || 0);
+          });
+          return totals;
+        }, [scopedMonthlyArLines]);
+
+        const monthlyPoGrid = useMemo(() => buildMonthDetailGrid(scopedMonthlyPoLines, monthlyReportYear, lang), [scopedMonthlyPoLines, monthlyReportYear, lang]);
+        const monthlyArGrid = useMemo(() => buildMonthDetailGrid(scopedMonthlyArLines, monthlyReportYear, lang), [scopedMonthlyArLines, monthlyReportYear, lang]);
+
+        const monthlyReportSeries = useMemo(() => buildMonthlyReportSeries(Number(monthlyReportYear), regionListCurrency, lang, poMonthTotals, arInvoiceMonthTotals, scopedArInvoices), [monthlyReportYear, regionListCurrency, lang, poMonthTotals, arInvoiceMonthTotals, scopedArInvoices]);
+
+        const monthlyReportMaxBar = useMemo(() => Math.max(1, ...monthlyReportSeries.flatMap((m) => [m.poReceived, m.invoiceIssued, m.arExpected])), [monthlyReportSeries]);
+
         const filteredAr = useMemo(() => {
           let list = arDisplay;
           if (arClientFilter !== "all") list = list.filter((r) => r.customer === arClientFilter);
@@ -1744,13 +2359,26 @@
 
         function saveJob(e) {
           e.preventDefault();
-          const data = { ...jobModal.data, client_id: Number(jobModal.data.client_id) };
+          const data = { ...jobModal.data, client_id: Number(jobModal.data.client_id), amount: Number(jobModal.data.amount || 0) };
           const client = clients.find((c) => c.id === data.client_id);
           const payload = { ...data, company: client ? client.company : data.company };
+          const oldJob = jobModal.mode === "edit" ? jobs.find((j) => j.id === jobModal.id) : null;
+          const oldQuotationNo = oldJob ? oldJob.quotation_no : "";
+          if (payload.quotation_no) {
+            const q = findQuotationByNo(payload.quotation_no, scopedQuotations);
+            const check = canLinkQuotationToJob(q, jobModal, jobs);
+            if (!check.ok) {
+              if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
+              else if (check.key === "quotationAlreadyLinked") alert(t("quotationAlreadyLinked").replace("{job}", check.jobNo || ""));
+              else alert(t("quotationNotFound"));
+              return;
+            }
+          }
           if (jobModal.mode === "add") {
             if (!guardPermission("job", "add")) return;
             const newId = Date.now();
             setJobs([{ id: newId, region: regionForNewRecord(), ...payload }, ...jobs]);
+            syncQuotationOnJobSave(newId, payload.job_no, payload.quotation_no, "");
             logAudit("job", "create", payload.job_no, `Created job ${payload.job_no} for ${payload.company}`);
           } else {
             if (!guardPermission("job", "edit")) return;
@@ -1763,17 +2391,127 @@
               setArInvoices((prev) => prev.map((r) => (r.job_no === payload.job_no ? { ...r, customer: payload.company } : r)));
             }
             syncArWithJobStatus(jobModal.id, payload.job_no, payload.status);
+            syncQuotationOnJobSave(jobModal.id, payload.job_no, payload.quotation_no, oldQuotationNo || "");
             logAudit("job", "update", payload.job_no, `Updated job ${payload.job_no}`);
           }
           setJobModal(null);
+        }
+
+        function syncQuotationOnJobSave(jobId, jobNo, quotationNo, oldQuotationNo) {
+          const qNo = String(quotationNo || "").trim();
+          const oldNo = String(oldQuotationNo || "").trim();
+          if (!qNo && !oldNo) return;
+          setQuotations((prev) => prev.map((q) => {
+            const qKey = String(q.quotation_no || "").toLowerCase();
+            if (oldNo && qKey === oldNo.toLowerCase() && qKey !== qNo.toLowerCase()) {
+              return { ...q, job_id: null, job_no: "" };
+            }
+            if (qNo && qKey === qNo.toLowerCase()) {
+              return { ...q, job_id: jobId, job_no: jobNo };
+            }
+            return q;
+          }));
+        }
+
+        function applyQuotationNoToJob(quotationNo) {
+          if (!jobModal) return;
+          const trimmed = String(quotationNo || "").trim();
+          if (!trimmed) return;
+          const q = findQuotationByNo(trimmed, scopedQuotations);
+          const check = canLinkQuotationToJob(q, jobModal, jobs);
+          if (!check.ok) {
+            if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
+            else if (check.key === "quotationAlreadyLinked") alert(t("quotationAlreadyLinked").replace("{job}", check.jobNo || ""));
+            else alert(t("quotationNotFound"));
+            return;
+          }
+          setJobModal({ ...jobModal, data: { ...jobModal.data, ...fieldsFromQuotation(q) } });
         }
 
         function deleteJob(id) {
           if (!guardPermission("job", "delete")) return;
           const j = jobs.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
+          if (j && j.quotation_no) syncQuotationOnJobSave(null, "", "", j.quotation_no);
           setJobs(jobs.filter((x) => x.id !== id));
           logAudit("job", "delete", j ? j.job_no : String(id), `Deleted job ${j ? j.job_no : id}`);
+        }
+
+        function startOngoingEdit(job) {
+          if (!can("job", "edit")) return;
+          setOngoingEditId(job.id);
+          setOngoingDraft({
+            billedAmt: job.ongoing_billed_amt != null && job.ongoing_billed_amt !== "" ? String(job.ongoing_billed_amt) : "",
+            remarks: job.remarks || ""
+          });
+        }
+
+        function saveOngoingRow(jobId) {
+          if (!guardPermission("job", "edit")) return;
+          const job = jobs.find((j) => j.id === jobId);
+          if (!job) return;
+          const billed = ongoingDraft.billedAmt === "" ? null : Number(ongoingDraft.billedAmt);
+          if (billed != null && Number.isNaN(billed)) return;
+          setJobs(jobs.map((j) => (j.id === jobId ? { ...j, ongoing_billed_amt: billed, remarks: ongoingDraft.remarks || "" } : j)));
+          setOngoingEditId(null);
+          logAudit("ongoing", "update", job.job_no, `Updated ongoing billed & remarks for ${job.job_no}`);
+        }
+
+        function cancelOngoingEdit() {
+          setOngoingEditId(null);
+        }
+
+        function syncMonthlyPoFromJobs() {
+          if (!guardPermission("monthly_report", "edit")) return;
+          setMonthlyPoLines((prev) => syncPoLinesFromJobs(scopedJobs, monthlyReportYear, regionListCurrency, prev));
+          logAudit("monthly_report", "update", "PO Received", `Synced PO received lines for ${monthlyReportYear}`);
+        }
+
+        function syncMonthlyArFromInvoices() {
+          if (!guardPermission("monthly_report", "edit")) return;
+          setMonthlyArLines((prev) => syncArLinesFromInvoices(scopedArInvoices, monthlyReportYear, regionListCurrency, prev));
+          logAudit("monthly_report", "update", "AR Invoice", `Synced AR invoice lines for ${monthlyReportYear}`);
+        }
+
+        function updateMonthlyPoOtherCurrency(id, value) {
+          if (!can("monthly_report", "edit")) return;
+          setMonthlyPoLines((prev) => prev.map((l) => (l.id === id ? { ...l, other_currency: value } : l)));
+        }
+
+        function updateMonthlyArOtherCurrency(id, value) {
+          if (!can("monthly_report", "edit")) return;
+          setMonthlyArLines((prev) => prev.map((l) => (l.id === id ? { ...l, other_currency: value } : l)));
+        }
+
+        function saveQuotation(e) {
+          e.preventDefault();
+          const data = { ...quotationModal.data, client_id: Number(quotationModal.data.client_id), amount: Number(quotationModal.data.amount || 0) };
+          const client = clients.find((c) => c.id === data.client_id);
+          const job = data.job_no ? jobs.find((j) => j.job_no === data.job_no) : null;
+          const payload = {
+            ...data,
+            company: client ? client.company : data.company,
+            job_id: job ? job.id : null,
+            job_no: job ? job.job_no : (data.job_no || "")
+          };
+          if (quotationModal.mode === "add") {
+            if (!guardPermission("quotation", "add")) return;
+            setQuotations([{ id: Date.now(), region: regionForNewRecord(), ...payload }, ...quotations]);
+            logAudit("quotation", "create", payload.quotation_no, `Created quotation ${payload.quotation_no}`);
+          } else {
+            if (!guardPermission("quotation", "edit")) return;
+            setQuotations(quotations.map((q) => (q.id === quotationModal.id ? { ...q, ...payload } : q)));
+            logAudit("quotation", "update", payload.quotation_no, `Updated quotation ${payload.quotation_no}`);
+          }
+          setQuotationModal(null);
+        }
+
+        function deleteQuotation(id) {
+          if (!guardPermission("quotation", "delete")) return;
+          const q = quotations.find((x) => x.id === id);
+          if (!window.confirm(t("confirmDelete"))) return;
+          setQuotations(quotations.filter((x) => x.id !== id));
+          logAudit("quotation", "delete", q ? q.quotation_no : String(id), `Deleted quotation ${q ? q.quotation_no : id}`);
         }
 
         function saveVendor(e) {
@@ -1782,7 +2520,7 @@
           if (vendorModal.mode === "add") {
             if (!guardPermission("vendors", "add")) return;
             setVendors([{ id: Date.now(), region: regionForNewRecord(), ...data }, ...vendors]);
-            logAudit("vendors", "create", data.name, `Created vendor ${data.name}`);
+            logAudit("vendors", "create", data.vendor_no, `Created vendor ${data.vendor_no} · ${data.name}`);
           } else {
             if (!guardPermission("vendors", "edit")) return;
             const old = vendors.find((v) => v.id === vendorModal.id);
@@ -1790,7 +2528,7 @@
             if (old && old.name !== data.name) {
               setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "Vendor" ? { ...b, company_name: data.name } : b)));
             }
-            logAudit("vendors", "update", data.name, `Updated vendor ${data.name}`);
+            logAudit("vendors", "update", data.vendor_no, `Updated vendor ${data.vendor_no} · ${data.name}`);
           }
           setVendorModal(null);
         }
@@ -1809,7 +2547,7 @@
           if (siModal.mode === "add") {
             if (!guardPermission("si", "add")) return;
             setSis([{ id: Date.now(), region: regionForNewRecord(), ...data }, ...sis]);
-            logAudit("si", "create", data.name, `Created SI ${data.name}`);
+            logAudit("si", "create", data.si_no, `Created SI ${data.si_no} · ${data.name}`);
           } else {
             if (!guardPermission("si", "edit")) return;
             const old = sis.find((s) => s.id === siModal.id);
@@ -1817,7 +2555,7 @@
             if (old && old.name !== data.name) {
               setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "SI" ? { ...b, company_name: data.name } : b)));
             }
-            logAudit("si", "update", data.name, `Updated SI ${data.name}`);
+            logAudit("si", "update", data.si_no, `Updated SI ${data.si_no} · ${data.name}`);
           }
           setSiModal(null);
         }
@@ -1950,19 +2688,82 @@
           setUserModal({ ...userModal, data: { ...userModal.data, permissions: perms } });
         }
 
+        function getExportRows(module) {
+          if (module === "clients") return scopedClients.map((c) => rowFromSchema(EXCEL_SCHEMAS.clients, c));
+          if (module === "job") return scopedJobs.map((j) => rowFromSchema(EXCEL_SCHEMAS.job, j));
+          if (module === "ar") return scopedArInvoices.map((r) => rowFromSchema(EXCEL_SCHEMAS.ar, r));
+          if (module === "ap") return scopedApBills.map((b) => rowFromSchema(EXCEL_SCHEMAS.ap, b));
+          if (module === "vendors") return scopedVendors.map((v) => rowFromSchema(EXCEL_SCHEMAS.vendors, v));
+          if (module === "si") return scopedSis.map((s) => rowFromSchema(EXCEL_SCHEMAS.si, s));
+          if (module === "quotation") return scopedQuotations.map((q) => rowFromSchema(EXCEL_SCHEMAS.quotation, q));
+          if (module === "monthly_report") return monthlyReportSeries.map((m) => ({
+            month: m.header,
+            currency: m.currency,
+            po_received: m.poReceived,
+            invoice_issued: m.invoiceIssued,
+            ar_expected: m.arExpected
+          }));
+          return [];
+        }
+
         function exportModuleExcel(module, mode) {
           if (!guardPermission(module, "export")) return;
-          const schema = EXCEL_SCHEMAS[module];
+          let schema = EXCEL_SCHEMAS[module];
+          if (module === "monthly_report") {
+            schema = { sheetName: "MonthlyReport", filePrefix: "monthly_report_" + monthlyReportYear, columns: [
+              { header: "Month", field: "month" }, { header: "Currency", field: "currency" },
+              { header: "PO Received (Current Month)", field: "po_received" },
+              { header: "Invoice Issued (Current Month)", field: "invoice_issued" },
+              { header: "AR Expected", field: "ar_expected" }
+            ] };
+          }
           if (!schema || typeof XLSX === "undefined") { alert("Excel library not loaded"); return; }
           const stamp = new Date().toISOString().slice(0, 10);
-          if (module === "clients") {
-            const rows = mode === "data" ? scopedClients.map((c) => ({ ...c })) : [];
-            downloadWorkbook(buildWorkbook(schema, rows, true), schema.filePrefix + (mode === "data" ? "_data_" : "_template_") + stamp + ".xlsx");
-            logAudit(module, "export", schema.sheetName, `Exported ${mode} (${rows.length} rows)`);
-          } else if (module === "job") {
-            const rows = mode === "data" ? scopedJobs.map((j) => ({ job_no: j.job_no, company: j.company, job_type: j.job_type, customer_po: j.customer_po || "", status: j.status || "Open", start_date: j.start_date || "", description: j.description || "" })) : [];
-            downloadWorkbook(buildWorkbook(schema, rows, true), schema.filePrefix + (mode === "data" ? "_data_" : "_template_") + stamp + ".xlsx");
-            logAudit(module, "export", schema.sheetName, `Exported ${mode} (${rows.length} rows)`);
+          const rows = mode === "data" ? getExportRows(module) : [];
+          downloadWorkbook(buildWorkbook(schema, rows, true), schema.filePrefix + (mode === "data" ? "_data_" : "_template_") + stamp + ".xlsx");
+          logAudit(module, "export", schema.sheetName, `Exported ${mode} (${rows.length} rows)`);
+        }
+
+        function findImportExisting(module, key) {
+          const k = key.toLowerCase();
+          if (module === "clients") return clients.find((c) => c.customer_no.toLowerCase() === k);
+          if (module === "job") return jobs.find((j) => j.job_no.toLowerCase() === k);
+          if (module === "ar") return arInvoices.find((r) => r.invoice_no.toLowerCase() === k);
+          if (module === "ap") return apBills.find((b) => b.invoice_no.toLowerCase() === k);
+          if (module === "vendors") return vendors.find((v) => v.vendor_no.toLowerCase() === k);
+          if (module === "si") return sis.find((s) => s.si_no.toLowerCase() === k);
+          if (module === "quotation") return quotations.find((q) => q.quotation_no.toLowerCase() === k);
+          return null;
+        }
+
+        function validateImportRow(module, row, errors) {
+          if (module === "job" || module === "quotation") {
+            const company = String(row.company || "").trim();
+            const client = clients.find((c) => c.company.toLowerCase() === company.toLowerCase());
+            if (!client) errors.push("Client not found: " + (company || "(empty)"));
+          }
+          if (module === "job") {
+            const jt = String(row.job_type || "").trim();
+            if (jt && !JOB_TYPES.includes(jt)) errors.push("Invalid Type: " + jt);
+            if (!String(row.status || "").trim()) row.status = "Open";
+          }
+          if (module === "quotation") {
+            const st = String(row.status || "").trim();
+            if (st && !QUOTATION_STATUSES.includes(st)) errors.push("Invalid status: " + st);
+            if (!st) row.status = "Draft";
+            if (row.job_no) {
+              const job = jobs.find((j) => j.job_no.toLowerCase() === String(row.job_no).toLowerCase());
+              if (!job) errors.push("Job not found: " + row.job_no);
+            }
+          }
+          if (module === "ar" || module === "ap") {
+            const jobNo = String(row.job_no || "").trim();
+            const job = jobs.find((j) => j.job_no.toLowerCase() === jobNo.toLowerCase());
+            if (!job) errors.push("Job not found: " + (jobNo || "(empty)"));
+          }
+          if (module === "ap") {
+            const pt = String(row.payee_type || "Vendor").trim();
+            if (pt && pt !== "Vendor" && pt !== "SI") errors.push("Invalid Payee Type: " + pt);
           }
         }
 
@@ -1980,28 +2781,13 @@
             if (!key) errors.push(schema.keyField + " required");
             if (key && seen.has(key.toLowerCase())) errors.push("Duplicate key in file: " + key);
             if (key) seen.add(key.toLowerCase());
-
-            if (module === "job") {
-              const company = String(row.company || "").trim();
-              const client = clients.find((c) => c.company.toLowerCase() === company.toLowerCase());
-              if (!client) errors.push("Client not found: " + (company || "(empty)"));
-              const jt = String(row.job_type || "").trim();
-              if (jt && !JOB_TYPES.includes(jt)) errors.push("Invalid Type: " + jt);
-              if (!String(row.status || "").trim()) row.status = "Open";
-            }
-
+            validateImportRow(module, row, errors);
             if (errors.length) {
               preview.push({ lineNo, action: "error", key, data: row, errors });
               return;
             }
-
-            if (module === "clients") {
-              const existing = clients.find((c) => c.customer_no.toLowerCase() === key.toLowerCase());
-              preview.push({ lineNo, action: existing ? "update" : "create", key, data: row, errors: [] });
-            } else if (module === "job") {
-              const existing = jobs.find((j) => j.job_no.toLowerCase() === key.toLowerCase());
-              preview.push({ lineNo, action: existing ? "update" : "create", key, data: row, errors: [] });
-            }
+            const existing = findImportExisting(module, key);
+            preview.push({ lineNo, action: existing ? "update" : "create", key, data: row, errors: [] });
           });
           return preview;
         }
@@ -2059,10 +2845,14 @@
                 company: client ? client.company : p.data.company,
                 client_id: client ? client.id : null,
                 job_type: p.data.job_type || "Project",
+                quotation_no: p.data.quotation_no || "",
+                amount: Number(p.data.amount || 0),
+                currency: p.data.currency || "USD",
                 customer_po: p.data.customer_po || "",
                 status: p.data.status || "Open",
                 start_date: p.data.start_date || "",
-                description: p.data.description || ""
+                description: p.data.description || "",
+                remarks: p.data.remarks || ""
               };
               const existing = next.find((j) => j.job_no.toLowerCase() === p.key.toLowerCase());
               if (existing) {
@@ -2080,6 +2870,125 @@
               }
             });
             setJobs(next);
+          } else if (module === "ar") {
+            let next = [...arInvoices];
+            valid.forEach((p) => {
+              const job = jobs.find((j) => j.job_no.toLowerCase() === String(p.data.job_no || "").toLowerCase());
+              const invAmt = Number(p.data.invoice_amt || 0);
+              const invCur = p.data.invoice_currency || "USD";
+              const base = convertCurrency(invAmt, invCur, REGION_CURRENCY[job?.region || regionForNewRecord()] || "HKD");
+              const payload = {
+                job_id: job ? job.id : null,
+                job_no: job ? job.job_no : p.data.job_no,
+                customer: p.data.customer || (job ? job.company : ""),
+                customer_po: p.data.customer_po || (job ? job.customer_po : ""),
+                invoice_no: p.data.invoice_no,
+                invoice_currency: invCur,
+                invoice_amt: invAmt,
+                exchange_rate_locked: fxUsdMap[invCur] ? (fxUsdMap[REGION_CURRENCY[job?.region || "HK"] || "HKD"] / fxUsdMap[invCur]) : 1,
+                base_amount_locked: base,
+                base_amount: base,
+                lock_timestamp: nowIso(),
+                rate_source: "IMPORT",
+                manual_override: false,
+                override_reason: "",
+                invoice_date: p.data.invoice_date || "",
+                due_date: p.data.due_date || "",
+                payment_received_date: p.data.payment_received_date || "",
+                payment_status: p.data.payment_received_date ? "Paid" : (p.data.payment_status || "Awaiting Payment"),
+                job_completed: job ? isJobCompleted(job.status) : false
+              };
+              const existing = next.find((r) => r.invoice_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) {
+                Object.assign(existing, payload);
+                updated++;
+              } else {
+                next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: job?.region || regionForNewRecord(), ...payload }, ...next];
+                created++;
+              }
+            });
+            setArInvoices(next);
+          } else if (module === "ap") {
+            let next = [...apBills];
+            valid.forEach((p) => {
+              const job = jobs.find((j) => j.job_no.toLowerCase() === String(p.data.job_no || "").toLowerCase());
+              const amt = Number(p.data.amount || 0);
+              const cur = p.data.currency || "USD";
+              const base = convertCurrency(amt, cur, REGION_CURRENCY[job?.region || regionForNewRecord()] || "HKD");
+              const payload = {
+                job_id: job ? job.id : null,
+                job_no: job ? job.job_no : p.data.job_no,
+                payee_type: p.data.payee_type || "Vendor",
+                si_id: null,
+                company_name: p.data.company_name,
+                invoice_no: p.data.invoice_no,
+                invoice_date: p.data.invoice_date || "",
+                invoice_received_date: "",
+                due_date: p.data.due_date || "",
+                currency: cur,
+                amount: amt,
+                exchange_rate_locked: 1,
+                base_amount_locked: base,
+                base_amount: base,
+                lock_timestamp: nowIso(),
+                rate_source: "IMPORT",
+                manual_override: false,
+                override_reason: "",
+                pay_date: p.data.pay_date || "",
+                remarks: p.data.remarks || "",
+                bank: "", charge: "OUR", swift_code: "", payment_advice_email: ""
+              };
+              const existing = next.find((b) => b.invoice_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) {
+                Object.assign(existing, payload);
+                updated++;
+              } else {
+                next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: job?.region || regionForNewRecord(), ...payload }, ...next];
+                created++;
+              }
+            });
+            setApBills(next);
+          } else if (module === "vendors") {
+            let next = [...vendors];
+            valid.forEach((p) => {
+              const payload = { vendor_no: p.data.vendor_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", contact: p.data.contact || "" };
+              const existing = next.find((v) => v.vendor_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) { Object.assign(existing, payload); updated++; }
+              else { next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...next]; created++; }
+            });
+            setVendors(next);
+          } else if (module === "si") {
+            let next = [...sis];
+            valid.forEach((p) => {
+              const payload = { si_no: p.data.si_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", contact: p.data.contact || "" };
+              const existing = next.find((s) => s.si_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) { Object.assign(existing, payload); updated++; }
+              else { next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...next]; created++; }
+            });
+            setSis(next);
+          } else if (module === "quotation") {
+            let next = [...quotations];
+            valid.forEach((p) => {
+              const client = clients.find((c) => c.company.toLowerCase() === String(p.data.company || "").toLowerCase());
+              const job = p.data.job_no ? jobs.find((j) => j.job_no.toLowerCase() === String(p.data.job_no).toLowerCase()) : null;
+              const payload = {
+                quotation_no: p.data.quotation_no,
+                company: client ? client.company : p.data.company,
+                client_id: client ? client.id : null,
+                quotation_date: p.data.quotation_date || "",
+                valid_until: p.data.valid_until || "",
+                amount: Number(p.data.amount || 0),
+                currency: p.data.currency || "USD",
+                status: p.data.status || "Draft",
+                description: p.data.description || "",
+                job_no: job ? job.job_no : (p.data.job_no || ""),
+                job_id: job ? job.id : null
+              };
+              const existing = next.find((q) => q.quotation_no.toLowerCase() === p.key.toLowerCase());
+              if (existing) { Object.assign(existing, payload); updated++; }
+              else { next = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...next]; created++; }
+            });
+            setQuotations(next);
           }
 
           logAudit(module, "import", fileName, `Imported ${created} new, ${updated} updated, ${preview.length - valid.length} errors`);
@@ -2087,11 +2996,20 @@
           alert(t("importSummary") + ": " + created + " " + t("importRowCreate") + ", " + updated + " " + t("importRowUpdate"));
         }
 
+        function exportOngoingPdf() {
+          if (!guardPermission("ongoing", "export")) return;
+          const regionName = activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang);
+          const title = t("ongoingListTitle") + " - " + regionName;
+          exportOngoingPdfReport({ rows: ongoingJobsList, totals: ongoingTotals, title, t, moneyFn: money });
+          logAudit("ongoing", "export", title, `Exported ongoing list PDF (${ongoingJobsList.length} rows)`);
+        }
+
         function ListImportExportBar({ module }) {
           const schema = EXCEL_SCHEMAS[module];
-          if (!schema) return null;
+          const exportOnly = module === "monthly_report";
+          if (!schema && !exportOnly) return null;
           const showExport = can(module, "export");
-          const showImport = can(module, "import");
+          const showImport = can(module, "import") && !!EXCEL_SCHEMAS[module];
           if (!showExport && !showImport) return null;
           const inputId = "erp-import-" + module;
           return (
@@ -2259,6 +3177,24 @@
             );
           }
 
+          if (type === "quotation") {
+            const q = quotations.find((x) => x.id === id);
+            if (!q) return null;
+            return (
+              <Modal title={t("quotationDetail") + " - " + q.quotation_no} onClose={() => setDetailPanel(null)} wide>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><p className="text-slate-500">{t("clientGroup")}</p><p className="font-medium">{q.company}</p></div>
+                  <div><p className="text-slate-500">{t("quotationStatus")}</p><p>{q.status}</p></div>
+                  <div><p className="text-slate-500">{t("quotationDate")}</p><p>{q.quotation_date || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("validUntil")}</p><p>{q.valid_until || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("amount")}</p><p>{money(q.amount)} {q.currency}</p></div>
+                  <div><p className="text-slate-500">Job No.</p><p>{q.job_no ? <LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === q.job_no); if (j) setDetailPanel({ type: "job", id: j.id }); }}>{q.job_no}</LinkBtn> : "-"}</p></div>
+                  <div className="col-span-2"><p className="text-slate-500">{t("description")}</p><p>{q.description || "-"}</p></div>
+                </div>
+              </Modal>
+            );
+          }
+
           if (type === "job") {
             const j = jobs.find((x) => x.id === id);
             if (!j) return null;
@@ -2272,9 +3208,12 @@
                   <div><p className="text-slate-500">Client</p><p className="font-medium">{j.company}</p></div>
                   <div><p className="text-slate-500">{t("type")}</p><p>{j.job_type}</p></div>
                   <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("quotationNo")}</p><p>{j.quotation_no || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("amount")}</p><p>{j.amount ? money(j.amount) + " " + (j.currency || "") : "-"}</p></div>
                   <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
                   <div><p className="text-slate-500">Start Date</p><p>{j.start_date || "-"}</p></div>
                   <div><p className="text-slate-500">Description</p><p>{j.description || "-"}</p></div>
+                  <div className="col-span-2"><p className="text-slate-500">{t("ongoingColRemarks")}</p><p>{j.remarks || "-"}</p></div>
                 </div>
                 {client && (
                   <div className="mb-4 p-3 bg-slate-50 rounded-lg text-sm">
@@ -2327,8 +3266,9 @@
             if (!s) return null;
             const relatedAp = getApBySi(s.name);
             return (
-              <Modal title={t("siDetail") + " - " + s.name} onClose={() => setDetailPanel(null)} wide>
+              <Modal title={t("siDetail") + " - " + (s.si_no ? s.si_no + " · " : "") + s.name} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                  <div><p className="text-slate-500">{t("siNo")}</p><p className="font-medium">{s.si_no || "-"}</p></div>
                   <div><p className="text-slate-500">Name</p><p className="font-medium">{s.name}</p></div>
                   <div><p className="text-slate-500">Email</p><p>{s.email}</p></div>
                   <div><p className="text-slate-500">{t("phoneNo")}</p><p>{s.phone || "-"}</p></div>
@@ -2368,8 +3308,9 @@
             if (!v) return null;
             const relatedAp = getApByVendor(v.name);
             return (
-              <Modal title={t("vendorDetail") + " - " + v.name} onClose={() => setDetailPanel(null)} wide>
+              <Modal title={t("vendorDetail") + " - " + (v.vendor_no ? v.vendor_no + " · " : "") + v.name} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                  <div><p className="text-slate-500">{t("vendorNo")}</p><p className="font-medium">{v.vendor_no || "-"}</p></div>
                   <div><p className="text-slate-500">Name</p><p className="font-medium">{v.name}</p></div>
                   <div><p className="text-slate-500">Email</p><p>{v.email}</p></div>
                   <div><p className="text-slate-500">{t("phoneNo")}</p><p>{v.phone || "-"}</p></div>
@@ -2469,14 +3410,18 @@
             <tr key={j.id} className={"hover:bg-blue-50/50 cursor-pointer " + (isJobCompleted(j.status) ? "bg-green-50/70 " : "") + rowHighlightClass(j.id)} onClick={() => setDetailPanel({ type: "job", id: j.id })}>
               <td className="p-3 font-medium">{j.job_no}</td>
               <td className="p-3"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs">{j.company}</span></td>
+              <td className="p-3 max-w-[12rem] truncate" title={j.description || ""}>{j.description || "-"}</td>
               <td className="p-3">{j.job_type}</td>
+              <td className="p-3">{j.quotation_no || "-"}</td>
+              <td className="p-3 text-right tabular-nums">{j.amount ? money(j.amount) : "-"}</td>
+              <td className="p-3">{j.currency || "-"}</td>
               <td className="p-3">{j.customer_po || "-"}</td>
               <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></td>
               <td className="p-3">{j.start_date || "-"}</td>
               <td className="p-3">{getArByJob(j.job_no).length}</td>
               <td className="p-3">{getApByJob(j.job_no).length}</td>
               <td className="p-3">
-                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("job", "edit")} canDelete={can("job", "delete")} onDelete={() => deleteJob(j.id)} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => setJobModal({ mode: "edit", id: j.id, data: { ...j, client_id: String(j.client_id) } })}
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("job", "edit")} canDelete={can("job", "delete")} onDelete={() => deleteJob(j.id)} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => setJobModal({ mode: "edit", id: j.id, data: { ...j, client_id: String(j.client_id), amount: String(j.amount ?? "") } })}
                   extra={isJobCompleted(j.status) && can("ar", "add") ? <button type="button" onClick={(e) => { e.stopPropagation(); openArFromJob(j); }} className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">{t("issueInvoiceToClient")}</button> : null}
                 />
               </td>
@@ -2528,10 +3473,34 @@
         }
 
         return (
-          <div className="flex min-h-screen">
+          <div className="erp-app-shell flex min-h-screen w-full">
             <aside className={(sidebarCollapsed ? "w-16" : "w-52") + " shrink-0 bg-slate-900 text-slate-100 py-3 transition-all duration-300 ease-in-out overflow-hidden " + (sidebarCollapsed ? "px-2" : "px-3")}>
-              <div className={"flex items-center mb-4 min-h-[1.75rem] transition-all duration-300 " + (sidebarCollapsed ? "justify-center" : "justify-between gap-2 px-0.5")}>
-                <h1 className={sidebarCollapsed ? "hidden" : "text-sm font-semibold tracking-wide truncate"}>{t("appTitle")}</h1>
+              <div className={"mb-3 " + (sidebarCollapsed ? "flex flex-col items-center" : "px-0.5")}>
+                <div className={"flex items-center gap-2.5 min-h-[2.5rem] " + (sidebarCollapsed ? "justify-center" : "")}>
+                  <div
+                    className="shrink-0 w-10 h-10 rounded-lg border border-dashed border-slate-600 bg-slate-800/80 flex items-center justify-center overflow-hidden"
+                    title={t("companyLogoSlot")}
+                    aria-label={t("companyLogoSlot")}
+                  >
+                    {companyLogo ? (
+                      <img src={companyLogo} alt="" className="w-full h-full object-contain p-0.5" />
+                    ) : (
+                      <svg className="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <circle cx="9" cy="10" r="1.5" />
+                        <path d="M3 16l4.5-4.5 3 3L14 11l7 7" />
+                      </svg>
+                    )}
+                  </div>
+                  {!sidebarCollapsed && (
+                    <p className={"text-xs font-semibold leading-snug truncate min-w-0 flex-1 " + (companyName ? "text-white" : "text-slate-500")}>
+                      {companyName || t("companyNameSlot")}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className={"flex items-center mb-4 min-h-[1.75rem] transition-all duration-300 border-t border-slate-800 pt-3 " + (sidebarCollapsed ? "justify-center" : "justify-between gap-2 px-0.5")}>
+                <h1 className={sidebarCollapsed ? "hidden" : "text-[11px] font-medium tracking-wide text-slate-400 truncate"}>{t("appTitle")}</h1>
                 <button
                   type="button"
                   onClick={() => setSidebarCollapsed((v) => !v)}
@@ -2549,7 +3518,10 @@
               <nav className="space-y-1">
                 <SidebarItem id="dashboard" label={t("nav_dashboard")} module="dashboard" collapsed={sidebarCollapsed} />
                 <SidebarItem id="overview" label={t("nav_overview")} module="overview" collapsed={sidebarCollapsed} />
+                <SidebarItem id="ongoing" label={t("nav_ongoing")} module="ongoing" collapsed={sidebarCollapsed} />
+                <SidebarItem id="monthly_report" label={t("nav_monthly_report")} module="monthly_report" collapsed={sidebarCollapsed} />
                 <SidebarItem id="clients" label={t("nav_clients")} module="clients" collapsed={sidebarCollapsed} />
+                <SidebarItem id="quotation" label={t("nav_quotation")} module="quotation" collapsed={sidebarCollapsed} />
                 <SidebarItem id="job" label={t("nav_job")} module="job" collapsed={sidebarCollapsed} />
                 <SidebarItem id="ar" label={t("nav_ar")} module="ar" collapsed={sidebarCollapsed} />
                 <SidebarItem id="ap" label={t("nav_ap")} module="ap" collapsed={sidebarCollapsed} />
@@ -2559,22 +3531,25 @@
               </nav>
             </aside>
 
-            <main className="flex-1 min-w-0 p-5 space-y-5">
-              <header className="flex justify-between items-center gap-3">
+            <main className="flex-1 min-w-[1080px] p-5 space-y-5">
+              <header className="flex flex-wrap justify-between items-start gap-3">
                 <div className="min-w-0">
                   <h2 className="text-2xl font-bold">
                     {page === "dashboard" && t("nav_dashboard")}
                     {page === "overview" && t("nav_overview")}
                     {page === "clients" && t("nav_clients")}
+                    {page === "quotation" && t("nav_quotation")}
                     {page === "job" && t("nav_job")}
+                    {page === "ongoing" && t("nav_ongoing")}
                     {page === "ar" && t("nav_ar")}
-                    {page === "vendors" && t("nav_vendors")}
-                    {page === "si" && t("nav_si")}
                     {page === "ap" && t("nav_ap")}
+                    {page === "monthly_report" && t("nav_monthly_report")}
+                    {page === "vendors" && t("nav_vendors")}
                     {page === "settings" && t("nav_settings")}
+                    {page === "si" && t("nav_si")}
                   </h2>
                   <p className="text-sm text-slate-500">
-                    {page === "dashboard" ? t("dashSubtitle") : page === "overview" ? t("overviewHint") : <>{t("baseCurrency")}: {regionListCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
+                    {page === "dashboard" ? t("dashSubtitle") : page === "overview" ? t("overviewHint") : page === "ongoing" ? t("ongoingHint") : page === "monthly_report" ? t("monthlyReportHint") : <>{t("baseCurrency")}: {regionListCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-nowrap">
@@ -2927,6 +3902,47 @@
                 </section>
               )}
 
+              {page === "quotation" && can("quotation", "view") && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold">{t("nav_quotation")}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ListImportExportBar module="quotation" />
+                      {can("quotation", "add") && <button onClick={() => setQuotationModal({ mode: "add", data: emptyQuotation() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addQuotation")}</button>}
+                    </div>
+                  </div>
+                  <div className="overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-500">
+                        <tr>
+                          <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("quotationDate")}</th>
+                          <th className="p-3 text-left">{t("validUntil")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
+                          <th className="p-3 text-left">{t("quotationStatus")}</th><th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {scopedQuotations.map((q) => (
+                          <tr key={q.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>
+                            <td className="p-3 font-medium">{q.quotation_no}</td>
+                            <td className="p-3">{q.company}</td>
+                            <td className="p-3">{q.quotation_date || "-"}</td>
+                            <td className="p-3">{q.valid_until || "-"}</td>
+                            <td className="p-3 text-right tabular-nums">{money(q.amount)}</td>
+                            <td className="p-3">{q.currency || "-"}</td>
+                            <td className="p-3"><span className="px-2 py-0.5 rounded text-xs bg-slate-100">{q.status}</span></td>
+                            <td className="p-3">{q.job_no || "-"}</td>
+                            <td className="p-3 max-w-[12rem] truncate" title={q.description || ""}>{q.description || "-"}</td>
+                            <td className="p-3">
+                              <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("quotation", "edit")} canDelete={can("quotation", "delete")} onDelete={() => deleteQuotation(q.id)} onView={() => setDetailPanel({ type: "quotation", id: q.id })} onEdit={() => setQuotationModal({ mode: "edit", id: q.id, data: { ...q, client_id: String(q.client_id || ""), amount: String(q.amount ?? ""), job_no: q.job_no || "" } })} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
               {page === "job" && (
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="p-4 border-b">
@@ -2948,7 +3964,8 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("type")}</th>
+                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
+                                <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
                                 <th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
                                 <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
@@ -2961,9 +3978,10 @@
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
-                            <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("type")}</th>
-                            <th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
-                            <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
+                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
+                                <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
+                                <th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
+                                <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">{renderJobRows(filteredJobs)}</tbody>
@@ -2973,21 +3991,166 @@
                 </section>
               )}
 
+              {page === "ongoing" && can("ongoing", "view") && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
+                    <div>
+                      <h3 className="font-semibold text-lg">{t("ongoingListTitle")} - {activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang)}</h3>
+                      <p className="text-xs text-slate-500 mt-1">{t("ongoingHint")}</p>
+                    </div>
+                    {can("ongoing", "export") && (
+                      <button type="button" onClick={exportOngoingPdf} className="px-3 py-2 text-xs rounded-lg border border-red-300 bg-red-50 text-red-800 hover:bg-red-100 font-medium">{t("exportPdf")}</button>
+                    )}
+                  </div>
+                  <div className="overflow-auto" id="ongoing-report-area">
+                    <table className="w-full text-xs border-collapse min-w-[1100px]">
+                      <thead>
+                        <tr className="bg-[#dae3f3] text-slate-800">
+                          <th className="p-2 text-left border border-slate-300 font-semibold whitespace-nowrap">{t("ongoingColJobNo")}</th>
+                          <th className="p-2 text-left border border-slate-300 font-semibold whitespace-nowrap">{t("ongoingColNature")}<br /><span className="font-normal text-[10px]">{t("ongoingNatureHint")}</span></th>
+                          <th className="p-2 text-left border border-slate-300 font-semibold">{t("ongoingColCustomer")}</th>
+                          <th className="p-2 text-left border border-slate-300 font-semibold">{t("ongoingColProject")}</th>
+                          <th className="p-2 text-left border border-slate-300 font-semibold">{t("ongoingColPo")}</th>
+                          <th className="p-2 text-left border border-slate-300 font-semibold whitespace-nowrap">{t("ongoingColStart")}</th>
+                          <th className="p-2 text-left border border-slate-300 font-semibold">{t("ongoingColCurrency")}</th>
+                          <th className="p-2 text-right border border-slate-300 font-semibold">{t("ongoingColPoAmt")}</th>
+                          <th className="p-2 text-right border border-slate-300 font-semibold">{t("ongoingColBilled")}</th>
+                          <th className="p-2 text-right border border-slate-300 font-semibold">{t("ongoingColBalance")}</th>
+                          <th className="p-2 text-right border border-slate-300 font-semibold whitespace-nowrap">{t("ongoingColBalanceUsd")}</th>
+                          <th className="p-2 text-left border border-slate-300 font-semibold">{t("ongoingColRemarks")}</th>
+                          <th className="p-2 text-center border border-slate-300 font-semibold whitespace-nowrap w-28">{t("edit")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ongoingJobsList.length ? ongoingJobsList.map((j) => {
+                          const isEditing = ongoingEditId === j.id;
+                          const liveBilled = isEditing
+                            ? (ongoingDraft.billedAmt === "" ? 0 : Number(ongoingDraft.billedAmt) || 0)
+                            : j.billedAmt;
+                          const livePoBalance = j.poAmt - liveBilled;
+                          const liveBalanceUsd = convertCurrency(livePoBalance, (j.arCurrency || "USD").split("/")[0], "USD");
+                          return (
+                          <tr key={j.id} className={"hover:bg-blue-50/40 " + (isEditing ? "" : "cursor-pointer")} onClick={() => { if (!isEditing) setDetailPanel({ type: "job", id: j.id }); }}>
+                            <td className="p-2 border border-slate-200 font-medium whitespace-nowrap">{j.job_no}</td>
+                            <td className="p-2 border border-slate-200">{j.nature}</td>
+                            <td className="p-2 border border-slate-200">{j.company}</td>
+                            <td className="p-2 border border-slate-200">{j.description || ""}</td>
+                            <td className="p-2 border border-slate-200 whitespace-nowrap">{j.customer_po || ""}</td>
+                            <td className="p-2 border border-slate-200 whitespace-nowrap">{j.start_date || ""}</td>
+                            <td className="p-2 border border-slate-200">{j.arCurrency || ""}</td>
+                            <td className="p-2 border border-slate-200 text-right tabular-nums">{j.poAmtLabel || (j.poAmt ? money(j.poAmt) : "")}</td>
+                            <td className="p-2 border border-slate-200 text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  className="w-full min-w-[5.5rem] text-right rounded border border-blue-300 px-2 py-1 text-xs tabular-nums focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  value={ongoingDraft.billedAmt}
+                                  placeholder="0"
+                                  onChange={(e) => setOngoingDraft((d) => ({ ...d, billedAmt: e.target.value }))}
+                                />
+                              ) : (
+                                j.billedAmt ? money(j.billedAmt) : ""
+                              )}
+                            </td>
+                            <td className="p-2 border border-slate-200 text-right tabular-nums">{money(livePoBalance)}</td>
+                            <td className="p-2 border border-slate-200 text-right tabular-nums">{money(liveBalanceUsd)}</td>
+                            <td className="p-2 border border-slate-200" onClick={(e) => e.stopPropagation()}>
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  className="w-full min-w-[8rem] rounded border border-blue-300 px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  value={ongoingDraft.remarks}
+                                  placeholder=""
+                                  onChange={(e) => setOngoingDraft((d) => ({ ...d, remarks: e.target.value }))}
+                                />
+                              ) : (
+                                j.remarks || ""
+                              )}
+                            </td>
+                            <td className="p-2 border border-slate-200 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                              {can("job", "edit") && (
+                                isEditing ? (
+                                  <div className="flex flex-col gap-1 items-center">
+                                    <button type="button" onClick={() => saveOngoingRow(j.id)} className="px-2 py-1 text-[10px] rounded bg-blue-600 text-white hover:bg-blue-700 w-full">{t("save")}</button>
+                                    <button type="button" onClick={cancelOngoingEdit} className="px-2 py-1 text-[10px] rounded border border-slate-300 hover:bg-slate-50 w-full">{t("cancel")}</button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={ongoingEditId != null && ongoingEditId !== j.id}
+                                    onClick={() => startOngoingEdit(j)}
+                                    className={"px-2 py-1 text-[10px] rounded " + (ongoingEditId != null && ongoingEditId !== j.id ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-amber-100 text-amber-800 hover:bg-amber-200")}
+                                  >
+                                    {t("edit")}
+                                  </button>
+                                )
+                              )}
+                            </td>
+                          </tr>
+                          );
+                        }) : (
+                          <tr><td colSpan={13} className="p-12 text-center text-slate-400 border border-slate-200">{t("noJobs")}</td></tr>
+                        )}
+                        {ongoingJobsList.length > 0 && (
+                          <>
+                            <tr><td colSpan={13} className="h-10"></td></tr>
+                            <tr>
+                              <td colSpan={7}></td>
+                              <td colSpan={5} className="p-0 align-top">
+                                <table className="w-full text-xs border-collapse">
+                                  <tbody>
+                                    <tr>
+                                      <td className="p-2 border border-slate-300 font-semibold bg-slate-50">{t("ongoingTotalPoUsd")}</td>
+                                      <td className="p-2 border border-slate-300 text-right tabular-nums font-semibold bg-slate-50">{money(ongoingTotals.totalPoUsd)}</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="p-2 border border-slate-300">{t("ongoingTotalMaintUsd")}</td>
+                                      <td className="p-2 border border-slate-300 text-right tabular-nums">{money(ongoingTotals.Maintenance)}</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="p-2 border border-slate-300">{t("ongoingTotalServiceUsd")}</td>
+                                      <td className="p-2 border border-slate-300 text-right tabular-nums">{money(ongoingTotals.Service)}</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="p-2 border border-slate-300">{t("ongoingTotalProjectUsd")}</td>
+                                      <td className="p-2 border border-slate-300 text-right tabular-nums">{money(ongoingTotals.Project)}</td>
+                                    </tr>
+                                    <tr>
+                                      <td className="p-2 border border-slate-300">{t("ongoingTotalTradeUsd")}</td>
+                                      <td className="p-2 border border-slate-300 text-right tabular-nums">{money(ongoingTotals.Trade)}</td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          </>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
               {page === "vendors" && (
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-4 border-b flex justify-between items-center">
+                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
                     <h3 className="font-semibold">{t("nav_vendors")}</h3>
-                    {can("vendors", "add") && <button onClick={() => setVendorModal({ mode: "add", data: emptyVendor() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ListImportExportBar module="vendors" />
+                      {can("vendors", "add") && <button onClick={() => setVendorModal({ mode: "add", data: emptyVendor() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>}
+                    </div>
                   </div>
                   <div className="overflow-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("actions")}</th></tr>
+                        <tr><th className="p-3 text-left">{t("vendorNo")}</th><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("actions")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
                         {scopedVendors.map((v) => (
                           <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
-                            <td className="p-3 font-medium">{v.name}</td><td className="p-3 whitespace-nowrap">{v.phone || "-"}</td><td className="p-3 max-w-[14rem] truncate" title={v.address || ""}>{v.address || "-"}</td><td className="p-3">{v.email}</td><td className="p-3">{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.vendor_no || "-"}</td><td className="p-3 font-medium">{v.name}</td><td className="p-3 whitespace-nowrap">{v.phone || "-"}</td><td className="p-3 max-w-[14rem] truncate" title={v.address || ""}>{v.address || "-"}</td><td className="p-3">{v.email}</td><td className="p-3">{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
                             <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("vendors", "edit")} canDelete={can("vendors", "delete")} onDelete={() => deleteVendor(v.id)} onView={() => setDetailPanel({ type: "vendor", id: v.id })} onEdit={() => setVendorModal({ mode: "edit", id: v.id, data: { ...v } })} /></td>
                           </tr>
                         ))}
@@ -2999,20 +4162,23 @@
 
               {page === "si" && (
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-4 border-b flex justify-between items-center">
+                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
                     <h3 className="font-semibold">{t("nav_si")}</h3>
-                    {can("si", "add") && <button onClick={() => setSiModal({ mode: "add", data: emptySi() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addSi")}</button>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ListImportExportBar module="si" />
+                      {can("si", "add") && <button onClick={() => setSiModal({ mode: "add", data: emptySi() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addSi")}</button>}
+                    </div>
                   </div>
                   <p className="px-4 py-2 text-xs text-slate-500 border-b bg-amber-50/50">{t("siPageHint")}</p>
                   <div className="overflow-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
+                        <tr><th className="p-3 text-left">{t("siNo")}</th><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
                         {scopedSis.map((s) => (
                           <tr key={s.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "si", id: s.id })}>
-                            <td className="p-3 font-medium">{s.name}</td><td className="p-3 whitespace-nowrap">{s.phone || "-"}</td><td className="p-3 max-w-[14rem] truncate" title={s.address || ""}>{s.address || "-"}</td><td className="p-3">{s.email}</td><td className="p-3">{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{s.si_no || "-"}</td><td className="p-3 font-medium">{s.name}</td><td className="p-3 whitespace-nowrap">{s.phone || "-"}</td><td className="p-3 max-w-[14rem] truncate" title={s.address || ""}>{s.address || "-"}</td><td className="p-3">{s.email}</td><td className="p-3">{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
                             <td className="p-3">{getApBySi(s.name).length}</td>
                             <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("si", "edit")} canDelete={can("si", "delete")} onDelete={() => deleteSi(s.id)} onView={() => setDetailPanel({ type: "si", id: s.id })} onEdit={() => setSiModal({ mode: "edit", id: s.id, data: { ...s } })} /></td>
                           </tr>
@@ -3025,9 +4191,12 @@
 
               {page === "ar" && (
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-4 border-b flex justify-between items-center">
+                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
                     <h3 className="font-semibold">{t("nav_ar")}</h3>
-                    {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ListImportExportBar module="ar" />
+                      {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
+                    </div>
                   </div>
                   <ListToolbar t={t} mode="ar" clients={scopedClients} jobs={scopedJobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} searchQ={arSearch} setSearchQ={setArSearch} lang={lang} />
                   <div className="overflow-auto">
@@ -3067,9 +4236,12 @@
 
               {page === "ap" && (
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-4 border-b flex justify-between items-center">
+                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
                     <h3 className="font-semibold">{t("nav_ap")}</h3>
-                    {can("ap", "add") && <button onClick={() => setApModal({ mode: "add", data: emptyApForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAp")}</button>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ListImportExportBar module="ap" />
+                      {can("ap", "add") && <button onClick={() => setApModal({ mode: "add", data: emptyApForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAp")}</button>}
+                    </div>
                   </div>
                   <ListToolbar t={t} mode="ap" clients={scopedClients} jobs={scopedJobs} viewMode={apViewMode} setViewMode={setApViewMode} clientFilter={apClientFilter} setClientFilter={setApClientFilter} jobFilter={apJobFilter} setJobFilter={setApJobFilter} searchQ={apSearch} setSearchQ={setApSearch} lang={lang} />
                   <div className="overflow-auto">
@@ -3103,6 +4275,105 @@
                     )}
                   </div>
                 </section>
+              )}
+
+              {page === "monthly_report" && can("monthly_report", "view") && (
+                <div className="space-y-4">
+                  <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="p-4 border-b flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear)}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">{t("monthlyReportHint")} · {regionListCurrency}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Field label={t("monthlyReportYear")}>
+                          <Input type="number" min="2020" max="2099" value={monthlyReportYear} onChange={(e) => setMonthlyReportYear(e.target.value)} className="h-9 w-24" />
+                        </Field>
+                        {can("monthly_report", "export") && monthlyReportTab === "report" && (
+                          <button type="button" onClick={() => exportModuleExcel("monthly_report", "data")} className="h-9 px-3 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-medium">{t("exportData")}</button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="px-4 pt-3 border-b flex flex-wrap gap-1">
+                      <button type="button" onClick={() => setMonthlyReportTab("report")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (monthlyReportTab === "report" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-700")}>{t("monthlyTabReport")}</button>
+                      <button type="button" onClick={() => setMonthlyReportTab("po_received")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (monthlyReportTab === "po_received" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-700")}>{t("monthlyTabPoReceived")} Y{monthlyReportYear.slice(-2)}</button>
+                      <button type="button" onClick={() => setMonthlyReportTab("ar_invoice")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (monthlyReportTab === "ar_invoice" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500 hover:text-slate-700")}>{t("monthlyTabArInvoice")} Y{monthlyReportYear.slice(-2)}</button>
+                    </div>
+
+                    {monthlyReportTab === "report" && (
+                      <div className="overflow-x-auto p-4">
+                        <table className="w-full text-xs border-collapse min-w-[960px]">
+                          <thead>
+                            <tr className="bg-[#dae3f3] text-slate-800">
+                              <th className="p-2 text-left border border-slate-300 font-semibold w-48"></th>
+                              {monthlyReportSeries.map((m) => (
+                                <th key={m.key} className="p-2 text-center border border-slate-300 font-semibold whitespace-nowrap min-w-[5.5rem]">{m.header}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="p-2 border border-slate-200"></td>
+                              {monthlyReportSeries.map((m) => (
+                                <td key={m.key} className="p-2 border border-slate-200 text-center font-medium">{m.currency}</td>
+                              ))}
+                            </tr>
+                            <tr>
+                              <td className="p-2 border border-slate-200 font-medium whitespace-nowrap">{t("monthlyPoReceived")}</td>
+                              {monthlyReportSeries.map((m) => (
+                                <td key={m.key} className="p-2 border border-slate-200 text-right tabular-nums">{m.poReceived ? money(m.poReceived) : ""}</td>
+                              ))}
+                            </tr>
+                            <tr>
+                              <td className="p-2 border border-slate-200 font-medium whitespace-nowrap">{t("monthlyInvoiceIssued")}</td>
+                              {monthlyReportSeries.map((m) => (
+                                <td key={m.key} className="p-2 border border-slate-200 text-right tabular-nums">{m.invoiceIssued ? money(m.invoiceIssued) : ""}</td>
+                              ))}
+                            </tr>
+                            <tr>
+                              <td className="p-2 border border-slate-200 font-medium whitespace-nowrap text-red-600">{t("monthlyArExpected")}</td>
+                              {monthlyReportSeries.map((m) => (
+                                <td key={m.key} className="p-2 border border-slate-200 text-right tabular-nums text-red-600 font-medium">{m.arExpected ? money(m.arExpected) : ""}</td>
+                              ))}
+                            </tr>
+                          </tbody>
+                        </table>
+                        <p className="text-xs text-red-600 mt-3">{t("monthlyArExpectedHint")}</p>
+                      </div>
+                    )}
+
+                    {monthlyReportTab === "po_received" && (
+                      <div className="p-4 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs text-slate-500">{t("monthlyPoDetailHint").replace("{currency}", regionListCurrency)}</p>
+                          {can("monthly_report", "edit") && (
+                            <button type="button" onClick={syncMonthlyPoFromJobs} className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700">{t("monthlySyncFromJobs")}</button>
+                          )}
+                        </div>
+                        <MonthlyDetailGrid grid={monthlyPoGrid} baseCurrency={regionListCurrency} canEdit={can("monthly_report", "edit")} moneyFn={money} t={t} onOtherCurrencyChange={updateMonthlyPoOtherCurrency} />
+                      </div>
+                    )}
+
+                    {monthlyReportTab === "ar_invoice" && (
+                      <div className="p-4 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs text-slate-500">{t("monthlyArDetailHint").replace("{currency}", regionListCurrency)}</p>
+                          {can("monthly_report", "edit") && (
+                            <button type="button" onClick={syncMonthlyArFromInvoices} className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700">{t("monthlySyncFromAr")}</button>
+                          )}
+                        </div>
+                        <MonthlyDetailGrid grid={monthlyArGrid} baseCurrency={regionListCurrency} canEdit={can("monthly_report", "edit")} moneyFn={money} t={t} onOtherCurrencyChange={updateMonthlyArOtherCurrency} />
+                      </div>
+                    )}
+                  </section>
+
+                  {monthlyReportTab === "report" && (
+                    <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
+                      <h4 className="font-semibold text-center text-slate-700 mb-4">{t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear)}</h4>
+                      <MonthlyReportBarChart series={monthlyReportSeries} maxBar={monthlyReportMaxBar} t={t} moneyFn={money} />
+                    </section>
+                  )}
+                </div>
               )}
 
               {page === "settings" && (
@@ -3389,6 +4660,44 @@
                 </Modal>
               )}
 
+              {quotationModal && (
+                <Modal title={quotationModal.mode === "add" ? t("addQuotationTitle") : t("editQuotation")} onClose={() => setQuotationModal(null)}>
+                  <form onSubmit={saveQuotation} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label={t("quotationNo")}><Input required value={quotationModal.data.quotation_no} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_no: e.target.value } })} /></Field>
+                    <Field label={t("clientGroup")}>
+                      <Select required value={quotationModal.data.client_id} onChange={(e) => {
+                        const client = clients.find((c) => c.id === Number(e.target.value));
+                        setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, client_id: e.target.value, company: client ? client.company : "" } });
+                      }}>
+                        <option value="">Select Client</option>
+                        {clients.filter((c) => c.region === regionForNewRecord()).map((c) => <option key={c.id} value={c.id}>{c.customer_no} · {c.company}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label={t("quotationDate")}><Input type="date" value={quotationModal.data.quotation_date} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_date: e.target.value } })} /></Field>
+                    <Field label={t("validUntil")}><Input type="date" value={quotationModal.data.valid_until} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, valid_until: e.target.value } })} /></Field>
+                    <Field label={t("amount")}><Input type="number" step="0.01" required value={quotationModal.data.amount} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, amount: e.target.value } })} /></Field>
+                    <Field label={t("currency")}>
+                      <Select value={quotationModal.data.currency || "USD"} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, currency: e.target.value } })}>
+                        {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label={t("quotationStatus")}>
+                      <Select value={quotationModal.data.status} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, status: e.target.value } })}>
+                        {QUOTATION_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label="Job No.">
+                      <Select value={quotationModal.data.job_no || ""} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, job_no: e.target.value } })}>
+                        <option value="">—</option>
+                        {scopedJobs.map((j) => <option key={j.id} value={j.job_no}>{j.job_no} · {j.company}</option>)}
+                      </Select>
+                    </Field>
+                    <div className="md:col-span-2"><Field label={t("description")}><Input value={quotationModal.data.description} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, description: e.target.value } })} /></Field></div>
+                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setQuotationModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
+                  </form>
+                </Modal>
+              )}
+
               {jobModal && (
                 <Modal title={jobModal.mode === "add" ? t("addJobTitle") : t("editJob")} onClose={() => setJobModal(null)}>
                   <form onSubmit={saveJob} className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -3407,6 +4716,26 @@
                         {JOB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </Select>
                     </Field>
+                    <Field label={t("quotationNo")}>
+                      <Input
+                        list="erp-accepted-quotations"
+                        value={jobModal.data.quotation_no || ""}
+                        onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, quotation_no: e.target.value } })}
+                        onBlur={(e) => applyQuotationNoToJob(e.target.value)}
+                      />
+                      <datalist id="erp-accepted-quotations">
+                        {scopedQuotations.filter((q) => q.status === "Accepted").map((q) => (
+                          <option key={q.id} value={q.quotation_no}>{q.company} · {money(q.amount)} {q.currency}{q.job_no ? " · " + q.job_no : ""}</option>
+                        ))}
+                      </datalist>
+                      <p className="text-[10px] text-slate-400 mt-1">{t("quotationSelectHint")}</p>
+                    </Field>
+                    <Field label={t("amount")}><Input type="number" step="0.01" value={jobModal.data.amount} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, amount: e.target.value } })} /></Field>
+                    <Field label={t("currency")}>
+                      <Select value={jobModal.data.currency || "USD"} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, currency: e.target.value } })}>
+                        {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
+                      </Select>
+                    </Field>
                     <Field label="Customer PO"><Input value={jobModal.data.customer_po} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po: e.target.value } })} /></Field>
                     <Field label="Status">
                       <Select value={jobModal.data.status} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, status: e.target.value } })}>
@@ -3414,7 +4743,8 @@
                       </Select>
                     </Field>
                     <Field label="Start Date"><Input type="date" value={jobModal.data.start_date} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, start_date: e.target.value } })} /></Field>
-                    <Field label="Description"><Input value={jobModal.data.description} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, description: e.target.value } })} /></Field>
+                    <div className="md:col-span-2"><Field label="Description"><Input value={jobModal.data.description} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, description: e.target.value } })} /></Field></div>
+                    <div className="md:col-span-2"><Field label={t("ongoingColRemarks")}><Input value={jobModal.data.remarks || ""} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, remarks: e.target.value } })} /></Field></div>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setJobModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
@@ -3423,6 +4753,7 @@
               {vendorModal && (
                 <Modal title={vendorModal.mode === "add" ? t("addVendorTitle") : t("editVendor")} onClose={() => setVendorModal(null)}>
                   <form onSubmit={saveVendor} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label={t("vendorNo")}><Input required value={vendorModal.data.vendor_no} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, vendor_no: e.target.value } })} /></Field>
                     <Field label="Vendor Name"><Input required value={vendorModal.data.name} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, name: e.target.value } })} /></Field>
                     <Field label="Email"><Input type="email" value={vendorModal.data.email} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, email: e.target.value } })} /></Field>
                     <Field label="Bank"><Input value={vendorModal.data.bank} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bank: e.target.value } })} /></Field>
@@ -3438,6 +4769,7 @@
               {siModal && (
                 <Modal title={siModal.mode === "add" ? t("addSiTitle") : t("editSi")} onClose={() => setSiModal(null)}>
                   <form onSubmit={saveSi} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label={t("siNo")}><Input required value={siModal.data.si_no} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, si_no: e.target.value } })} /></Field>
                     <Field label="SI Name"><Input required value={siModal.data.name} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, name: e.target.value } })} /></Field>
                     <Field label="Email"><Input type="email" value={siModal.data.email} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, email: e.target.value } })} /></Field>
                     <Field label="Bank"><Input value={siModal.data.bank} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, bank: e.target.value } })} /></Field>
@@ -3520,7 +4852,7 @@
                           setApModal({ ...apModal, data: { ...apModal.data, si_id: e.target.value, company_name: si ? si.name : "", bank: si ? si.bank : apModal.data.bank, swift_code: si ? si.swift_code : apModal.data.swift_code, payment_advice_email: si ? si.email : apModal.data.payment_advice_email } });
                         }}>
                           <option value="">Select SI</option>
-                          {scopedSis.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          {scopedSis.map((s) => <option key={s.id} value={s.id}>{s.si_no ? s.si_no + " · " : ""}{s.name}</option>)}
                         </Select>
                       ) : (
                         <Select required value={apModal.data.company_name} onChange={(e) => {
@@ -3528,7 +4860,7 @@
                           setApModal({ ...apModal, data: { ...apModal.data, company_name: e.target.value, bank: v ? v.bank : apModal.data.bank, swift_code: v ? v.swift_code : apModal.data.swift_code, payment_advice_email: v ? v.email : apModal.data.payment_advice_email } });
                         }}>
                           <option value="">Select Vendor</option>
-                          {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
+                          {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.vendor_no ? v.vendor_no + " · " : ""}{v.name}</option>)}
                         </Select>
                       )}
                     </Field>
