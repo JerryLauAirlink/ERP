@@ -32,6 +32,7 @@
       const ERP_MODULES = ["dashboard", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "si", "settings"];
       const QUOTATION_STATUSES = ["Draft", "Sent", "Accepted", "Rejected", "Expired"];
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
+      const PAYMENT_STAGES = ["", "Deposit", "Progress", "Balance", "Retention", "Final"];
       const ERP_REGIONS = [
         { id: "HK", labelEn: "HK", labelZh: "香港" },
         { id: "TW", labelEn: "TW", labelZh: "台灣" },
@@ -153,7 +154,7 @@
             { header: "Type", field: "job_type", required: true, hint: "Project / Service / Maintenance / Trading(Buy) / Trading(Sell)" },
             { header: "Quotation No", field: "quotation_no", hint: "" },
             { header: "Amount", field: "amount", hint: "Numeric" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / RMB" },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / RMB / AUD" },
             { header: "Customer PO", field: "customer_po", hint: "" },
             { header: "Customer PO Amount", field: "customer_po_amount", hint: "Numeric" },
             { header: "Status", field: "status", hint: "Open / In Progress / Completed / On Hold" },
@@ -171,7 +172,8 @@
             { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
             { header: "Customer", field: "customer", hint: "Optional if job exists" },
             { header: "Customer PO", field: "customer_po", hint: "" },
-            { header: "Invoice Currency", field: "invoice_currency", hint: "USD / HKD / SGD" },
+            { header: "Invoice Currency", field: "invoice_currency", hint: "USD / HKD / SGD / AUD" },
+            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
             { header: "Invoice Amt", field: "invoice_amt", required: true, hint: "Numeric" },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
@@ -190,8 +192,9 @@
             { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name" },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD" },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / AUD" },
             { header: "Amount", field: "amount", required: true, hint: "Numeric" },
+            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
             { header: "Pay Date", field: "pay_date", hint: "YYYY-MM-DD" },
             { header: "Remarks", field: "remarks", hint: "" }
           ]
@@ -208,6 +211,7 @@
             { header: "Address", field: "address", hint: "" },
             { header: "Bank", field: "bank", hint: "" },
             { header: "SWIFT", field: "swift_code", hint: "" },
+            { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
             { header: "Contact", field: "contact", hint: "" }
           ]
         },
@@ -218,10 +222,11 @@
           columns: [
             { header: "SI No", field: "si_no", required: true, hint: "Required, unique key" },
             { header: "Name", field: "name", required: true, hint: "Required" },
+            { header: "Email", field: "email", hint: "Payment advice email" },
             { header: "Address", field: "address", hint: "" },
             { header: "Bank", field: "bank", hint: "" },
             { header: "SWIFT", field: "swift_code", hint: "" },
-            { header: "Contact", field: "contact", hint: "" }
+            { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
           ]
         },
         quotation: {
@@ -234,7 +239,7 @@
             { header: "Quotation Date", field: "quotation_date", hint: "YYYY-MM-DD" },
             { header: "Valid Until", field: "valid_until", hint: "YYYY-MM-DD" },
             { header: "Amount", field: "amount", required: true, hint: "Numeric" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD" },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / AUD" },
             { header: "Status", field: "status", hint: "Draft / Sent / Accepted / Rejected / Expired" },
             { header: "Job No", field: "job_no", hint: "Optional linked job" },
             { header: "Description", field: "description", hint: "" }
@@ -354,6 +359,7 @@
           filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
           jobFlowHint: "Client → Job (quote) → Customer PO → Vendor/SI quotes → Our PO → Delivery & invoices → Pay Vendor/SI (AP) → Job Complete → Invoice Client (AR)",
           payeeType: "Payee Type", payeeVendor: "Vendor", payeeSi: "SI (Subcontractor)", apBills: "AP Bills",
+          apPayeeAutoHint: "Auto-filled from Vendor/SI master when you select payee. You can still edit for this bill.",
           markApPaid: "Mark Paid", apPaid: "Paid", apUnpaid: "Unpaid", issueInvoiceToClient: "Issue Invoice to Client",
           jobCompletedBanner: "Job completed — you can now issue an invoice to the client.", autoApPaidHint: "Entering pay date marks this bill as paid (green).",
           settingsTitle: "Settings", language: "Language", langEn: "English", langZhTw: "Traditional Chinese (Taiwan)", settingsSaved: "Settings saved",
@@ -376,10 +382,19 @@
           ongoingTotalPoUsd: "Total PO Amount in USD", ongoingTotalMaintUsd: "Total Amount for Maintenance in USD",
           ongoingTotalServiceUsd: "Total Amount for Service in USD", ongoingTotalProjectUsd: "Total Amount for Project in USD",
           ongoingTotalTradeUsd: "Total Amount for Trade in USD", exportPdf: "Export PDF",
-          quotationSelectHint: "Type or pick an Accepted quotation no. — client, amount & description auto-fill.",
+          quotationSelectHint: "Type or pick an Accepted quotation no. — client, amount & description auto-fill. Same quotation may link to multiple jobs (split POs).",
           quotationNotAccepted: "Quotation not found or status is not Accepted.",
           quotationNotFound: "No matching quotation in this region.",
           quotationAlreadyLinked: "This quotation is already linked to job {job}.",
+          quotationMultiJobHint: "Also linked to: {jobs}",
+          jobPoLinesTitle: "Customer PO lines",
+          jobPoAddLine: "+ Add PO",
+          jobPoColNo: "PO No.",
+          jobPoColAmount: "Amount",
+          jobPoColDate: "Received Date",
+          jobPoColRemarks: "Remarks",
+          paymentStage: "Payment Stage",
+          paymentStageHint: "Deposit / Progress / Balance — use multiple AR or AP invoices per job for installments.",
           jobAlreadyHasQuotation: "This job is already linked to quotation {quotation}.",
           quotationLinkedOk: "Linked to Accepted quotation.",
           monthlyReportTitle: "Monthly Report",
@@ -476,6 +491,7 @@
           filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
           jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 問 Vendor／SI 報價 → 出 PO → 收貨及 Invoice → 付 Vendor／SI（應付）→ 工作完成 → 向客開 Invoice（應收）",
           payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "分包商 (SI)", apBills: "應付單數",
+          apPayeeAutoHint: "選擇供應商／SI 後會自動帶入主檔資料，仍可為此單修改。",
           markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "待付款", issueInvoiceToClient: "向客開立發票",
           jobCompletedBanner: "工作已完成 — 可向客戶開立發票收款。", autoApPaidHint: "輸入付款日期會標記為已付款（綠色顯示）。",
           settingsTitle: "設定", language: "介面語言", langEn: "英文", langZhTw: "繁體中文（台灣）", settingsSaved: "設定已儲存",
@@ -498,10 +514,19 @@
           ongoingTotalPoUsd: "Total PO Amount in USD", ongoingTotalMaintUsd: "Total Amount for Maintenance in USD",
           ongoingTotalServiceUsd: "Total Amount for Service in USD", ongoingTotalProjectUsd: "Total Amount for Project in USD",
           ongoingTotalTradeUsd: "Total Amount for Trade in USD", exportPdf: "匯出 PDF",
-          quotationSelectHint: "輸入或選擇已 Accepted 嘅報價單號 — 會自動帶入客戶、金額同說明。",
+          quotationSelectHint: "輸入或選擇已 Accepted 嘅報價單號 — 會自動帶入客戶、金額同說明。同一報價可連結多個 Job（分 PO）。",
           quotationNotAccepted: "搵唔到報價單，或狀態唔係 Accepted。",
           quotationNotFound: "此區域冇呢張報價單。",
           quotationAlreadyLinked: "呢張報價單已連結去工作 {job}。",
+          quotationMultiJobHint: "亦已連結：{jobs}",
+          jobPoLinesTitle: "客戶 PO 明細",
+          jobPoAddLine: "+ 新增 PO",
+          jobPoColNo: "PO 編號",
+          jobPoColAmount: "金額",
+          jobPoColDate: "收單日期",
+          jobPoColRemarks: "備註",
+          paymentStage: "付款階段",
+          paymentStageHint: "Deposit / Progress / Balance — 同一 Job 可開多張 AR 或 AP 分期單。",
           jobAlreadyHasQuotation: "呢個工作已連結咗報價單 {quotation}。",
           quotationLinkedOk: "已對應 Accepted 報價單。",
           monthlyReportTitle: "月報表",
@@ -714,7 +739,7 @@
         );
       }
 
-      const fxUsdMap = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160, MYR: 4.7, IDR: 16000 };
+      const fxUsdMap = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160, MYR: 4.7, IDR: 16000, AUD: 1.55 };
 
       function calcOverdueDays(dueDate) {
         if (!dueDate) return 0;
@@ -898,37 +923,39 @@
       function syncPoLinesFromJobs(jobs, year, baseCurrency, existing) {
         const y = Number(year);
         const next = [...existing];
-        for (let m = 0; m < 12; m++) {
-          const { from, to } = monthRangeFor(y, m);
-          jobs.filter((j) => j.start_date && dateInRange(j.start_date, from, to)).forEach((job) => {
-            const sourceKey = "job-" + job.id + "-" + y + "-" + (m + 1);
-            const idx = next.findIndex((l) => l.source_key === sourceKey);
-            const lineCurrency = REGION_CURRENCY[job.region] || baseCurrency;
-            const jobCurrency = job.currency || "USD";
-            const sourceAmt = Number(job.customer_po_amount ?? job.amount ?? 0);
-            const baseAmt = convertCurrency(sourceAmt, jobCurrency, lineCurrency);
-            const patch = {
-              region: job.region || "HK",
-              year: y,
-              month: m + 1,
-              job_no: job.job_no,
-              source_key: sourceKey,
-              other_currency: jobCurrency,
-              source_amount: sourceAmt,
-              base_currency: lineCurrency,
-              base_amount: baseAmt
-            };
-            if (idx >= 0) {
-              next[idx] = {
-                ...next[idx],
-                ...patch,
-                other_currency: next[idx].other_currency || patch.other_currency
+        jobs.map(normalizeJobPoFields).forEach((job) => {
+          const lineCurrency = REGION_CURRENCY[job.region] || baseCurrency;
+          const jobCurrency = job.currency || "USD";
+          const poEntries = (job.po_lines && job.po_lines.length)
+            ? job.po_lines.map((pl) => ({ po_no: pl.po_no || "", sourceAmt: Number(pl.amount || 0), date: pl.received_date || job.start_date || "" }))
+            : [{ po_no: job.customer_po || "", sourceAmt: Number(job.customer_po_amount ?? job.amount ?? 0), date: job.start_date || "" }];
+          for (let m = 0; m < 12; m++) {
+            const { from, to } = monthRangeFor(y, m);
+            poEntries.forEach((pe, poIdx) => {
+              if (!pe.date || !dateInRange(pe.date, from, to) || !pe.sourceAmt) return;
+              const sourceKey = "job-" + job.id + "-" + y + "-" + (m + 1) + "-po" + poIdx;
+              const idx = next.findIndex((l) => l.source_key === sourceKey);
+              const baseAmt = convertCurrency(pe.sourceAmt, jobCurrency, lineCurrency);
+              const displayJobNo = pe.po_no ? job.job_no + " / " + pe.po_no : job.job_no;
+              const patch = {
+                region: job.region || "HK",
+                year: y,
+                month: m + 1,
+                job_no: displayJobNo,
+                source_key: sourceKey,
+                other_currency: jobCurrency,
+                source_amount: pe.sourceAmt,
+                base_currency: lineCurrency,
+                base_amount: baseAmt
               };
-            } else {
-              next.push({ id: Date.now() + Math.floor(Math.random() * 100000), ...patch });
-            }
-          });
-        }
+              if (idx >= 0) {
+                next[idx] = { ...next[idx], ...patch, other_currency: next[idx].other_currency || patch.other_currency };
+              } else {
+                next.push({ id: Date.now() + Math.floor(Math.random() * 100000), ...patch });
+              }
+            });
+          }
+        });
         return next;
       }
 
@@ -1040,7 +1067,82 @@
       }
 
       function emptyJob() {
-        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", customer_po_amount: "", quotation_no: "", amount: "", currency: "USD", status: "Open", description: "", remarks: "", start_date: "" };
+        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", customer_po_amount: "", quotation_no: "", amount: "", currency: "USD", status: "Open", description: "", remarks: "", start_date: "", po_lines: [] };
+      }
+
+      function emptyPoLine() {
+        return { id: Date.now() + Math.floor(Math.random() * 1000), po_no: "", amount: "", received_date: "", remarks: "" };
+      }
+
+      function normalizeJobPoFields(job) {
+        const j = { ...job };
+        if (!Array.isArray(j.po_lines) || !j.po_lines.length) {
+          if (j.customer_po || j.customer_po_amount) {
+            j.po_lines = [{ id: 1, po_no: j.customer_po || "", amount: Number(j.customer_po_amount || 0), received_date: j.start_date || "", remarks: "" }];
+          } else {
+            j.po_lines = [];
+          }
+        } else {
+          j.po_lines = j.po_lines.map((l, i) => ({
+            id: l.id || i + 1,
+            po_no: l.po_no || "",
+            amount: Number(l.amount || 0),
+            received_date: l.received_date || "",
+            remarks: l.remarks || ""
+          }));
+        }
+        const total = j.po_lines.reduce((s, l) => s + Number(l.amount || 0), 0);
+        if (j.po_lines.length) {
+          j.customer_po_amount = total;
+          j.customer_po = j.po_lines.map((l) => l.po_no).filter(Boolean).join(", ");
+          if (!j.start_date) {
+            const dates = j.po_lines.map((l) => l.received_date).filter(Boolean).sort();
+            if (dates.length) j.start_date = dates[0];
+          }
+        }
+        return j;
+      }
+
+      function ensureJobsPoLines(arr) {
+        return (arr || []).map(normalizeJobPoFields);
+      }
+
+      function quotationJobNos(q) {
+        if (!q) return [];
+        if (Array.isArray(q.linked_job_nos) && q.linked_job_nos.length) return q.linked_job_nos.filter(Boolean);
+        if (q.job_no) return String(q.job_no).split(",").map((s) => s.trim()).filter(Boolean);
+        return [];
+      }
+
+      function quotationJobIds(q) {
+        if (!q) return [];
+        if (Array.isArray(q.linked_job_ids) && q.linked_job_ids.length) return q.linked_job_ids;
+        if (q.job_id != null) return [q.job_id];
+        return [];
+      }
+
+      function addJobToQuotation(q, jobId, jobNo) {
+        const ids = [...quotationJobIds(q)];
+        const nos = [...quotationJobNos(q)];
+        if (jobId != null && !ids.includes(jobId)) ids.push(jobId);
+        if (jobNo && !nos.includes(jobNo)) nos.push(jobNo);
+        return { ...q, linked_job_ids: ids, linked_job_nos: nos, job_id: ids[0] || null, job_no: nos.join(", ") };
+      }
+
+      function removeJobFromQuotation(q, jobId, jobNo) {
+        const ids = quotationJobIds(q).filter((id) => id !== jobId);
+        const nos = quotationJobNos(q).filter((n) => n !== jobNo);
+        return { ...q, linked_job_ids: ids, linked_job_nos: nos, job_id: ids[0] || null, job_no: nos.join(", ") };
+      }
+
+      function quotationLinksJob(q, jobNo) {
+        if (!q || !jobNo) return false;
+        return quotationJobNos(q).some((n) => n.toLowerCase() === String(jobNo).trim().toLowerCase());
+      }
+
+      function paymentStageLabel(stage, t) {
+        if (!stage) return "-";
+        return stage;
       }
 
       function jobNatureCategory(jobType) {
@@ -1060,12 +1162,11 @@
       function canLinkQuotationToJob(q, jobModal, jobs) {
         if (!q) return { ok: false, key: "quotationNotFound" };
         if (q.status !== "Accepted") return { ok: false, key: "quotationNotAccepted" };
-        if (!q.job_no) return { ok: true };
         if (jobModal && jobModal.mode === "edit") {
           const job = jobs.find((j) => j.id === jobModal.id);
-          if (job && job.job_no === q.job_no) return { ok: true };
+          if (job && quotationLinksJob(q, job.job_no)) return { ok: true };
         }
-        return { ok: false, key: "quotationAlreadyLinked", jobNo: q.job_no };
+        return { ok: true };
       }
 
       function fieldsFromQuotation(q) {
@@ -1256,9 +1357,9 @@
         return { quotation_no: "", client_id: "", company: "", quotation_date: "", valid_until: "", amount: "", currency: "USD", status: "Draft", description: "", job_no: "" };
       }
 
-      function emptyVendor() { return { vendor_no: "", name: "", email: "", bank: "", swift_code: "", contact: "", phone: "", address: "" }; }
+      function emptyVendor() { return { vendor_no: "", name: "", email: "", bank: "", swift_code: "", charge: "OUR", contact: "", phone: "", address: "" }; }
 
-      function emptySi() { return { si_no: "", name: "", email: "", bank: "", swift_code: "", contact: "", phone: "", address: "" }; }
+      function emptySi() { return { si_no: "", name: "", email: "", bank: "", swift_code: "", charge: "OUR", contact: "", phone: "", address: "" }; }
 
       function ensureVendorNumbers(list) {
         let n = 1;
@@ -1279,7 +1380,32 @@
       }
 
       function emptyApForm() {
-        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "" };
+        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
+      }
+
+      function patchApFromPayeeMaster(payeeType, siId, companyName, vendorList, siList) {
+        if (payeeType === "SI") {
+          const si = siList.find((s) => String(s.id) === String(siId));
+          if (!si) return { si_id: siId || "", company_name: "", bank: "", swift_code: "", payment_advice_email: "", charge: "" };
+          return {
+            si_id: String(si.id),
+            company_name: si.name || "",
+            bank: si.bank || "",
+            swift_code: si.swift_code || "",
+            payment_advice_email: si.email || "",
+            charge: si.charge || "OUR"
+          };
+        }
+        const v = vendorList.find((x) => x.name === companyName);
+        if (!v) return { company_name: companyName || "", si_id: "", bank: "", swift_code: "", payment_advice_email: "", charge: "" };
+        return {
+          company_name: v.name || "",
+          si_id: "",
+          bank: v.bank || "",
+          swift_code: v.swift_code || "",
+          payment_advice_email: v.email || "",
+          charge: v.charge || "OUR"
+        };
       }
 
       function Modal({ title, children, onClose, wide }) {
@@ -1397,12 +1523,12 @@
       ];
 
       const initialVendors = [
-        { id: 1, region: "HK", vendor_no: "VEND-0001", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Tom Lee", phone: "852-2111-0000", address: "Unit 8, Kwun Tong Industrial Centre, Kowloon" },
-        { id: 2, region: "HK", vendor_no: "VEND-0002", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", contact: "Sarah", phone: "852-2888-0000", address: "15/F, Causeway Bay Plaza, Hong Kong" }
+        { id: 1, region: "HK", vendor_no: "VEND-0001", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", charge: "OUR", contact: "Tom Lee", phone: "852-2111-0000", address: "Unit 8, Kwun Tong Industrial Centre, Kowloon" },
+        { id: 2, region: "HK", vendor_no: "VEND-0002", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", charge: "OUR", contact: "Sarah", phone: "852-2888-0000", address: "15/F, Causeway Bay Plaza, Hong Kong" }
       ];
 
       const initialSis = [
-        { id: 1, region: "HK", si_no: "SI-0001", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", contact: "Mr. Cheung", phone: "852-3000-1122", address: "Workshop 3, Tai Po Industrial Estate" }
+        { id: 1, region: "HK", si_no: "SI-0001", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", charge: "OUR", contact: "Mr. Cheung", phone: "852-3000-1122", address: "Workshop 3, Tai Po Industrial Estate" }
       ];
 
       const initialAr = [
@@ -1954,7 +2080,7 @@
         const [baseCurrency, setBaseCurrency] = useState("HKD");
         const [customCurrency, setCustomCurrency] = useState("");
         const [clients, setClients] = useState(() => ensureRegionOnRecords(loadJson("erp_clients", initialClients)));
-        const [jobs, setJobs] = useState(() => ensureRegionOnRecords(loadJson("erp_jobs", initialJobs)));
+        const [jobs, setJobs] = useState(() => ensureJobsPoLines(ensureRegionOnRecords(loadJson("erp_jobs", initialJobs))));
         const [quotations, setQuotations] = useState(() => ensureRegionOnRecords(loadJson("erp_quotations", initialQuotations)));
         const [vendors, setVendors] = useState(() => ensureVendorNumbers(ensureRegionOnRecords(loadJson("erp_vendors", initialVendors))));
         const [sis, setSis] = useState(() => ensureSiNumbers(ensureRegionOnRecords(loadJson("erp_sis", initialSis))));
@@ -2609,9 +2735,14 @@
 
         function saveJob(e) {
           e.preventDefault();
-          const data = { ...jobModal.data, client_id: Number(jobModal.data.client_id), amount: Number(jobModal.data.amount || 0), customer_po_amount: Number(jobModal.data.customer_po_amount || 0) };
+          const po_lines = (jobModal.data.po_lines || []).map((l) => ({
+            ...l,
+            id: l.id || Date.now() + Math.floor(Math.random() * 1000),
+            amount: Number(l.amount || 0)
+          }));
+          const data = { ...jobModal.data, po_lines, client_id: Number(jobModal.data.client_id), amount: Number(jobModal.data.amount || 0), customer_po_amount: Number(jobModal.data.customer_po_amount || 0) };
           const client = clients.find((c) => c.id === data.client_id);
-          const payload = { ...data, company: client ? client.company : data.company };
+          const payload = normalizeJobPoFields({ ...data, company: client ? client.company : data.company });
           const oldJob = jobModal.mode === "edit" ? jobs.find((j) => j.id === jobModal.id) : null;
           const oldQuotationNo = oldJob ? oldJob.quotation_no : "";
           if (payload.quotation_no) {
@@ -2619,7 +2750,6 @@
             const check = canLinkQuotationToJob(q, jobModal, jobs);
             if (!check.ok) {
               if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
-              else if (check.key === "quotationAlreadyLinked") alert(t("quotationAlreadyLinked").replace("{job}", check.jobNo || ""));
               else alert(t("quotationNotFound"));
               return;
             }
@@ -2650,16 +2780,18 @@
         function syncQuotationOnJobSave(jobId, jobNo, quotationNo, oldQuotationNo) {
           const qNo = String(quotationNo || "").trim();
           const oldNo = String(oldQuotationNo || "").trim();
+          const jNo = String(jobNo || "").trim();
           if (!qNo && !oldNo) return;
           setQuotations((prev) => prev.map((q) => {
             const qKey = String(q.quotation_no || "").toLowerCase();
+            let next = { ...q };
             if (oldNo && qKey === oldNo.toLowerCase() && qKey !== qNo.toLowerCase()) {
-              return { ...q, job_id: null, job_no: "" };
+              next = removeJobFromQuotation(next, jobId, jNo);
             }
-            if (qNo && qKey === qNo.toLowerCase()) {
-              return { ...q, job_id: jobId, job_no: jobNo };
+            if (qNo && qKey === qNo.toLowerCase() && jobId && jNo) {
+              next = addJobToQuotation(next, jobId, jNo);
             }
-            return q;
+            return next;
           }));
         }
 
@@ -2671,7 +2803,6 @@
           const check = canLinkQuotationToJob(q, jobModal, jobs);
           if (!check.ok) {
             if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
-            else if (check.key === "quotationAlreadyLinked") alert(t("quotationAlreadyLinked").replace("{job}", check.jobNo || ""));
             else alert(t("quotationNotFound"));
             return;
           }
@@ -2682,7 +2813,12 @@
           if (!guardPermission("job", "delete")) return;
           const j = jobs.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          if (j && j.quotation_no) syncQuotationOnJobSave(null, "", "", j.quotation_no);
+          if (j && j.quotation_no) {
+            setQuotations((prev) => prev.map((q) => {
+              if (String(q.quotation_no || "").toLowerCase() !== String(j.quotation_no).trim().toLowerCase()) return q;
+              return removeJobFromQuotation(q, j.id, j.job_no);
+            }));
+          }
           setJobs(jobs.filter((x) => x.id !== id));
           logAudit("job", "delete", j ? j.job_no : String(id), `Deleted job ${j ? j.job_no : id}`);
         }
@@ -2822,12 +2958,16 @@
           if (quotationModal.mode === "add") {
             if (!guardPermission("quotation", "add")) return;
             const newId = Date.now();
-            setQuotations([{ id: newId, region: regionForNewRecord(), ...payload }, ...quotations]);
+            let qRec = { id: newId, region: regionForNewRecord(), ...payload };
+            if (payload.job_id && payload.job_no) qRec = addJobToQuotation(qRec, payload.job_id, payload.job_no);
+            setQuotations([qRec, ...quotations]);
             setJobs((prev) => syncJobsOnQuotationSave(prev, payload.job_id, payload.job_no, payload.quotation_no, "", ""));
             logAudit("quotation", "create", payload.quotation_no, `Created quotation ${payload.quotation_no}`);
           } else {
             if (!guardPermission("quotation", "edit")) return;
-            setQuotations(quotations.map((q) => (q.id === quotationModal.id ? { ...q, ...payload } : q)));
+            let qRec = { ...quotations.find((q) => q.id === quotationModal.id), ...payload };
+            if (payload.job_id && payload.job_no) qRec = addJobToQuotation(qRec, payload.job_id, payload.job_no);
+            setQuotations(quotations.map((q) => (q.id === quotationModal.id ? qRec : q)));
             setJobs((prev) => syncJobsOnQuotationSave(prev, payload.job_id, payload.job_no, payload.quotation_no, oldJobNo, oldQuotationNo));
             logAudit("quotation", "update", payload.quotation_no, `Updated quotation ${payload.quotation_no}`);
           }
@@ -2838,7 +2978,11 @@
           if (!guardPermission("quotation", "delete")) return;
           const q = quotations.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          if (q && q.job_no) setJobs((prev) => syncJobsOnQuotationSave(prev, null, "", "", q.job_no, q.quotation_no));
+          if (q) {
+            quotationJobNos(q).forEach((jno) => {
+              setJobs((prev) => prev.map((j) => (j.job_no === jno ? { ...j, quotation_no: "" } : j)));
+            });
+          }
           setQuotations(quotations.filter((x) => x.id !== id));
           logAudit("quotation", "delete", q ? q.quotation_no : String(id), `Deleted quotation ${q ? q.quotation_no : id}`);
         }
@@ -2919,6 +3063,7 @@
             job_completed: selectedJob ? isJobCompleted(selectedJob.status) : false,
             payment_received_date: f.payment_received_date || "",
             payment_status: f.payment_received_date ? "Paid" : (f.payment_status || "Awaiting Payment"),
+            payment_stage: f.payment_stage || "",
             due_date: f.due_date || computeArDueDate(f, clients, jobs)
           };
           if (arModal.mode === "add") {
@@ -2959,7 +3104,8 @@
             base_amount: baseInput,
             lock_timestamp: nowIso(),
             rate_source: "MANUAL",
-            manual_override: Math.abs(baseInput - calcValue) > 0.01
+            manual_override: Math.abs(baseInput - calcValue) > 0.01,
+            payment_stage: f.payment_stage || ""
           };
           if (apModal.mode === "add") {
             if (!guardPermission("ap", "add")) return;
@@ -3201,7 +3347,7 @@
               setUsers(d.users || users);
               setAuditLogs(d.auditLogs || []);
               setClients(ensureRegionOnRecords(d.clients));
-              setJobs(ensureRegionOnRecords(d.jobs));
+              setJobs(ensureJobsPoLines(ensureRegionOnRecords(d.jobs)));
               setQuotations(ensureRegionOnRecords(d.quotations || []));
               setVendors(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || [])));
               setSis(ensureSiNumbers(ensureRegionOnRecords(d.sis || [])));
@@ -3213,7 +3359,7 @@
               localStorage.setItem("erp_users", JSON.stringify(d.users || users));
               localStorage.setItem("erp_audit_logs", JSON.stringify(d.auditLogs || []));
               localStorage.setItem("erp_clients", JSON.stringify(ensureRegionOnRecords(d.clients)));
-              localStorage.setItem("erp_jobs", JSON.stringify(ensureRegionOnRecords(d.jobs)));
+              localStorage.setItem("erp_jobs", JSON.stringify(ensureJobsPoLines(ensureRegionOnRecords(d.jobs))));
               localStorage.setItem("erp_quotations", JSON.stringify(ensureRegionOnRecords(d.quotations || [])));
               localStorage.setItem("erp_vendors", JSON.stringify(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || []))));
               localStorage.setItem("erp_sis", JSON.stringify(ensureSiNumbers(ensureRegionOnRecords(d.sis || []))));
@@ -3290,10 +3436,11 @@
                 description: p.data.description || "",
                 remarks: p.data.remarks || ""
               };
+              const normalizedPayload = normalizeJobPoFields(payload);
               const existing = nextJobs.find((j) => j.job_no.toLowerCase() === p.key.toLowerCase());
               if (existing) {
                 const oldNo = existing.job_no;
-                nextJobs = nextJobs.map((j) => (j.id === existing.id ? { ...j, ...payload } : j));
+                nextJobs = nextJobs.map((j) => (j.id === existing.id ? { ...j, ...normalizedPayload } : j));
                 if (oldNo !== payload.job_no) {
                   setArInvoices((prev) => prev.map((r) => (r.job_no === oldNo ? { ...r, job_no: payload.job_no, job_id: existing.id } : r)));
                 }
@@ -3301,7 +3448,7 @@
                 updated++;
               } else {
                 const newId = Date.now() + Math.floor(Math.random() * 10000);
-                nextJobs = [{ id: newId, region: regionForNewRecord(), ...payload }, ...nextJobs];
+                nextJobs = [{ id: newId, region: regionForNewRecord(), ...normalizedPayload }, ...nextJobs];
                 created++;
               }
             });
@@ -3387,7 +3534,7 @@
           } else if (module === "vendors") {
             nextVendors = [...vendors];
             valid.forEach((p) => {
-              const payload = { vendor_no: p.data.vendor_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", contact: p.data.contact || "" };
+              const payload = { vendor_no: p.data.vendor_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", charge: p.data.charge || "OUR", contact: p.data.contact || "" };
               const existing = nextVendors.find((v) => v.vendor_no.toLowerCase() === p.key.toLowerCase());
               if (existing) { nextVendors = nextVendors.map((v) => (v.id === existing.id ? { ...v, ...payload } : v)); updated++; }
               else { nextVendors = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextVendors]; created++; }
@@ -3396,7 +3543,7 @@
           } else if (module === "si") {
             nextSis = [...sis];
             valid.forEach((p) => {
-              const payload = { si_no: p.data.si_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", contact: p.data.contact || "" };
+              const payload = { si_no: p.data.si_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", charge: p.data.charge || "OUR", contact: p.data.contact || "" };
               const existing = nextSis.find((s) => s.si_no.toLowerCase() === p.key.toLowerCase());
               if (existing) { nextSis = nextSis.map((s) => (s.id === existing.id ? { ...s, ...payload } : s)); updated++; }
               else { nextSis = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextSis]; created++; }
@@ -3673,7 +3820,9 @@
                   <div><p className="text-slate-500">{t("quotationDate")}</p><p>{q.quotation_date || "-"}</p></div>
                   <div><p className="text-slate-500">{t("validUntil")}</p><p>{q.valid_until || "-"}</p></div>
                   <div><p className="text-slate-500">{t("amount")}</p><p>{money(q.amount)} {q.currency}</p></div>
-                  <div><p className="text-slate-500">Job No.</p><p>{q.job_no ? <LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === q.job_no); if (j) setDetailPanel({ type: "job", id: j.id }); }}>{q.job_no}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">Job No.</p><p>{quotationJobNos(q).length ? quotationJobNos(q).map((jno, i) => (
+                    <span key={jno}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === jno); if (j) setDetailPanel({ type: "job", id: j.id }); }}>{jno}</LinkBtn></span>
+                  )) : "-"}</p></div>
                   <div className="col-span-2"><p className="text-slate-500">{t("description")}</p><p>{q.description || "-"}</p></div>
                 </div>
               </Modal>
@@ -3681,7 +3830,7 @@
           }
 
           if (type === "job") {
-            const j = jobs.find((x) => x.id === id);
+            const j = normalizeJobPoFields(jobs.find((x) => x.id === id) || null);
             if (!j) return null;
             const relatedAr = getArByJob(j.job_no);
             const relatedAp = getApByJob(j.job_no);
@@ -3696,6 +3845,17 @@
                   <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
                   <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotation ? <LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: linkedQuotation.id })}>{linkedQuotation.quotation_no}</LinkBtn> : (j.quotation_no || "-")}</p></div>
                   <div><p className="text-slate-500">Customer PO Amount</p><p>{j.customer_po_amount ? money(j.customer_po_amount) + " " + (j.currency || "") : "-"}</p></div>
+                  <div className="col-span-2">
+                    <p className="text-slate-500 mb-2">{t("jobPoLinesTitle")}</p>
+                    {j.po_lines && j.po_lines.length ? (
+                      <table className="w-full text-sm border rounded-lg overflow-hidden">
+                        <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("jobPoColNo")}</th><th className="p-2 text-right">{t("jobPoColAmount")}</th><th className="p-2 text-left">{t("jobPoColDate")}</th><th className="p-2 text-left">{t("jobPoColRemarks")}</th></tr></thead>
+                        <tbody>{j.po_lines.map((pl) => (
+                          <tr key={pl.id} className="border-t"><td className="p-2">{pl.po_no || "-"}</td><td className="p-2 text-right tabular-nums">{money(pl.amount)} {j.currency || ""}</td><td className="p-2">{pl.received_date || "-"}</td><td className="p-2">{pl.remarks || "-"}</td></tr>
+                        ))}</tbody>
+                      </table>
+                    ) : <p>-</p>}
+                  </div>
                   <div><p className="text-slate-500">{t("amount")}</p><p>{j.amount ? money(j.amount) + " " + (j.currency || "") : "-"}</p></div>
                   <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
                   <div><p className="text-slate-500">Start Date</p><p>{j.start_date || "-"}</p></div>
@@ -3717,10 +3877,11 @@
                 <h4 className="font-semibold mb-2">{t("relatedInvoices")} ({relatedAr.length})</h4>
                 {relatedAr.length ? (
                   <table className="w-full text-sm border rounded-lg overflow-hidden mb-6">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">{t("paymentStage")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
                     <tbody>{relatedAr.map((r) => (
                       <tr key={r.id} className="border-t">
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ar", { client: j.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></td>
+                        <td className="p-2">{paymentStageLabel(r.payment_stage, t)}</td>
                         <td className="p-2 text-right">{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</td>
                         <td className="p-2">{r.due_date}</td>
                         <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
@@ -3761,6 +3922,7 @@
                   <div><p className="text-slate-500">{t("phoneNo")}</p><p>{s.phone || "-"}</p></div>
                   <div><p className="text-slate-500">{t("address")}</p><p>{s.address || "-"}</p></div>
                   <div><p className="text-slate-500">Bank</p><p>{s.bank}</p></div>
+                  <div><p className="text-slate-500">Charge</p><p>{s.charge || "OUR"}</p></div>
                   <div><p className="text-slate-500">SWIFT</p><p>{s.swift_code || "-"}</p></div>
                   <div><p className="text-slate-500">Contact</p><p>{s.contact || "-"}</p></div>
                 </div>
@@ -3803,6 +3965,7 @@
                   <div><p className="text-slate-500">{t("phoneNo")}</p><p>{v.phone || "-"}</p></div>
                   <div><p className="text-slate-500">{t("address")}</p><p>{v.address || "-"}</p></div>
                   <div><p className="text-slate-500">Bank</p><p>{v.bank}</p></div>
+                  <div><p className="text-slate-500">Charge</p><p>{v.charge || "OUR"}</p></div>
                   <div><p className="text-slate-500">SWIFT</p><p>{v.swift_code || "-"}</p></div>
                   <div><p className="text-slate-500">Contact</p><p>{v.contact || "-"}</p></div>
                 </div>
@@ -3909,7 +4072,10 @@
               <td className="p-3">{getArByJob(j.job_no).length}</td>
               <td className="p-3">{getApByJob(j.job_no).length}</td>
               <td className="p-3">
-                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("job", "edit")} canDelete={can("job", "delete")} onDelete={() => deleteJob(j.id)} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => setJobModal({ mode: "edit", id: j.id, data: { ...j, client_id: String(j.client_id), amount: String(j.amount ?? ""), customer_po_amount: String(j.customer_po_amount ?? "") } })}
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("job", "edit")} canDelete={can("job", "delete")} onDelete={() => deleteJob(j.id)} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => {
+                  const norm = normalizeJobPoFields(j);
+                  setJobModal({ mode: "edit", id: j.id, data: { ...norm, client_id: String(j.client_id), amount: String(j.amount ?? ""), customer_po_amount: String(norm.customer_po_amount ?? ""), po_lines: (norm.po_lines || []).map((pl) => ({ ...pl, amount: String(pl.amount ?? "") })) } });
+                }}
                   extra={isJobCompleted(j.status) && can("ar", "add") ? <button type="button" onClick={(e) => { e.stopPropagation(); openArFromJob(j); }} className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">{t("issueInvoiceToClient")}</button> : null}
                 />
               </td>
@@ -3925,14 +4091,14 @@
             <tr key={r.id} className={"hover:bg-blue-50/50 cursor-pointer " + rowHighlightClass(r.id)} onClick={() => setDetailPanel({ type: "ar", id: r.id })}>
               <td className="p-3">{r.job_no}</td><td className="p-3">{r.customer}</td><td className="p-3">{r.customer_po || "-"}</td>
               <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + (linkedJob ? jobStatusClass(linkedJob.status) : "bg-slate-100")}>{jobStatus}</span></td>
-              <td className="p-3">{r.invoice_no}</td><td className="p-3">{r.invoice_currency}</td><td className="p-3 text-right">{money(r.invoice_amt)}</td>
+              <td className="p-3">{r.invoice_no}</td><td className="p-3">{paymentStageLabel(r.payment_stage, t)}</td><td className="p-3">{r.invoice_currency}</td><td className="p-3 text-right">{money(r.invoice_amt)}</td>
               <td className="p-3 text-right font-medium">{money(r.display_base_amount)}</td>
               <td className="p-3">{r.invoice_date}</td><td className="p-3">{r.due_date}</td>
               <td className="p-3 text-right">{r.payment_status === "Paid" ? 0 : calcOverdueDays(r.due_date)}</td><td className="p-3 text-right">{calcDaysBetween(r.invoice_date, r.due_date)}</td>
               <td className="p-3">{r.payment_received_date || "-"}</td>
               <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
               <td className="p-3">
-                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("ar", "edit")} canDelete={can("ar", "delete")} onDelete={() => deleteAr(r.id)} onView={() => setDetailPanel({ type: "ar", id: r.id })} onEdit={() => setArModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), invoice_amt: String(r.invoice_amt ?? ""), exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || "") } })}
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("ar", "edit")} canDelete={can("ar", "delete")} onDelete={() => deleteAr(r.id)} onView={() => setDetailPanel({ type: "ar", id: r.id })} onEdit={() => setArModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), invoice_amt: String(r.invoice_amt ?? ""), exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || ""), payment_stage: r.payment_stage || "" } })}
                   extra={r.payment_status !== "Paid" && can("ar", "edit") ? <button type="button" onClick={(e) => { e.stopPropagation(); markArPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markPaid")}</button> : null}
                 />
               </td>
@@ -3946,13 +4112,13 @@
             <tr key={r.id} className={"hover:bg-blue-50/50 cursor-pointer " + (isApPaid(r) ? "bg-green-50/70 " : "") + rowHighlightClass(r.id)} onClick={() => setDetailPanel({ type: "ap", id: r.id })}>
               <td className="p-3">{r.job_no || "-"}</td>
               <td className="p-3"><span className="text-xs px-1.5 py-0.5 rounded bg-slate-100">{r.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</span></td>
-              <td className="p-3">{r.company_name}</td><td className="p-3">{r.invoice_no}</td><td className="p-3">{r.invoice_date || "-"}</td><td className="p-3">{r.invoice_received_date || "-"}</td>
+              <td className="p-3">{r.company_name}</td><td className="p-3">{r.invoice_no}</td><td className="p-3">{paymentStageLabel(r.payment_stage, t)}</td><td className="p-3">{r.invoice_date || "-"}</td><td className="p-3">{r.invoice_received_date || "-"}</td>
               <td className="p-3">{r.due_date || "-"}</td><td className="p-3">{r.currency}</td><td className="p-3 text-right">{money(r.amount)}</td>
               <td className="p-3 text-right font-medium">{money(r.display_base_amount)}</td>
               <td className="p-3 whitespace-nowrap"><span className={apPaymentClass(r)}>{apPaymentLabel(r, t)}</span></td>
               <td className="p-3">{r.pay_date || "-"}</td><td className="p-3">{r.remarks || "-"}</td><td className="p-3">{r.bank || "-"}</td><td className="p-3">{r.charge || "-"}</td><td className="p-3">{r.swift_code || "-"}</td><td className="p-3">{r.payment_advice_email || "-"}</td>
               <td className="p-3">
-                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("ap", "edit")} canDelete={can("ap", "delete")} onDelete={() => deleteAp(r.id)} onView={() => setDetailPanel({ type: "ap", id: r.id })} onEdit={() => setApModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), si_id: String(r.si_id || ""), payee_type: r.payee_type || "Vendor", amount: String(r.amount ?? ""), exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || "") } })}
+                <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("ap", "edit")} canDelete={can("ap", "delete")} onDelete={() => deleteAp(r.id)} onView={() => setDetailPanel({ type: "ap", id: r.id })} onEdit={() => setApModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), si_id: String(r.si_id || ""), payee_type: r.payee_type || "Vendor", amount: String(r.amount ?? ""), exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || ""), payment_stage: r.payment_stage || "" } })}
                   extra={!isApPaid(r) && can("ap", "edit") ? <button type="button" onClick={(e) => { e.stopPropagation(); markApPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markApPaid")}</button> : null}
                 />
               </td>
@@ -4438,7 +4604,7 @@
                       <h3 className="font-semibold">{t("nav_job")}</h3>
                       <div className="flex items-center gap-2 flex-wrap">
                         <ListImportExportBar module="job" />
-                        {can("job", "add") && <button onClick={() => setJobModal({ mode: "add", data: emptyJob() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>}
+                        {can("job", "add") && <button onClick={() => setJobModal({ mode: "add", data: { ...emptyJob(), po_lines: [emptyPoLine()] } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>}
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
@@ -4683,7 +4849,7 @@
                     <h3 className="font-semibold">{t("nav_ar")}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="ar" />
-                      {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
+                      {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment", payment_stage: "" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="ar" clients={scopedClients} jobs={scopedJobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} searchQ={arSearch} setSearchQ={setArSearch} lang={lang} />
@@ -4696,7 +4862,7 @@
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
                                 <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("jobStatus")}</th>
-                                <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
+                                <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
                                 <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
                                 <th className="p-3 text-right">Overdue Days</th><th className="p-3 text-right">Days</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
@@ -4710,7 +4876,7 @@
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
                             <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("jobStatus")}</th>
-                            <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
+                            <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
                             <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
                             <th className="p-3 text-right">Overdue Days</th><th className="p-3 text-right">Days</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
@@ -4740,7 +4906,7 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
+                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
                                 <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">{amtInLabel}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">Charge</th><th className="p-3 text-left">SWIFT CODE</th><th className="p-3 text-left">Payment Advice email</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
@@ -4753,7 +4919,7 @@
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
-                            <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
+                            <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
                             <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">{amtInLabel}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">Charge</th><th className="p-3 text-left">SWIFT CODE</th><th className="p-3 text-left">Payment Advice email</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
@@ -5244,10 +5410,67 @@
                         ))}
                       </datalist>
                       <p className="text-[10px] text-slate-400 mt-1">{t("quotationSelectHint")}</p>
+                      {(() => {
+                        const q = findQuotationByNo(jobModal.data.quotation_no, scopedQuotations);
+                        const others = q ? quotationJobNos(q).filter((n) => n !== jobModal.data.job_no) : [];
+                        return others.length ? <p className="text-[10px] text-amber-600 mt-1">{t("quotationMultiJobHint").replace("{jobs}", others.join(", "))}</p> : null;
+                      })()}
                     </Field>
                     <Field label="Quotation Amount"><Input type="number" step="0.01" value={jobModal.data.amount} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, amount: e.target.value } })} /></Field>
                     <Field label="Customer PO"><Input value={jobModal.data.customer_po} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po: e.target.value } })} /></Field>
-                    <Field label="Customer PO Amount"><Input type="number" step="0.01" value={jobModal.data.customer_po_amount || ""} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po_amount: e.target.value } })} /></Field>
+                    <Field label="Customer PO Amount (Total)"><Input type="number" step="0.01" readOnly value={jobModal.data.customer_po_amount || ""} className="bg-slate-50" /></Field>
+                    <div className="md:col-span-2 border rounded-lg p-3 bg-slate-50/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold text-slate-700">{t("jobPoLinesTitle")}</p>
+                        <button type="button" className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700" onClick={() => setJobModal({ ...jobModal, data: { ...jobModal.data, po_lines: [...(jobModal.data.po_lines || []), emptyPoLine()] } })}>{t("jobPoAddLine")}</button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs border-collapse">
+                          <thead><tr className="text-slate-500">
+                            <th className="p-1.5 text-left font-medium">{t("jobPoColNo")}</th>
+                            <th className="p-1.5 text-right font-medium">{t("jobPoColAmount")}</th>
+                            <th className="p-1.5 text-left font-medium">{t("jobPoColDate")}</th>
+                            <th className="p-1.5 text-left font-medium">{t("jobPoColRemarks")}</th>
+                            <th className="p-1.5 w-8"></th>
+                          </tr></thead>
+                          <tbody>
+                            {(jobModal.data.po_lines || []).map((pl, idx) => (
+                              <tr key={pl.id || idx}>
+                                <td className="p-1"><input className="w-full border border-slate-300 rounded px-1.5 py-1" value={pl.po_no || ""} onChange={(e) => {
+                                  const po_lines = [...(jobModal.data.po_lines || [])];
+                                  po_lines[idx] = { ...po_lines[idx], po_no: e.target.value };
+                                  const total = po_lines.reduce((s, l) => s + Number(l.amount || 0), 0);
+                                  setJobModal({ ...jobModal, data: { ...jobModal.data, po_lines, customer_po: po_lines.map((l) => l.po_no).filter(Boolean).join(", "), customer_po_amount: total } });
+                                }} /></td>
+                                <td className="p-1"><input type="number" step="0.01" className="w-full border border-slate-300 rounded px-1.5 py-1 text-right" value={pl.amount ?? ""} onChange={(e) => {
+                                  const po_lines = [...(jobModal.data.po_lines || [])];
+                                  po_lines[idx] = { ...po_lines[idx], amount: e.target.value };
+                                  const total = po_lines.reduce((s, l) => s + Number(l.amount || 0), 0);
+                                  setJobModal({ ...jobModal, data: { ...jobModal.data, po_lines, customer_po_amount: total } });
+                                }} /></td>
+                                <td className="p-1"><input type="date" className="w-full border border-slate-300 rounded px-1.5 py-1" value={pl.received_date || ""} onChange={(e) => {
+                                  const po_lines = [...(jobModal.data.po_lines || [])];
+                                  po_lines[idx] = { ...po_lines[idx], received_date: e.target.value };
+                                  const dates = po_lines.map((l) => l.received_date).filter(Boolean).sort();
+                                  setJobModal({ ...jobModal, data: { ...jobModal.data, po_lines, start_date: dates[0] || jobModal.data.start_date } });
+                                }} /></td>
+                                <td className="p-1"><input className="w-full border border-slate-300 rounded px-1.5 py-1" value={pl.remarks || ""} onChange={(e) => {
+                                  const po_lines = [...(jobModal.data.po_lines || [])];
+                                  po_lines[idx] = { ...po_lines[idx], remarks: e.target.value };
+                                  setJobModal({ ...jobModal, data: { ...jobModal.data, po_lines } });
+                                }} /></td>
+                                <td className="p-1 text-center"><button type="button" className="text-red-500 hover:text-red-700" onClick={() => {
+                                  const po_lines = (jobModal.data.po_lines || []).filter((_, i) => i !== idx);
+                                  const total = po_lines.reduce((s, l) => s + Number(l.amount || 0), 0);
+                                  setJobModal({ ...jobModal, data: { ...jobModal.data, po_lines, customer_po: po_lines.map((l) => l.po_no).filter(Boolean).join(", "), customer_po_amount: total } });
+                                }}>×</button></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-2">{t("jobPoLinesTitle")}: one row per PO; received date sets Monthly Report month.</p>
+                    </div>
                     <Field label="Start Date"><Input type="date" value={jobModal.data.start_date} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, start_date: e.target.value } })} /></Field>
                     <Field label="Status">
                       <Select value={jobModal.data.status} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, status: e.target.value } })}>
@@ -5268,6 +5491,7 @@
                     <Field label="Vendor Name"><Input required value={vendorModal.data.name} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, name: e.target.value } })} /></Field>
                     <Field label="Email"><Input type="email" value={vendorModal.data.email} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, email: e.target.value } })} /></Field>
                     <Field label="Bank"><Input value={vendorModal.data.bank} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bank: e.target.value } })} /></Field>
+                    <Field label="Charge"><Input value={vendorModal.data.charge || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, charge: e.target.value } })} placeholder="OUR" /></Field>
                     <Field label="SWIFT CODE"><Input value={vendorModal.data.swift_code} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, swift_code: e.target.value } })} /></Field>
                     <Field label="Contact"><Input value={vendorModal.data.contact} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, contact: e.target.value } })} /></Field>
                     <Field label={t("phoneNo")}><Input value={vendorModal.data.phone} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, phone: e.target.value } })} /></Field>
@@ -5284,6 +5508,7 @@
                     <Field label="SI Name"><Input required value={siModal.data.name} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, name: e.target.value } })} /></Field>
                     <Field label="Email"><Input type="email" value={siModal.data.email} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, email: e.target.value } })} /></Field>
                     <Field label="Bank"><Input value={siModal.data.bank} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, bank: e.target.value } })} /></Field>
+                    <Field label="Charge"><Input value={siModal.data.charge || ""} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, charge: e.target.value } })} placeholder="OUR" /></Field>
                     <Field label="SWIFT CODE"><Input value={siModal.data.swift_code} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, swift_code: e.target.value } })} /></Field>
                     <Field label="Contact"><Input value={siModal.data.contact} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, contact: e.target.value } })} /></Field>
                     <Field label={t("phoneNo")}><Input value={siModal.data.phone} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, phone: e.target.value } })} /></Field>
@@ -5312,7 +5537,17 @@
                       return linked ? <Field label={t("jobStatus")}><Input readOnly value={linked.status} className="bg-slate-50" /></Field> : null;
                     })()}
                     <Field label="Invoice No."><Input required value={arModal.data.invoice_no} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_no: e.target.value } })} /></Field>
-                    <Field label="Invoice Currency"><Input required value={arModal.data.invoice_currency} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_currency: e.target.value.toUpperCase() } })} /></Field>
+                    <Field label={t("paymentStage")}>
+                      <Select value={arModal.data.payment_stage || ""} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, payment_stage: e.target.value } })}>
+                        {PAYMENT_STAGES.map((s) => <option key={s || "none"} value={s}>{s || "—"}</option>)}
+                      </Select>
+                      <p className="text-[10px] text-slate-400 mt-1">{t("paymentStageHint")}</p>
+                    </Field>
+                    <Field label="Invoice Currency">
+                      <Select value={arModal.data.invoice_currency || "USD"} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_currency: e.target.value } })}>
+                        {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
+                      </Select>
+                    </Field>
                     <Field label={t("invoiceAmountOrig")}>
                       <Input type="number" step="0.01" required value={arModal.data.invoice_amt} onChange={(e) => calcBaseEditable({ invoice_amt: e.target.value }, arModal.data, (d) => setArModal((prev) => ({ ...prev, data: d })))} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("invoiceAmountHint")}</p>
@@ -5351,7 +5586,7 @@
                       </Select>
                     </Field>
                     <Field label={t("payeeType")}>
-                      <Select value={apModal.data.payee_type} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payee_type: e.target.value, company_name: "", si_id: "" } })}>
+                      <Select value={apModal.data.payee_type} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payee_type: e.target.value, company_name: "", si_id: "", bank: "", swift_code: "", payment_advice_email: "", charge: "" } })}>
                         <option value="Vendor">{t("payeeVendor")}</option>
                         <option value="SI">{t("payeeSi")}</option>
                       </Select>
@@ -5359,27 +5594,38 @@
                     <Field label="Company Name">
                       {apModal.data.payee_type === "SI" ? (
                         <Select required value={apModal.data.si_id} onChange={(e) => {
-                          const si = sis.find((s) => s.id === Number(e.target.value));
-                          setApModal({ ...apModal, data: { ...apModal.data, si_id: e.target.value, company_name: si ? si.name : "", bank: si ? si.bank : apModal.data.bank, swift_code: si ? si.swift_code : apModal.data.swift_code, payment_advice_email: si ? si.email : apModal.data.payment_advice_email } });
+                          const patch = patchApFromPayeeMaster("SI", e.target.value, "", vendors, sis);
+                          setApModal({ ...apModal, data: { ...apModal.data, ...patch } });
                         }}>
                           <option value="">Select SI</option>
                           {scopedSis.map((s) => <option key={s.id} value={s.id}>{s.si_no ? s.si_no + " · " : ""}{s.name}</option>)}
                         </Select>
                       ) : (
                         <Select required value={apModal.data.company_name} onChange={(e) => {
-                          const v = vendors.find((x) => x.name === e.target.value);
-                          setApModal({ ...apModal, data: { ...apModal.data, company_name: e.target.value, bank: v ? v.bank : apModal.data.bank, swift_code: v ? v.swift_code : apModal.data.swift_code, payment_advice_email: v ? v.email : apModal.data.payment_advice_email } });
+                          const patch = patchApFromPayeeMaster("Vendor", "", e.target.value, vendors, sis);
+                          setApModal({ ...apModal, data: { ...apModal.data, ...patch } });
                         }}>
                           <option value="">Select Vendor</option>
                           {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.vendor_no ? v.vendor_no + " · " : ""}{v.name}</option>)}
                         </Select>
                       )}
+                      <p className="text-[10px] text-slate-400 mt-1">{t("apPayeeAutoHint")}</p>
                     </Field>
                     <Field label="Invoice No."><Input required value={apModal.data.invoice_no} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_no: e.target.value } })} /></Field>
+                    <Field label={t("paymentStage")}>
+                      <Select value={apModal.data.payment_stage || ""} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payment_stage: e.target.value } })}>
+                        {PAYMENT_STAGES.map((s) => <option key={s || "none"} value={s}>{s || "—"}</option>)}
+                      </Select>
+                      <p className="text-[10px] text-slate-400 mt-1">{t("paymentStageHint")}</p>
+                    </Field>
                     <Field label="Invoice Date"><Input type="date" required value={apModal.data.invoice_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_date: e.target.value } })} /></Field>
                     <Field label="Invoice Received Date"><Input type="date" value={apModal.data.invoice_received_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_received_date: e.target.value } })} /></Field>
                     <Field label="Due Date"><Input type="date" required value={apModal.data.due_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, due_date: e.target.value } })} /></Field>
-                    <Field label="Currency"><Input required value={apModal.data.currency} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, currency: e.target.value.toUpperCase() } })} /></Field>
+                    <Field label="Currency">
+                      <Select value={apModal.data.currency || "USD"} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, currency: e.target.value } })}>
+                        {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
+                      </Select>
+                    </Field>
                     <Field label={t("invoiceAmountOrig")}>
                       <Input type="number" step="0.01" required value={apModal.data.amount} onChange={(e) => calcBaseEditable({ amount: e.target.value }, apModal.data, (d) => setApModal((prev) => ({ ...prev, data: d })))} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("invoiceAmountHint")}</p>
@@ -5392,10 +5638,10 @@
                     <Field label="Pay Date"><Input type="date" value={apModal.data.pay_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, pay_date: e.target.value } })} /></Field>
                     <p className="md:col-span-2 text-xs text-slate-500">{t("autoApPaidHint")}</p>
                     <Field label="Remarks"><Input value={apModal.data.remarks} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, remarks: e.target.value } })} /></Field>
-                    <Field label="Bank"><Input value={apModal.data.bank} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, bank: e.target.value } })} /></Field>
-                    <Field label="Charge"><Input value={apModal.data.charge} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, charge: e.target.value } })} /></Field>
-                    <Field label="SWIFT CODE"><Input value={apModal.data.swift_code} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, swift_code: e.target.value } })} /></Field>
-                    <Field label="Payment Advice Email"><Input type="email" value={apModal.data.payment_advice_email} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payment_advice_email: e.target.value } })} /></Field>
+                    <Field label="Bank"><Input value={apModal.data.bank} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, bank: e.target.value } })} className="bg-slate-50" /></Field>
+                    <Field label="Charge"><Input value={apModal.data.charge} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, charge: e.target.value } })} placeholder="OUR" className="bg-slate-50" /></Field>
+                    <Field label="SWIFT CODE"><Input value={apModal.data.swift_code} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, swift_code: e.target.value } })} className="bg-slate-50" /></Field>
+                    <Field label="Payment Advice Email"><Input type="email" value={apModal.data.payment_advice_email} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payment_advice_email: e.target.value } })} className="bg-slate-50" /></Field>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setApModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
