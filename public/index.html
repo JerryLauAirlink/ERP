@@ -392,7 +392,7 @@
           jobQuotationInputHint: "Enter Accepted quotation no., then blur or click Add.",
           quotationAmountTotal: "Quotation Amount (Total)",
           invoiceAmountTotal: "Invoice Amount (Total)",
-          combinedJobAmount: "Amount (Quotation + PO)",
+          customerPoAmountTotal: "Customer PO Amount (Total)",
           jobCompleteCol: "Job Complete",
           arPaymentStatusAutoHint: "Status is automatic: Paid when payment date is entered; Overdue after due date; otherwise Awaiting Payment.",
           apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; Overdue after due date; otherwise Awaiting Payment.",
@@ -536,7 +536,7 @@
           jobQuotationInputHint: "輸入 Accepted 報價單號，再離開欄位或按新增。",
           quotationAmountTotal: "報價金額（總計）",
           invoiceAmountTotal: "發票金額（總計）",
-          combinedJobAmount: "金額（報價 + PO）",
+          customerPoAmountTotal: "客戶 PO 金額（總計）",
           jobCompleteCol: "工作完成",
           arPaymentStatusAutoHint: "狀態自動更新：有收款日期 = 已收款；過 due date = 逾期；否則 = 待收款。",
           apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；過 due date = 逾期；否則 = 待付款。",
@@ -3342,8 +3342,19 @@
             };
           });
           if (module === "ap") return scopedApBills.map((b) => ({
-            ...rowFromSchema(EXCEL_SCHEMAS.ap, b),
-            base_amount_region: resolveApDisplayAmount(b, regionListCurrency)
+            company_name: b.company_name || "",
+            invoice_no: b.invoice_no || "",
+            invoice_date: b.invoice_date || "",
+            invoice_received_date: b.invoice_received_date || "",
+            due_date: b.due_date || "",
+            currency: b.currency || "",
+            amount: b.amount ?? "",
+            base_amount_region: resolveApDisplayAmount(b, regionListCurrency),
+            pay_date: b.pay_date || "",
+            remarks: b.remarks || "",
+            bank_charge: [b.bank, b.charge].filter(Boolean).join(" / ") || "",
+            swift_code: b.swift_code || "",
+            payment_advice_email: b.payment_advice_email || ""
           }));
           if (module === "vendors") return scopedVendors.map((v) => rowFromSchema(EXCEL_SCHEMAS.vendors, v));
           if (module === "si") return scopedSis.map((s) => rowFromSchema(EXCEL_SCHEMAS.si, s));
@@ -3383,10 +3394,22 @@
             };
           } else if (module === "ap") {
             schema = {
-              ...schema,
+              sheetName: "AP",
+              filePrefix: "ap",
               columns: [
-                ...schema.columns,
-                { header: "Amount (" + regionListCurrency + ")", field: "base_amount_region", hint: "Converted to active region currency" }
+                { header: "Company Name", field: "company_name" },
+                { header: "Invoice No.", field: "invoice_no" },
+                { header: "Invoice Date", field: "invoice_date" },
+                { header: "Invoice Received Date", field: "invoice_received_date" },
+                { header: "Due Date", field: "due_date" },
+                { header: "Currency", field: "currency" },
+                { header: "Amount", field: "amount" },
+                { header: "Amount in " + regionListCurrency, field: "base_amount_region" },
+                { header: "Pay Date", field: "pay_date" },
+                { header: "Remarks", field: "remarks" },
+                { header: "Bank Charge", field: "bank_charge" },
+                { header: "SWIFT CODE", field: "swift_code" },
+                { header: "Payment Advice email", field: "payment_advice_email" }
               ]
             };
           }
@@ -4085,23 +4108,30 @@
             const jobCurrency = j.currency || "USD";
             const quotationTotal = sumLinkedQuotationAmounts(j, quotations, jobCurrency);
             const poTotal = sumJobPoAmount(j);
-            const combinedTotal = quotationTotal + poTotal;
             const invoiceTotal = sumJobArInvoiceAmount(j.job_no, arInvoices, regionListCurrency);
             return (
               <Modal title={t("jobDetail") + " - " + j.job_no} onClose={() => setDetailPanel(null)} wide>
                 <p className="text-xs text-slate-500 mb-4">{t("jobFlowHint")}</p>
+                <div className="grid grid-cols-2 gap-6 text-sm mb-6">
+                  <div className="space-y-4">
+                    <div><p className="text-slate-500">Client</p><p className="font-medium">{j.company}</p></div>
+                    <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
+                    <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotations.length ? linkedQuotations.map((q, i) => (
+                      <span key={q.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>{q.quotation_no}</LinkBtn></span>
+                    )) : (j.quotation_no || "-")}</p></div>
+                    <div><p className="text-slate-500">Invoice No.</p><p>{relatedAr.length ? relatedAr.map((r, i) => (
+                      <span key={r.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => navigateTo("ar", { client: j.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></span>
+                    )) : "-"}</p></div>
+                    <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
+                  </div>
+                  <div className="space-y-4">
+                    <div><p className="text-slate-500">{t("type")}</p><p>{j.job_type}</p></div>
+                    <div><p className="text-slate-500">{t("customerPoAmountTotal")}</p><p>{poTotal ? money(poTotal) + " " + jobCurrency : "-"}</p></div>
+                    <div><p className="text-slate-500">{t("quotationAmountTotal")}</p><p>{quotationTotal ? money(quotationTotal) + " " + jobCurrency : "-"}</p></div>
+                    <div><p className="text-slate-500">{t("invoiceAmountTotal")}</p><p className="font-medium">{invoiceTotal ? money(invoiceTotal) + " " + regionListCurrency : "-"}</p></div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-                  <div><p className="text-slate-500">Client</p><p className="font-medium">{j.company}</p></div>
-                  <div><p className="text-slate-500">{t("type")}</p><p>{j.job_type}</p></div>
-                  <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
-                  <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotations.length ? linkedQuotations.map((q, i) => (
-                    <span key={q.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>{q.quotation_no}</LinkBtn></span>
-                  )) : (j.quotation_no || "-")}</p></div>
-                  <div><p className="text-slate-500">{t("quotationAmountTotal")}</p><p>{quotationTotal ? money(quotationTotal) + " " + jobCurrency : "-"}</p></div>
-                  <div><p className="text-slate-500">Customer PO Amount</p><p>{poTotal ? money(poTotal) + " " + jobCurrency : "-"}</p></div>
-                  <div><p className="text-slate-500">{t("combinedJobAmount")}</p><p className="font-medium">{combinedTotal ? money(combinedTotal) + " " + jobCurrency : "-"}</p></div>
-                  <div><p className="text-slate-500">{t("invoiceAmountTotal")}</p><p className="font-medium">{invoiceTotal ? money(invoiceTotal) + " " + regionListCurrency : "-"}</p></div>
-                  <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
                   <div className="col-span-2">
                     <p className="text-slate-500 mb-2">{t("jobPoLinesTitle")}</p>
                     {j.po_lines && j.po_lines.length ? (
