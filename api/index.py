@@ -18,6 +18,12 @@ from erp_backup import (
     save_erp_backup,
     verify_sync_secret,
 )
+from erp_live_sync import (
+    get_changes_since,
+    get_sync_status,
+    load_full_entities,
+    upsert_entity_changes,
+)
 
 app = FastAPI(title="ERP Cloud API")
 
@@ -37,6 +43,19 @@ class ErpBackupPayload(BaseModel):
     data: dict
 
 
+class EntityChange(BaseModel):
+    entity_type: str
+    entity_id: int
+    payload: dict = {}
+    is_deleted: bool = False
+    region: str | None = None
+
+
+class EntityChangesPayload(BaseModel):
+    changes: list[EntityChange]
+    updated_by: int | None = None
+
+
 @app.get("/")
 @app.get("/api")
 def api_root():
@@ -52,6 +71,7 @@ def health_check():
         "api": "ERP Cloud API",
         "database": db_status,
         "cloud_sync_configured": bool(os.getenv("ERP_SYNC_SECRET")),
+        "live_sync_ready": True,
     }
 
 
@@ -91,3 +111,61 @@ def post_cloud_backup(
         "id": record.id,
         "exported_at": record.exported_at.isoformat() if record.exported_at else None,
     }
+
+
+@app.get("/sync/status")
+@app.get("/api/sync/status")
+def sync_status(
+    db: Session = Depends(get_db),
+    _: None = Depends(verify_sync_secret),
+    tenant_id: int = default_tenant_id(),
+):
+    try:
+        return get_sync_status(db, tenant_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/sync/changes")
+@app.get("/api/sync/changes")
+def sync_changes(
+    since: int = 0,
+    db: Session = Depends(get_db),
+    _: None = Depends(verify_sync_secret),
+    tenant_id: int = default_tenant_id(),
+):
+    try:
+        return get_changes_since(db, tenant_id, since)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get("/sync/full")
+@app.get("/api/sync/full")
+def sync_full(
+    db: Session = Depends(get_db),
+    _: None = Depends(verify_sync_secret),
+    tenant_id: int = default_tenant_id(),
+):
+    try:
+        return load_full_entities(db, tenant_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/sync/push")
+@app.post("/api/sync/push")
+def sync_push(
+    body: EntityChangesPayload,
+    db: Session = Depends(get_db),
+    _: None = Depends(verify_sync_secret),
+    tenant_id: int = default_tenant_id(),
+):
+    if not body.changes:
+        return {"server_version": get_sync_status(db, tenant_id)["server_version"], "applied": 0}
+    try:
+        changes = [c.model_dump() for c in body.changes]
+        version = upsert_entity_changes(db, tenant_id, changes, updated_by=body.updated_by)
+        return {"server_version": version, "applied": len(changes)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

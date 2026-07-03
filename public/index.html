@@ -579,6 +579,9 @@
           cloudSyncKey: "Cloud Sync Key", cloudSyncKeyPlaceholder: "Same as ERP_SYNC_SECRET on server",
           cloudPush: "Push to Cloud", cloudPull: "Pull from Cloud", cloudPushDone: "Uploaded to Supabase.", cloudPullDone: "Downloaded from cloud. Reloading…",
           cloudSyncFail: "Cloud sync failed", cloudNoBackup: "No backup found in database.", cloudNotConfigured: "Server cloud sync not configured.",
+          liveSyncTitle: "Live Multi-User Sync", liveSyncHint: "Each record syncs to Supabase automatically. All users see changes within a few seconds. Requires sync key + SQL migration 002.",
+          liveSyncEnable: "Enable live sync (auto push & pull)", liveSyncOk: "Live sync active", liveSyncSyncing: "Syncing…", liveSyncError: "Sync error",
+          liveSyncLast: "Last sync", liveSyncNeedKey: "Enter cloud sync key first.", liveSyncBootstrapped: "Live sync enabled. Data connected to cloud.",
           noDatabaseNote: "No server database yet — Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
         },
         zh_TW: {
@@ -764,6 +767,9 @@
           cloudSyncKey: "雲端同步金鑰", cloudSyncKeyPlaceholder: "與伺服器 ERP_SYNC_SECRET 相同",
           cloudPush: "上傳至雲端", cloudPull: "從雲端下載", cloudPushDone: "已上傳至 Supabase。", cloudPullDone: "已從雲端下載，正在重新載入…",
           cloudSyncFail: "雲端同步失敗", cloudNoBackup: "資料庫內沒有備份。", cloudNotConfigured: "伺服器尚未設定雲端同步。",
+          liveSyncTitle: "即時多人同步", liveSyncHint: "每筆資料（客戶、工作、應收應付等）自動寫入 Supabase，其他用戶幾秒內會看到更新。需先執行 SQL migration 002。",
+          liveSyncEnable: "啟用即時同步（自動上傳及下載）", liveSyncOk: "即時同步運作中", liveSyncSyncing: "同步中…", liveSyncError: "同步錯誤",
+          liveSyncLast: "上次同步", liveSyncNeedKey: "請先輸入雲端同步金鑰。", liveSyncBootstrapped: "已啟用即時同步，資料已連接雲端。",
           noDatabaseNote: "目前尚無伺服器資料庫 — Excel 匯入只會更新瀏覽器資料。上傳後請在預覽視窗按「確認匯入」。"
         },
       };
@@ -2713,6 +2719,15 @@
         const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem("erp_company_logo") || "");
         const [erpSyncKey, setErpSyncKey] = useState(() => localStorage.getItem("erp_sync_key") || "");
         const [cloudDbStatus, setCloudDbStatus] = useState(null);
+        const [liveSyncEnabled, setLiveSyncEnabled] = useState(() => localStorage.getItem("erp_live_sync") === "1");
+        const [liveSyncReady, setLiveSyncReady] = useState(false);
+        const [liveSyncStatus, setLiveSyncStatus] = useState("off");
+        const [liveSyncLastAt, setLiveSyncLastAt] = useState(null);
+        const liveServerVersionRef = useRef(0);
+        const liveSyncedSnapshotRef = useRef({});
+        const liveApplyingRemoteRef = useRef(false);
+        const livePushTimerRef = useRef(null);
+        const livePollRef = useRef(null);
         const [userModal, setUserModal] = useState(null);
         const [importPreview, setImportPreview] = useState(null);
         const [ongoingEditId, setOngoingEditId] = useState(null);
@@ -2763,6 +2778,31 @@
             .then((r) => (r.ok ? r.json() : Promise.reject(new Error("health"))))
             .then((j) => setCloudDbStatus(j))
             .catch(() => setCloudDbStatus(null));
+        }, []);
+
+        useEffect(() => {
+          if (!liveSyncEnabled || !liveSyncReady || !erpSyncKey.trim()) return;
+          if (livePollRef.current) clearInterval(livePollRef.current);
+          livePollRef.current = setInterval(() => { pollLiveSync(); }, 3000);
+          return () => { if (livePollRef.current) clearInterval(livePollRef.current); };
+        }, [liveSyncEnabled, liveSyncReady, erpSyncKey]);
+
+        useEffect(() => {
+          if (!liveSyncEnabled || !liveSyncReady || !erpSyncKey.trim() || liveApplyingRemoteRef.current) return;
+          if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current);
+          livePushTimerRef.current = setTimeout(() => { flushLiveSyncPush(); }, 2000);
+          return () => { if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current); };
+        }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey]);
+
+        useEffect(() => {
+          if (liveSyncEnabled && erpSyncKey.trim() && !liveSyncReady) {
+            bootstrapLiveSync().then((ok) => {
+              if (!ok) {
+                setLiveSyncEnabled(false);
+                localStorage.setItem("erp_live_sync", "0");
+              }
+            });
+          }
         }, []);
 
         function getCurrentUser() {
@@ -4219,6 +4259,293 @@
             window.location.reload();
           } catch (err) {
             alert(t("cloudSyncFail") + ": " + (err.message || ""));
+          }
+        }
+
+        function liveSyncHeaders() {
+          return { "Content-Type": "application/json", "X-ERP-Sync-Key": erpSyncKey.trim() };
+        }
+
+        function stripSyncMeta(rec) {
+          if (!rec || typeof rec !== "object") return rec;
+          const copy = { ...rec };
+          delete copy._syncAt;
+          return copy;
+        }
+
+        function recordSnapshot(rec) {
+          return JSON.stringify(stripSyncMeta(rec));
+        }
+
+        function computeChangesForArray(entityType, records) {
+          const prev = liveSyncedSnapshotRef.current[entityType] || {};
+          const nextIds = {};
+          const changes = [];
+          (records || []).forEach((r) => {
+            if (!r || r.id == null) return;
+            nextIds[r.id] = recordSnapshot(r);
+            if (prev[r.id] !== nextIds[r.id]) {
+              changes.push({ entity_type: entityType, entity_id: r.id, payload: stripSyncMeta(r), is_deleted: false, region: r.region || null });
+            }
+          });
+          Object.keys(prev).forEach((id) => {
+            if (!nextIds[id]) {
+              changes.push({ entity_type: entityType, entity_id: Number(id), payload: {}, is_deleted: true, region: null });
+            }
+          });
+          return changes;
+        }
+
+        function markSyncedArray(entityType, records) {
+          const next = {};
+          (records || []).forEach((r) => {
+            if (!r || r.id == null) return;
+            next[r.id] = recordSnapshot(r);
+          });
+          liveSyncedSnapshotRef.current[entityType] = next;
+        }
+
+        function markSyncedSingleton(entityType, payload) {
+          liveSyncedSnapshotRef.current[entityType] = JSON.stringify(payload || {});
+        }
+
+        function markAllSyncedFromState() {
+          markSyncedArray("clients", clients);
+          markSyncedArray("jobs", jobs);
+          markSyncedArray("quotations", quotations);
+          markSyncedArray("vendors", vendors);
+          markSyncedArray("sis", sis);
+          markSyncedArray("ar_invoices", arInvoices);
+          markSyncedArray("ap_bills", apBills);
+          markSyncedArray("users", users);
+          markSyncedArray("audit_logs", auditLogs);
+          markSyncedArray("monthly_po_lines", monthlyPoLines);
+          markSyncedArray("monthly_ar_lines", monthlyArLines);
+          markSyncedSingleton("monthly_ar_expected", monthlyArExpectedSnapshots);
+          markSyncedSingleton("settings", { lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed });
+        }
+
+        function collectAllLiveChanges() {
+          const changes = [];
+          changes.push(...computeChangesForArray("clients", clients));
+          changes.push(...computeChangesForArray("jobs", jobs));
+          changes.push(...computeChangesForArray("quotations", quotations));
+          changes.push(...computeChangesForArray("vendors", vendors));
+          changes.push(...computeChangesForArray("sis", sis));
+          changes.push(...computeChangesForArray("ar_invoices", arInvoices));
+          changes.push(...computeChangesForArray("ap_bills", apBills));
+          changes.push(...computeChangesForArray("users", users));
+          changes.push(...computeChangesForArray("audit_logs", auditLogs));
+          changes.push(...computeChangesForArray("monthly_po_lines", monthlyPoLines));
+          changes.push(...computeChangesForArray("monthly_ar_lines", monthlyArLines));
+          const expectedSnap = JSON.stringify(monthlyArExpectedSnapshots || {});
+          if (liveSyncedSnapshotRef.current.monthly_ar_expected !== expectedSnap) {
+            changes.push({ entity_type: "monthly_ar_expected", entity_id: 0, payload: monthlyArExpectedSnapshots || {}, is_deleted: false, region: null });
+          }
+          const settingsPayload = { lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed };
+          const settingsSnap = JSON.stringify(settingsPayload);
+          if (liveSyncedSnapshotRef.current.settings !== settingsSnap) {
+            changes.push({ entity_type: "settings", entity_id: 0, payload: settingsPayload, is_deleted: false, region: null });
+          }
+          return changes;
+        }
+
+        function buildSeedChanges() {
+          const changes = [];
+          const pushArr = (entityType, arr) => (arr || []).forEach((r) => {
+            if (!r || r.id == null) return;
+            changes.push({ entity_type: entityType, entity_id: r.id, payload: stripSyncMeta(r), is_deleted: false, region: r.region || null });
+          });
+          pushArr("clients", clients);
+          pushArr("jobs", jobs);
+          pushArr("quotations", quotations);
+          pushArr("vendors", vendors);
+          pushArr("sis", sis);
+          pushArr("ar_invoices", arInvoices);
+          pushArr("ap_bills", apBills);
+          pushArr("users", users);
+          pushArr("audit_logs", auditLogs);
+          pushArr("monthly_po_lines", monthlyPoLines);
+          pushArr("monthly_ar_lines", monthlyArLines);
+          changes.push({ entity_type: "monthly_ar_expected", entity_id: 0, payload: monthlyArExpectedSnapshots || {}, is_deleted: false, region: null });
+          changes.push({ entity_type: "settings", entity_id: 0, payload: { lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed }, is_deleted: false, region: null });
+          return changes;
+        }
+
+        async function pushLiveChangesInBatches(changes) {
+          if (!changes.length) return liveServerVersionRef.current;
+          const BATCH = 40;
+          let version = liveServerVersionRef.current;
+          for (let i = 0; i < changes.length; i += BATCH) {
+            const res = await fetch("/api/sync/push", {
+              method: "POST",
+              headers: liveSyncHeaders(),
+              body: JSON.stringify({ changes: changes.slice(i, i + BATCH), updated_by: currentUserId })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body.detail || res.statusText);
+            version = body.server_version || version;
+          }
+          liveServerVersionRef.current = version;
+          return version;
+        }
+
+        function mergeArrayByRemote(local, remoteList) {
+          const map = new Map((local || []).map((r) => [r.id, r]));
+          (remoteList || []).forEach((ch) => {
+            if (ch.is_deleted) { map.delete(ch.entity_id); return; }
+            const existing = map.get(ch.entity_id);
+            const remoteAt = ch.updated_at || "";
+            const localAt = existing && existing._syncAt ? existing._syncAt : "";
+            if (!existing || remoteAt >= localAt) {
+              map.set(ch.entity_id, { ...(ch.payload || {}), _syncAt: remoteAt });
+            }
+          });
+          return Array.from(map.values());
+        }
+
+        function applyRemoteLiveChanges(changes) {
+          if (!changes || !changes.length) return;
+          const byType = {};
+          changes.forEach((ch) => {
+            if (!byType[ch.entity_type]) byType[ch.entity_type] = [];
+            byType[ch.entity_type].push(ch);
+          });
+          liveApplyingRemoteRef.current = true;
+          if (byType.clients) setClients((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.clients)));
+          if (byType.jobs) setJobs((prev) => ensureJobsQuotations(ensureRegionOnRecords(mergeArrayByRemote(prev, byType.jobs))));
+          if (byType.quotations) setQuotations((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.quotations)));
+          if (byType.vendors) setVendors((prev) => ensureVendorNumbers(ensureRegionOnRecords(mergeArrayByRemote(prev, byType.vendors))));
+          if (byType.sis) setSis((prev) => ensureSiNumbers(ensureRegionOnRecords(mergeArrayByRemote(prev, byType.sis))));
+          if (byType.ar_invoices) setArInvoices((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.ar_invoices)));
+          if (byType.ap_bills) setApBills((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.ap_bills)));
+          if (byType.users) setUsers((prev) => mergeArrayByRemote(prev, byType.users));
+          if (byType.audit_logs) setAuditLogs((prev) => mergeArrayByRemote(prev, byType.audit_logs));
+          if (byType.monthly_po_lines) setMonthlyPoLines((prev) => mergeArrayByRemote(prev, byType.monthly_po_lines));
+          if (byType.monthly_ar_lines) setMonthlyArLines((prev) => mergeArrayByRemote(prev, byType.monthly_ar_lines));
+          if (byType.monthly_ar_expected && byType.monthly_ar_expected.length) {
+            const ch = byType.monthly_ar_expected[byType.monthly_ar_expected.length - 1];
+            if (!ch.is_deleted) setMonthlyArExpectedSnapshots(ch.payload || {});
+          }
+          if (byType.settings && byType.settings.length) {
+            const ch = byType.settings[byType.settings.length - 1];
+            const s = ch.payload || {};
+            if (s.lang) { localStorage.setItem("erp_lang", s.lang); setLang(s.lang); }
+            if (s.activeRegion) { localStorage.setItem("erp_active_region", s.activeRegion); setActiveRegion(s.activeRegion); }
+            if (s.worldTimeZone) setWorldTimeZone(s.worldTimeZone);
+            if (s.companyName != null) { localStorage.setItem("erp_company_name", s.companyName); setCompanyName(s.companyName); }
+            if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", s.companyLogo); setCompanyLogo(s.companyLogo); }
+            if (s.currentUserId) setCurrentUserId(Number(s.currentUserId));
+            if (s.sidebarCollapsed != null) setSidebarCollapsed(!!s.sidebarCollapsed);
+          }
+          setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
+        }
+
+        function applyFullLiveEntities(body) {
+          const e = body.entities || {};
+          liveApplyingRemoteRef.current = true;
+          if (e.clients) setClients(ensureRegionOnRecords(e.clients));
+          if (e.jobs) setJobs(ensureJobsQuotations(ensureRegionOnRecords(e.jobs)));
+          if (e.quotations) setQuotations(ensureRegionOnRecords(e.quotations || []));
+          if (e.vendors) setVendors(ensureVendorNumbers(ensureRegionOnRecords(e.vendors || [])));
+          if (e.sis) setSis(ensureSiNumbers(ensureRegionOnRecords(e.sis || [])));
+          if (e.ar_invoices) setArInvoices(ensureRegionOnRecords(e.ar_invoices || []));
+          if (e.ap_bills) setApBills(ensureRegionOnRecords(e.ap_bills || []));
+          if (e.users) setUsers(e.users || users);
+          if (e.audit_logs) setAuditLogs(e.audit_logs || []);
+          if (e.monthly_po_lines) setMonthlyPoLines(e.monthly_po_lines || []);
+          if (e.monthly_ar_lines) setMonthlyArLines(e.monthly_ar_lines || []);
+          const singletons = body.singletons || {};
+          if (singletons.monthly_ar_expected) setMonthlyArExpectedSnapshots(singletons.monthly_ar_expected);
+          if (singletons.settings) {
+            const s = singletons.settings;
+            if (s.lang) { localStorage.setItem("erp_lang", s.lang); setLang(s.lang); }
+            if (s.activeRegion) { localStorage.setItem("erp_active_region", s.activeRegion); setActiveRegion(s.activeRegion); }
+            if (s.worldTimeZone) setWorldTimeZone(s.worldTimeZone);
+            if (s.companyName != null) { localStorage.setItem("erp_company_name", s.companyName); setCompanyName(s.companyName); }
+            if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", s.companyLogo); setCompanyLogo(s.companyLogo); }
+            if (s.currentUserId) setCurrentUserId(Number(s.currentUserId));
+            if (s.sidebarCollapsed != null) setSidebarCollapsed(!!s.sidebarCollapsed);
+          }
+          liveServerVersionRef.current = body.server_version || 0;
+          setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
+        }
+
+        async function flushLiveSyncPush() {
+          if (!liveSyncEnabled || !erpSyncKey.trim() || liveApplyingRemoteRef.current) return;
+          const changes = collectAllLiveChanges();
+          if (!changes.length) return;
+          try {
+            setLiveSyncStatus("syncing");
+            await pushLiveChangesInBatches(changes);
+            markAllSyncedFromState();
+            setLiveSyncLastAt(new Date());
+            setLiveSyncStatus("ok");
+          } catch (err) {
+            setLiveSyncStatus("error");
+            console.warn("Live sync push failed", err);
+          }
+        }
+
+        async function pollLiveSync() {
+          if (!liveSyncEnabled || !erpSyncKey.trim() || liveApplyingRemoteRef.current) return;
+          try {
+            const res = await fetch("/api/sync/changes?since=" + liveServerVersionRef.current, { headers: liveSyncHeaders() });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body.detail || res.statusText);
+            if (body.server_version > liveServerVersionRef.current && body.changes && body.changes.length) {
+              applyRemoteLiveChanges(body.changes);
+              liveServerVersionRef.current = body.server_version;
+              setLiveSyncLastAt(new Date());
+            }
+            setLiveSyncStatus("ok");
+          } catch (err) {
+            setLiveSyncStatus("error");
+            console.warn("Live sync poll failed", err);
+          }
+        }
+
+        async function bootstrapLiveSync() {
+          if (!erpSyncKey.trim()) { alert(t("liveSyncNeedKey")); return false; }
+          try {
+            setLiveSyncStatus("syncing");
+            const statusRes = await fetch("/api/sync/status", { headers: liveSyncHeaders() });
+            const status = await statusRes.json().catch(() => ({}));
+            if (!statusRes.ok) throw new Error(status.detail || statusRes.statusText);
+            liveServerVersionRef.current = status.server_version || 0;
+            if ((status.entity_count || 0) === 0) {
+              await pushLiveChangesInBatches(buildSeedChanges());
+              markAllSyncedFromState();
+            } else {
+              const fullRes = await fetch("/api/sync/full", { headers: liveSyncHeaders() });
+              const full = await fullRes.json().catch(() => ({}));
+              if (!fullRes.ok) throw new Error(full.detail || fullRes.statusText);
+              applyFullLiveEntities(full);
+            }
+            setLiveSyncLastAt(new Date());
+            setLiveSyncStatus("ok");
+            setLiveSyncReady(true);
+            return true;
+          } catch (err) {
+            setLiveSyncStatus("error");
+            alert(t("cloudSyncFail") + ": " + (err.message || ""));
+            return false;
+          }
+        }
+
+        async function toggleLiveSync(on) {
+          if (on && !erpSyncKey.trim()) { alert(t("liveSyncNeedKey")); return; }
+          if (on) {
+            const ok = await bootstrapLiveSync();
+            if (!ok) return;
+            setLiveSyncEnabled(true);
+            localStorage.setItem("erp_live_sync", "1");
+            alert(t("liveSyncBootstrapped"));
+          } else {
+            setLiveSyncEnabled(false);
+            localStorage.setItem("erp_live_sync", "0");
+            setLiveSyncStatus("off");
+            setLiveSyncReady(false);
           }
         }
 
@@ -6260,6 +6587,28 @@
                             <button type="button" onClick={pushCloudBackup} className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">{t("cloudPush")}</button>
                             <button type="button" onClick={pullCloudBackup} className="px-4 py-2 text-sm rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-900 hover:bg-indigo-100">{t("cloudPull")}</button>
                           </div>
+                        )}
+                      </div>
+
+                      <div className="mt-6 pt-6 border-t border-slate-200 space-y-3">
+                        <h4 className="font-semibold text-slate-800">{t("liveSyncTitle")}</h4>
+                        <p className="text-sm text-slate-500">{t("liveSyncHint")}</p>
+                        {isRoot() && (
+                          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300"
+                              checked={liveSyncEnabled}
+                              onChange={(e) => toggleLiveSync(e.target.checked)}
+                            />
+                            {t("liveSyncEnable")}
+                          </label>
+                        )}
+                        {liveSyncEnabled && (
+                          <p className={"text-xs font-medium " + (liveSyncStatus === "error" ? "text-red-600" : liveSyncStatus === "syncing" ? "text-blue-600" : "text-emerald-700")}>
+                            {liveSyncStatus === "syncing" ? t("liveSyncSyncing") : liveSyncStatus === "error" ? t("liveSyncError") : t("liveSyncOk")}
+                            {liveSyncLastAt ? " · " + t("liveSyncLast") + " " + liveSyncLastAt.toLocaleTimeString() : ""}
+                          </p>
                         )}
                       </div>
                     </div>

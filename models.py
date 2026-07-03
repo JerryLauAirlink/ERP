@@ -97,3 +97,25 @@ class ExchangeRate(Base):
     updated_at = Column(DateTime)
 
     tenant = relationship("Tenant")
+
+
+class ErpEntityRecord(Base):
+    __tablename__ = "erp_entity_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), index=True)
+    entity_type = Column(String(64), index=True)
+    entity_id = Column(Integer, index=True)
+    region = Column(String(16))
+    payload = Column(JsonType, nullable=False, default=dict)
+    is_deleted = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_by = Column(Integer)
+
+
+class ErpSyncMeta(Base):
+    __tablename__ = "erp_sync_meta"
+
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), primary_key=True)
+    server_version = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.utcnow)
