@@ -66,7 +66,7 @@
       const { useMemo, useState, useEffect, useRef } = React;
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
-      const ERP_MODULES = ["dashboard", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "si", "settings"];
+      const ERP_MODULES = ["dashboard", "management_report", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "si", "settings"];
       const QUOTATION_STATUSES = ["Draft", "Sent", "Accepted", "Rejected", "Expired"];
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
       const PAYMENT_STAGES = ["", "Deposit", "Progress", "Balance", "Retention", "Final"];
@@ -373,6 +373,7 @@
       function moduleLabel(module, t) {
         const map = {
           dashboard: t("nav_dashboard"),
+          management_report: t("nav_management_report"),
           overview: t("nav_overview"),
           clients: t("nav_clients"),
           quotation: t("nav_quotation"),
@@ -396,7 +397,7 @@
 
       const I18N = {
         en: {
-          appTitle: "ERP System", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
+          appTitle: "ERP System", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
           filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
@@ -490,6 +491,23 @@
           arOutstanding: "AR Outstanding", apOutstanding: "AP Outstanding", netPosition: "Net Position", dueSoon: "Due Soon", overdueCount: "overdue", pendingBills: "bills pending", dueSoonHint: "unpaid, due soon",
           topOverdue: "Top Overdue Invoices", approvalQueue: "Approval Queue", cashFlow: "Cash In vs Cash Out (90 Days)", arAging: "A/R Aging",
           dashSubtitle: "Executive summary — cash position & what needs attention",
+          mgmtSubtitle: "Boss BI — profit, client margins, job-type mix & 3-month cash forecast",
+          mgmtFilterClient: "Client", mgmtAllClients: "All Clients", mgmtGroupCurrency: "Group Base Currency", mgmtCompareCurrency: "Compare Currency",
+          mgmtGrossRevenue: "Gross Revenue", mgmtTotalCogs: "Total COGS", mgmtNetProfit: "Net Profit", mgmtGrossMargin: "Gross Margin",
+          mgmtRevenueHint: "AR from Completed jobs / Accepted quotations", mgmtCogsHint: "Vendor & SI AP on qualifying jobs",
+          mgmtClientProfitShare: "This client accounts for {pct}% of company profit",
+          mgmtAggregatedRegions: "Aggregated across {n} regions · FX to {currency}",
+          mgmtTopClientsTitle: "Top Clients by Profit", mgmtTopClientsHint: "Bar length = net profit · click to drill down · margin % on the right",
+          mgmtJobTypeTitle: "Profit by Job Type", mgmtJobTypeHint: "Share of net profit by Maintenance / Service / Project / Trade",
+          mgmtCashForecastTitle: "3-Month Cash Flow Forecast", mgmtCashForecastHint: "Unpaid AR due dates vs unpaid AP due dates",
+          mgmtCashIn: "Cash In", mgmtCashOut: "Cash Out", mgmtNetCashFlow: "Net Cash Flow",
+          mgmtDryRunAlert: "Cash out exceeds cash in — prepare funding this month",
+          mgmtClientRiskTitle: "Client Collection Risk", mgmtClientRiskHint: "Unpaid & overdue AR for this client over the next 3 months",
+          mgmtOverdueAr: "Overdue AR", mgmtExpectedInMonth: "Expected in month",
+          mgmtRegionBreakdownTitle: "Profit by Region & Client", mgmtLocalAmount: "Local", mgmtConvertedAmount: "Converted",
+          mgmtMarginPct: "Margin", mgmtNatureProject: "Project", mgmtNatureService: "Service", mgmtNatureMaintenance: "Maintenance", mgmtNatureTrade: "Trade",
+          mgmtNoQualifyingData: "No Completed / Accepted job data in this filter scope.",
+          mgmtClearClient: "Back to all clients", mgmtShowingClient: "Drill-down: {name}",
           dashCashIn: "Cash In (AR)", dashCashOut: "Cash Out (AP)", dashCashInHint: "Unpaid client invoices", dashCashOutHint: "Unpaid vendor / SI bills", dashNetHint: "Receivables minus payables",
           dashActiveJobs: "Active Jobs", dashActiveJobsHint: "Open or in progress",
           dashIncomeOut: "Expected Income vs Out", dashIncomeOutHint: "Grouped by due date · full calendar year · unpaid only",
@@ -560,7 +578,7 @@
           noDatabaseNote: "No server database yet — Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
         },
         zh_TW: {
-          appTitle: "ERP 系統", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
+          appTitle: "ERP 系統", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_management_report: "管理層報表", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
           baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
           view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
           filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
@@ -654,6 +672,23 @@
           arOutstanding: "應收未結", apOutstanding: "應付未結", netPosition: "淨部位", dueSoon: "即將到期", overdueCount: "筆已逾期", pendingBills: "筆待處理", dueSoonHint: "未收款、即將到期",
           topOverdue: "逾期發票排行", approvalQueue: "審批佇列", cashFlow: "現金流入 vs 流出（90 天）", arAging: "應收帳齡",
           dashSubtitle: "管理層總覽 — 現金狀況及需要跟進的項目",
+          mgmtSubtitle: "老闆 BI — 毛利、客戶排行、工作類型利潤與 3 個月現金流預測",
+          mgmtFilterClient: "客戶", mgmtAllClients: "全部客戶", mgmtGroupCurrency: "集團本位幣", mgmtCompareCurrency: "對照貨幣",
+          mgmtGrossRevenue: "總收入", mgmtTotalCogs: "項目總成本", mgmtNetProfit: "淨利潤", mgmtGrossMargin: "毛利率",
+          mgmtRevenueHint: "已完成工作／Accepted 報價相關應收", mgmtCogsHint: "相關工作的供應商／分包商應付",
+          mgmtClientProfitShare: "此客戶佔公司利潤 {pct}%",
+          mgmtAggregatedRegions: "已匯總 {n} 個地區 · 折算為 {currency}",
+          mgmtTopClientsTitle: "客戶利潤排行榜", mgmtTopClientsHint: "條形長度 = 純利潤 · 點擊穿透分析 · 右側括號為毛利率",
+          mgmtJobTypeTitle: "按工作類型分類利潤", mgmtJobTypeHint: "維護／服務／專案／貿易各佔淨利潤比例",
+          mgmtCashForecastTitle: "3 個月現金流預測", mgmtCashForecastHint: "未收應收到期日 vs 未付應付到期日",
+          mgmtCashIn: "預計流入", mgmtCashOut: "預計流出", mgmtNetCashFlow: "淨現金流",
+          mgmtDryRunAlert: "流出大於流入 — 本月需準備資金，避免資金斷裂",
+          mgmtClientRiskTitle: "客戶收款風險", mgmtClientRiskHint: "此客戶未來 3 個月預計欠款與逾期應收",
+          mgmtOverdueAr: "逾期應收", mgmtExpectedInMonth: "當月預計收款",
+          mgmtRegionBreakdownTitle: "地區與客戶利潤明細", mgmtLocalAmount: "當地幣", mgmtConvertedAmount: "折算",
+          mgmtMarginPct: "毛利率", mgmtNatureProject: "專案", mgmtNatureService: "服務", mgmtNatureMaintenance: "維護", mgmtNatureTrade: "貿易",
+          mgmtNoQualifyingData: "此篩選範圍內沒有已完成／Accepted 的工作資料。",
+          mgmtClearClient: "返回全部客戶", mgmtShowingClient: "穿透分析：{name}",
           dashCashIn: "現金流入（應收）", dashCashOut: "現金流出（應付）", dashCashInHint: "客戶未收款發票", dashCashOutHint: "供應商／分包商未付款", dashNetHint: "應收減應付",
           dashActiveJobs: "進行中工作", dashActiveJobsHint: "開啟或進行中",
           dashIncomeOut: "預期收入 vs 支出", dashIncomeOutHint: "按到期日 · 全年（1–12月）· 只計未結清",
@@ -810,6 +845,11 @@
         overview: [
           <path key="1" d="M21.21 15.89A10 10 0 1 1 8 2.83" />,
           <path key="2" d="M22 12A10 10 0 0 0 12 2v10z" />
+        ],
+        management_report: [
+          <path key="1" d="M12 20V10" />,
+          <path key="2" d="M18 20V4" />,
+          <path key="3" d="M6 20v-4" />
         ],
         clients: [
           <path key="1" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />,
@@ -1337,6 +1377,336 @@
         return "Project";
       }
 
+      const MGMT_GROUP_CURRENCIES = ["HKD", "TWD", "SGD", "USD"];
+      const MGMT_JOB_NATURES = ["Maintenance", "Service", "Project", "Trade"];
+      const MGMT_JOB_TYPE_COLORS = {
+        Maintenance: { from: "#1e40af", to: "#60a5fa", light: "#93c5fd" },
+        Service: { from: "#5b21b6", to: "#a78bfa", light: "#c4b5fd" },
+        Project: { from: "#047857", to: "#34d399", light: "#6ee7b7" },
+        Trade: { from: "#c2410c", to: "#fb923c", light: "#fdba74" }
+      };
+      const MGMT_CARD_GRADIENTS = {
+        revenue: "linear-gradient(148deg, #0c4a3e 0%, #0f766e 38%, #2dd4bf 100%)",
+        cogs: "linear-gradient(148deg, #431407 0%, #b45309 42%, #fbbf24 100%)",
+        profit: "linear-gradient(148deg, #1e1b4b 0%, #4338ca 48%, #818cf8 100%)",
+        loss: "linear-gradient(148deg, #450a0a 0%, #b91c1c 50%, #f87171 100%)"
+      };
+
+      function polarToCartesian(cx, cy, r, angle) {
+        return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+      }
+
+      function describeDonutSlice(cx, cy, outerR, innerR, startAngle, endAngle) {
+        const largeArc = endAngle - startAngle > Math.PI ? 1 : 0;
+        const oStart = polarToCartesian(cx, cy, outerR, startAngle);
+        const oEnd = polarToCartesian(cx, cy, outerR, endAngle);
+        const iStart = polarToCartesian(cx, cy, innerR, endAngle);
+        const iEnd = polarToCartesian(cx, cy, innerR, startAngle);
+        return [
+          "M", oStart.x, oStart.y,
+          "A", outerR, outerR, 0, largeArc, 1, oEnd.x, oEnd.y,
+          "L", iStart.x, iStart.y,
+          "A", innerR, innerR, 0, largeArc, 0, iEnd.x, iEnd.y,
+          "Z"
+        ].join(" ");
+      }
+
+      function MgmtDonutChart({ breakdown, size, centerLabel, centerSub }) {
+        const chartSize = size || 168;
+        const cx = chartSize / 2;
+        const cy = chartSize / 2;
+        const outerR = chartSize / 2 - 6;
+        const innerR = outerR * 0.58;
+        const slices = breakdown.filter((x) => x.profit > 0);
+        const total = slices.reduce((s, x) => s + x.profit, 0) || 1;
+        const gap = slices.length > 1 ? 0.045 : 0;
+        let cursor = -Math.PI / 2;
+
+        const segments = slices.map((slice) => {
+          const sweep = (slice.profit / total) * Math.PI * 2;
+          const start = cursor + gap / 2;
+          const end = cursor + sweep - gap / 2;
+          cursor += sweep;
+          const mid = (start + end) / 2;
+          const palette = MGMT_JOB_TYPE_COLORS[slice.type] || { from: "#475569", to: "#94a3b8", light: "#cbd5e1" };
+          return { slice, start, end, mid, palette, path: describeDonutSlice(cx, cy, outerR, innerR, start, end) };
+        });
+
+        return (
+          <div className="relative shrink-0" style={{ width: chartSize, height: chartSize }}>
+            <svg width={chartSize} height={chartSize} viewBox={"0 0 " + chartSize + " " + chartSize} className="drop-shadow-lg">
+              <defs>
+                <filter id="mgmtDonutShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#0f172a" floodOpacity="0.22" />
+                </filter>
+                {segments.map((seg) => (
+                  <linearGradient key={seg.slice.type + "-grad"} id={"mgmtGrad-" + seg.slice.type} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={seg.palette.from} />
+                    <stop offset="55%" stopColor={seg.palette.to} />
+                    <stop offset="100%" stopColor={seg.palette.light} />
+                  </linearGradient>
+                ))}
+                <radialGradient id="mgmtDonutCenterGlow" cx="50%" cy="45%" r="55%">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="100%" stopColor="#f1f5f9" />
+                </radialGradient>
+              </defs>
+              <circle cx={cx} cy={cy} r={outerR + 2} fill="none" stroke="#e2e8f0" strokeWidth="1" opacity="0.6" />
+              <g filter="url(#mgmtDonutShadow)">
+                {segments.map((seg) => (
+                  <path
+                    key={seg.slice.type}
+                    d={seg.path}
+                    fill={"url(#mgmtGrad-" + seg.slice.type + ")"}
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                ))}
+              </g>
+              <circle cx={cx} cy={cy} r={innerR - 3} fill="url(#mgmtDonutCenterGlow)" stroke="#e2e8f0" strokeWidth="1" />
+              {centerLabel && (
+                <text x={cx} y={cy - 2} textAnchor="middle" className="fill-slate-800" style={{ fontSize: "11px", fontWeight: 700 }}>
+                  {centerLabel}
+                </text>
+              )}
+              {centerSub && (
+                <text x={cx} y={cy + 12} textAnchor="middle" className="fill-slate-500" style={{ fontSize: "9px", fontWeight: 600 }}>
+                  {centerSub}
+                </text>
+              )}
+            </svg>
+          </div>
+        );
+      }
+
+      function jobQualifiesForMgmt(job, quotations) {
+        if (!job) return false;
+        if (isJobCompleted(job.status)) return true;
+        return findLinkedQuotationsForJob(job, quotations).some((q) => q.status === "Accepted");
+      }
+
+      function arQualifiesForMgmt(r, jobs, quotations) {
+        if (!r || deriveArPaymentStatus(r) === "Cancel") return false;
+        const job = jobs.find((j) => j.id === r.job_id || (r.job_no && j.job_no === r.job_no));
+        if (!job) return false;
+        return jobQualifiesForMgmt(job, quotations);
+      }
+
+      function apQualifiesForMgmt(b, jobs, quotations) {
+        if (!b || deriveApPaymentStatus(b) === "Cancel") return false;
+        const job = jobs.find((j) => j.id === b.job_id || (b.job_no && j.job_no === b.job_no));
+        if (!job) return false;
+        return jobQualifiesForMgmt(job, quotations);
+      }
+
+      function mgmtMonthBuckets(count, todayIso) {
+        const today = todayIso ? new Date(todayIso) : new Date();
+        const buckets = [];
+        const d = new Date(today.getFullYear(), today.getMonth(), 1);
+        for (let i = 0; i < count; i++) {
+          const y = d.getFullYear();
+          const m = d.getMonth();
+          buckets.push({
+            year: y,
+            monthIndex: m,
+            key: y + "-" + String(m + 1).padStart(2, "0")
+          });
+          d.setMonth(d.getMonth() + 1);
+        }
+        return buckets;
+      }
+
+      function buildManagementReport({ jobs, quotations, arInvoices, apBills, clientFilter, displayCurrency, compareCurrency, todayIso, lang, activeRegion, regionCount }) {
+        const today = todayIso || new Date().toISOString().slice(0, 10);
+        const cf = clientFilter && clientFilter !== "all" ? clientFilter : "all";
+
+        const qualAr = arInvoices.filter((r) => {
+          if (!arQualifiesForMgmt(r, jobs, quotations)) return false;
+          if (cf !== "all" && r.customer !== cf) return false;
+          return true;
+        });
+        const qualAp = apBills.filter((b) => {
+          if (!apQualifiesForMgmt(b, jobs, quotations)) return false;
+          if (cf !== "all") {
+            const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+            if (!job || job.company !== cf) return false;
+          }
+          return true;
+        });
+
+        const grossRevenue = qualAr.reduce((s, r) => s + resolveArDisplayAmount(r, displayCurrency), 0);
+        const totalCogs = qualAp.reduce((s, b) => s + resolveApDisplayAmount(b, displayCurrency), 0);
+        const netProfit = grossRevenue - totalCogs;
+
+        const clientMap = {};
+        qualAr.forEach((r) => {
+          const company = r.customer || "-";
+          const job = jobs.find((j) => j.id === r.job_id || j.job_no === r.job_no);
+          if (!clientMap[company]) clientMap[company] = { company, region: (job && job.region) || r.region || "HK", revenue: 0, cogs: 0 };
+          clientMap[company].revenue += resolveArDisplayAmount(r, displayCurrency);
+        });
+        qualAp.forEach((b) => {
+          const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+          const company = job ? job.company : "-";
+          if (!clientMap[company]) clientMap[company] = { company, region: (job && job.region) || b.region || "HK", revenue: 0, cogs: 0 };
+          clientMap[company].cogs += resolveApDisplayAmount(b, displayCurrency);
+        });
+
+        const clientMargins = Object.values(clientMap).map((c) => {
+          const profit = c.revenue - c.cogs;
+          const marginPct = c.revenue > 0 ? (profit / c.revenue) * 100 : 0;
+          return { ...c, profit, marginPct };
+        }).sort((a, b) => b.profit - a.profit);
+
+        const allClientMargins = (() => {
+          const map = {};
+          arInvoices.filter((r) => arQualifiesForMgmt(r, jobs, quotations)).forEach((r) => {
+            const company = r.customer || "-";
+            const job = jobs.find((j) => j.id === r.job_id || j.job_no === r.job_no);
+            if (!map[company]) map[company] = { company, revenue: 0, cogs: 0 };
+            map[company].revenue += resolveArDisplayAmount(r, displayCurrency);
+          });
+          apBills.filter((b) => apQualifiesForMgmt(b, jobs, quotations)).forEach((b) => {
+            const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+            const company = job ? job.company : "-";
+            if (!map[company]) map[company] = { company, revenue: 0, cogs: 0 };
+            map[company].cogs += resolveApDisplayAmount(b, displayCurrency);
+          });
+          return Object.values(map).map((c) => ({ ...c, profit: c.revenue - c.cogs }));
+        })();
+        const companyTotalProfit = allClientMargins.reduce((s, c) => s + c.profit, 0);
+        const selectedClientProfit = cf !== "all" ? (clientMargins[0] ? clientMargins[0].profit : 0) : netProfit;
+        const clientProfitSharePct = cf !== "all" && companyTotalProfit > 0 ? (selectedClientProfit / companyTotalProfit) * 100 : null;
+
+        const typeProfits = {};
+        MGMT_JOB_NATURES.forEach((n) => { typeProfits[n] = 0; });
+        jobs.forEach((j) => {
+          if (!jobQualifiesForMgmt(j, quotations)) return;
+          if (cf !== "all" && j.company !== cf) return;
+          const nature = jobNatureCategory(j.job_type);
+          const rev = qualAr.filter((r) => r.job_id === j.id || r.job_no === j.job_no).reduce((s, r) => s + resolveArDisplayAmount(r, displayCurrency), 0);
+          const cost = qualAp.filter((b) => b.job_id === j.id || b.job_no === j.job_no).reduce((s, b) => s + resolveApDisplayAmount(b, displayCurrency), 0);
+          typeProfits[nature] = (typeProfits[nature] || 0) + (rev - cost);
+        });
+        const jobTypeBreakdown = MGMT_JOB_NATURES.map((type) => {
+          const profit = typeProfits[type] || 0;
+          const sharePct = netProfit !== 0 ? (profit / netProfit) * 100 : 0;
+          return { type, profit, sharePct };
+        }).filter((x) => x.profit !== 0 || grossRevenue > 0);
+
+        const monthBuckets = mgmtMonthBuckets(3, today);
+        const cashForecast = monthBuckets.map((mo) => {
+          const label = monthChartLabel(mo.year, mo.monthIndex, lang);
+          const cashIn = arInvoices.filter((r) => {
+            if (!isArUnpaid(r)) return false;
+            if (cf !== "all" && r.customer !== cf) return false;
+            if (!r.due_date) return false;
+            return r.due_date.slice(0, 7) === mo.key;
+          }).reduce((s, r) => s + resolveArDisplayAmount(r, displayCurrency), 0);
+          const cashOut = apBills.filter((b) => {
+            if (!isApUnpaid(b)) return false;
+            if (cf !== "all") {
+              const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+              if (!job || job.company !== cf) return false;
+            }
+            if (!b.due_date) return false;
+            return b.due_date.slice(0, 7) === mo.key;
+          }).reduce((s, b) => s + resolveApDisplayAmount(b, displayCurrency), 0);
+          const netCash = cashIn - cashOut;
+          return { ...mo, label, cashIn, cashOut, netCash, alert: cashOut > cashIn };
+        });
+
+        const overdueAr = arInvoices.filter((r) => {
+          if (!isArUnpaid(r)) return false;
+          if (cf !== "all" && r.customer !== cf) return false;
+          return calcOverdueDays(r.due_date) > 0;
+        }).reduce((s, r) => s + resolveArDisplayAmount(r, displayCurrency), 0);
+
+        const regionBreakdown = activeRegion === "ALL" ? DATA_REGION_IDS.map((regionId) => {
+          const localCcy = REGION_CURRENCY[regionId] || "HKD";
+          const regAr = arInvoices.filter((r) => (r.region || "HK") === regionId && arQualifiesForMgmt(r, jobs, quotations));
+          const regAp = apBills.filter((b) => (b.region || "HK") === regionId && apQualifiesForMgmt(b, jobs, quotations));
+          const rev = regAr.reduce((s, r) => s + resolveArDisplayAmount(r, localCcy), 0);
+          const cogs = regAp.reduce((s, b) => s + resolveApDisplayAmount(b, localCcy), 0);
+          const profit = rev - cogs;
+          const clientTree = {};
+          regAr.forEach((r) => {
+            const company = r.customer || "-";
+            if (!clientTree[company]) clientTree[company] = { company, revenue: 0, cogs: 0 };
+            clientTree[company].revenue += resolveArDisplayAmount(r, localCcy);
+          });
+          regAp.forEach((b) => {
+            const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+            const company = job ? job.company : "-";
+            if (!clientTree[company]) clientTree[company] = { company, revenue: 0, cogs: 0 };
+            clientTree[company].cogs += resolveApDisplayAmount(b, localCcy);
+          });
+          const clients = Object.values(clientTree).map((c) => {
+            const p = c.revenue - c.cogs;
+            const marginPct = c.revenue > 0 ? (p / c.revenue) * 100 : 0;
+            return { ...c, profit: p, marginPct };
+          }).filter((c) => c.revenue || c.cogs).sort((a, b) => b.profit - a.profit);
+          return {
+            regionId,
+            localCurrency: localCcy,
+            localProfit: profit,
+            localRevenue: rev,
+            convertedProfit: convertCurrency(profit, localCcy, compareCurrency),
+            convertedRevenue: convertCurrency(rev, localCcy, compareCurrency),
+            clients
+          };
+        }).filter((r) => r.localRevenue || r.localProfit) : [];
+
+        const hasData = grossRevenue > 0 || totalCogs > 0 || clientMargins.length > 0;
+
+        return {
+          grossRevenue,
+          totalCogs,
+          netProfit,
+          clientMargins,
+          clientProfitSharePct,
+          jobTypeBreakdown,
+          cashForecast,
+          overdueAr,
+          regionBreakdown,
+          hasData,
+          regionCount: regionCount || DATA_REGION_IDS.length,
+          displayCurrency,
+          compareCurrency
+        };
+      }
+
+      function mgmtNatureLabel(type, t) {
+        if (type === "Maintenance") return t("mgmtNatureMaintenance");
+        if (type === "Service") return t("mgmtNatureService");
+        if (type === "Trade") return t("mgmtNatureTrade");
+        return t("mgmtNatureProject");
+      }
+
+      function MgmtMarginBar({ row, maxProfit, onSelect, t }) {
+        const profitAmt = Math.max(0, row.profit);
+        const width = maxProfit > 0 ? Math.max(4, (profitAmt / maxProfit) * 100) : 0;
+        const danger = row.marginPct < 10;
+        const warn = row.marginPct < 20 && !danger;
+        const barColor = danger ? "#dc2626" : warn ? "#ea580c" : "#2563eb";
+        return (
+          <button type="button" onClick={() => onSelect && onSelect(row.company)} className="w-full flex items-center gap-2 py-2.5 px-1 hover:bg-slate-50 rounded-lg text-left group">
+            <span className="w-[32%] min-w-0 text-sm font-medium text-slate-800 truncate">
+              {row.company}
+              <span className="ml-1 text-slate-400 group-hover:text-blue-600 transition-colors">➔</span>
+              <span className="ml-1.5 text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{REGION_FLAGS[row.region] || ""} {row.region}</span>
+            </span>
+            <span className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden min-w-[3rem]">
+              <span className="block h-full rounded-full transition-all" style={{ width: width + "%", background: barColor }} />
+            </span>
+            <span className={"min-w-[7.5rem] text-right text-sm font-semibold tabular-nums whitespace-nowrap " + (danger ? "text-red-600" : warn ? "text-orange-600" : "text-slate-700")}>
+              {money(row.profit)} ({row.marginPct.toFixed(1)}%)
+            </span>
+          </button>
+        );
+      }
+
       function findQuotationByNo(quotationNo, quotations) {
         const k = String(quotationNo || "").trim().toLowerCase();
         if (!k) return null;
@@ -1749,6 +2119,7 @@
           id: 2, name: "Finance User", email: "finance@erp.local", password: "demo", role: "user", is_active: true, allowed_regions: ["HK"],
           permissions: {
             dashboard: { view: true, add: false, edit: false, delete: false, export: false, import: false },
+            management_report: { view: true, add: false, edit: false, delete: false, export: false, import: false },
             overview: { view: true, add: false, edit: false, delete: false, export: true, import: false },
             clients: { view: true, add: false, edit: false, delete: false, export: true, import: true },
             quotation: { view: true, add: true, edit: true, delete: false, export: true, import: true },
@@ -2298,6 +2669,9 @@
         const [quotationSearch, setQuotationSearch] = useState("");
         const [vendorsSearch, setVendorsSearch] = useState("");
         const [siSearch, setSiSearch] = useState("");
+        const [mgmtClientFilter, setMgmtClientFilter] = useState("all");
+        const [mgmtGroupCurrency, setMgmtGroupCurrency] = useState("HKD");
+        const [mgmtCompareCurrency, setMgmtCompareCurrency] = useState("USD");
         const [arClientFilter, setArClientFilter] = useState("all");
         const [arSearch, setArSearch] = useState("");
         const [apClientFilter, setApClientFilter] = useState("all");
@@ -2557,6 +2931,32 @@
         const scopedSis = useMemo(() => sis.filter(recordInActiveRegion), [sis, activeRegion, users, currentUserId]);
         const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, currentUserId]);
         const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, currentUserId]);
+
+        const mgmtDisplayCurrency = activeRegion === "ALL" ? mgmtGroupCurrency : (REGION_CURRENCY[activeRegion] || regionListCurrency);
+        const mgmtRegionCount = useMemo(() => {
+          if (activeRegion !== "ALL") return 1;
+          const allowed = getUserRegions().filter((r) => r !== "ALL");
+          return allowed.length || DATA_REGION_IDS.length;
+        }, [activeRegion, users, currentUserId]);
+        const mgmtReport = useMemo(() => buildManagementReport({
+          jobs: scopedJobs,
+          quotations: scopedQuotations,
+          arInvoices: scopedArInvoices,
+          apBills: scopedApBills,
+          clientFilter: mgmtClientFilter,
+          displayCurrency: mgmtDisplayCurrency,
+          compareCurrency: mgmtCompareCurrency,
+          todayIso: new Date().toISOString().slice(0, 10),
+          lang,
+          activeRegion,
+          regionCount: mgmtRegionCount
+        }), [scopedJobs, scopedQuotations, scopedArInvoices, scopedApBills, mgmtClientFilter, mgmtDisplayCurrency, mgmtCompareCurrency, lang, activeRegion, mgmtRegionCount]);
+        const mgmtClientOptions = useMemo(() => {
+          const names = new Set();
+          mgmtReport.clientMargins.forEach((c) => names.add(c.company));
+          scopedClients.forEach((c) => { if (c.company) names.add(c.company); });
+          return [...names].filter(Boolean).sort();
+        }, [mgmtReport.clientMargins, scopedClients]);
 
         const arDisplay = useMemo(() => scopedArInvoices.map((r) => {
           const due_date = r.due_date || computeArDueDate(r, clients, jobs);
@@ -4101,7 +4501,7 @@
           );
         }
 
-        function DashGradientCard({ title, value, hint, badge, gradient, icon }) {
+        function DashGradientCard({ title, value, hint, badge, subValue, gradient, icon }) {
           return (
             <article className="relative overflow-hidden rounded-xl text-white p-5 min-h-[8.5rem] shadow-xl" style={{ background: gradient }}>
               <div className="absolute -right-8 -bottom-10 w-36 h-36 rounded-full bg-white/10 blur-[1px] pointer-events-none" />
@@ -4112,6 +4512,7 @@
                 <div className="text-white/30 shrink-0">{icon}</div>
                 <div className="text-right min-w-0">
                   <p className="text-2xl xl:text-3xl font-bold tabular-nums tracking-tight leading-none">{value}</p>
+                  {subValue && <p className="text-base font-semibold text-white/95 tabular-nums mt-1.5">{subValue}</p>}
                   {hint && <p className="text-[11px] text-white/80 mt-1.5 leading-snug">{hint}</p>}
                 </div>
               </div>
@@ -4628,6 +5029,7 @@
               </div>
               <nav className="space-y-1">
                 <SidebarItem id="dashboard" label={t("nav_dashboard")} module="dashboard" collapsed={sidebarCollapsed} />
+                <SidebarItem id="management_report" label={t("nav_management_report")} module="management_report" collapsed={sidebarCollapsed} />
                 <SidebarItem id="overview" label={t("nav_overview")} module="overview" collapsed={sidebarCollapsed} />
                 <SidebarItem id="ongoing" label={t("nav_ongoing")} module="ongoing" collapsed={sidebarCollapsed} />
                 <SidebarItem id="monthly_report" label={t("nav_monthly_report")} module="monthly_report" collapsed={sidebarCollapsed} />
@@ -4647,6 +5049,7 @@
                 <div className="min-w-0">
                   <h2 className="text-2xl font-bold">
                     {page === "dashboard" && t("nav_dashboard")}
+                    {page === "management_report" && t("nav_management_report")}
                     {page === "overview" && t("nav_overview")}
                     {page === "clients" && t("nav_clients")}
                     {page === "quotation" && t("nav_quotation")}
@@ -4660,7 +5063,7 @@
                     {page === "si" && t("nav_si")}
                   </h2>
                   <p className="text-sm text-slate-500">
-                    {page === "dashboard" ? t("dashSubtitle") : page === "overview" ? t("overviewHint") : page === "ongoing" ? t("ongoingHint") : page === "monthly_report" ? t("monthlyReportHint") : <>{t("baseCurrency")}: {regionListCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
+                    {page === "dashboard" ? t("dashSubtitle") : page === "management_report" ? t("mgmtSubtitle") : page === "overview" ? t("overviewHint") : page === "ongoing" ? t("ongoingHint") : page === "monthly_report" ? t("monthlyReportHint") : <>{t("baseCurrency")}: {regionListCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-nowrap">
@@ -4843,6 +5246,227 @@
                       </ul>
                     </article>
                   </section>
+                </div>
+              )}
+
+              {page === "management_report" && can("management_report", "view") && (
+                <div className="space-y-5">
+                  <section className="flex flex-wrap items-end gap-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                    <div className="min-w-[10rem]">
+                      <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">{t("mgmtFilterClient")}</label>
+                      <select value={mgmtClientFilter} onChange={(e) => setMgmtClientFilter(e.target.value)} className="h-9 w-full min-w-[12rem] rounded-lg border border-slate-300 bg-white text-sm px-2">
+                        <option value="all">{t("mgmtAllClients")}</option>
+                        {[...new Set(mgmtClientOptions)].sort().map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {activeRegion === "ALL" && (
+                      <>
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">{t("mgmtGroupCurrency")}</label>
+                          <select value={mgmtGroupCurrency} onChange={(e) => setMgmtGroupCurrency(e.target.value)} className="h-9 w-[5.5rem] rounded-lg border border-slate-300 bg-white text-sm px-2 font-semibold">
+                            {MGMT_GROUP_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">{t("mgmtCompareCurrency")}</label>
+                          <select value={mgmtCompareCurrency} onChange={(e) => setMgmtCompareCurrency(e.target.value)} className="h-9 w-[5.5rem] rounded-lg border border-slate-300 bg-white text-sm px-2 font-semibold">
+                            {MGMT_GROUP_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                      </>
+                    )}
+                    {mgmtClientFilter !== "all" && (
+                      <button type="button" onClick={() => setMgmtClientFilter("all")} className="h-9 px-3 text-xs rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700">
+                        {t("mgmtClearClient")}
+                      </button>
+                    )}
+                  </section>
+
+                  {mgmtClientFilter !== "all" && (
+                    <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+                      {t("mgmtShowingClient").replace("{name}", mgmtClientFilter)}
+                    </div>
+                  )}
+
+                  {!mgmtReport.hasData ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-12 text-center text-slate-500">
+                      {t("mgmtNoQualifyingData")}
+                    </div>
+                  ) : (
+                    <>
+                      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <DashGradientCard
+                          title={t("mgmtGrossRevenue")}
+                          value={money(mgmtReport.grossRevenue) + " " + mgmtReport.displayCurrency}
+                          hint={t("mgmtRevenueHint")}
+                          badge={activeRegion === "ALL" ? t("mgmtAggregatedRegions").replace("{n}", String(mgmtReport.regionCount)).replace("{currency}", mgmtReport.displayCurrency) : mgmtReport.displayCurrency}
+                          gradient={MGMT_CARD_GRADIENTS.revenue}
+                          icon={<DashCardIcon><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></DashCardIcon>}
+                        />
+                        <DashGradientCard
+                          title={t("mgmtTotalCogs")}
+                          value={money(mgmtReport.totalCogs) + " " + mgmtReport.displayCurrency}
+                          hint={t("mgmtCogsHint")}
+                          gradient={MGMT_CARD_GRADIENTS.cogs}
+                          icon={<DashCardIcon><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /></DashCardIcon>}
+                        />
+                        <DashGradientCard
+                          title={t("mgmtNetProfit")}
+                          value={money(mgmtReport.netProfit) + " " + mgmtReport.displayCurrency}
+                          subValue={mgmtReport.grossRevenue > 0 ? t("mgmtGrossMargin") + " " + ((mgmtReport.netProfit / mgmtReport.grossRevenue) * 100).toFixed(1) + "%" : null}
+                          hint={mgmtReport.displayCurrency}
+                          badge={mgmtReport.clientProfitSharePct != null ? t("mgmtClientProfitShare").replace("{pct}", mgmtReport.clientProfitSharePct.toFixed(1)) : null}
+                          gradient={mgmtReport.netProfit >= 0 ? MGMT_CARD_GRADIENTS.profit : MGMT_CARD_GRADIENTS.loss}
+                          icon={<DashCardIcon><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></DashCardIcon>}
+                        />
+                      </section>
+
+                      {activeRegion === "ALL" && mgmtClientFilter === "all" && mgmtReport.regionBreakdown.length > 0 && (
+                        <section>
+                          <h3 className="font-semibold text-lg text-slate-800 mb-3">{t("mgmtRegionBreakdownTitle")}</h3>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {mgmtReport.regionBreakdown.map((reg) => (
+                              <article key={reg.regionId} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <span className="text-xl">{REGION_FLAGS[reg.regionId]}</span>
+                                  <h4 className="font-semibold text-slate-800">{regionLabel(reg.regionId, lang)}</h4>
+                                </div>
+                                <div className="space-y-2 mb-3">
+                                  <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                    <p className="text-[10px] uppercase text-slate-400">{t("mgmtLocalAmount")}</p>
+                                    <p className="text-lg font-bold tabular-nums text-slate-800">{money(reg.localProfit)} {reg.localCurrency}</p>
+                                    <p className="text-xs text-slate-500">{t("mgmtNetProfit")}</p>
+                                  </div>
+                                  <div className="rounded-lg bg-indigo-50 px-3 py-2">
+                                    <p className="text-[10px] uppercase text-indigo-500">{t("mgmtConvertedAmount")}</p>
+                                    <p className="text-lg font-bold tabular-nums text-indigo-900">{money(reg.convertedProfit)} {mgmtReport.compareCurrency}</p>
+                                  </div>
+                                </div>
+                                {reg.clients.length > 0 && (
+                                  <ul className="space-y-1.5 border-t border-slate-100 pt-2 max-h-36 overflow-y-auto">
+                                    {reg.clients.map((c) => (
+                                      <li key={c.company} className="text-xs flex justify-between gap-2">
+                                        <button type="button" onClick={() => setMgmtClientFilter(c.company)} className="text-left text-blue-700 hover:underline truncate">{c.company}</button>
+                                        <span className="shrink-0 tabular-nums text-slate-600">{money(c.profit)} · {c.marginPct.toFixed(0)}%</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </article>
+                            ))}
+                          </div>
+                        </section>
+                      )}
+
+                      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {mgmtClientFilter === "all" && (
+                          <article className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                            <h3 className="font-semibold text-lg text-slate-800">{t("mgmtTopClientsTitle")}</h3>
+                            <p className="text-xs text-slate-500 mt-0.5 mb-4">{t("mgmtTopClientsHint")}</p>
+                            {mgmtReport.clientMargins.length ? (
+                              <div className="divide-y divide-slate-100">
+                                {mgmtReport.clientMargins.map((row, i) => (
+                                  <div key={row.company} className="flex items-start gap-2">
+                                    <span className="text-xs font-bold text-slate-400 w-5 pt-3 shrink-0">{i + 1}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <MgmtMarginBar row={row} maxProfit={Math.max(...mgmtReport.clientMargins.map((c) => Math.max(0, c.profit)), 1)} onSelect={setMgmtClientFilter} t={t} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-400 text-center py-6">{t("mgmtNoQualifyingData")}</p>
+                            )}
+                          </article>
+                        )}
+
+                        <article className={"bg-white border border-slate-200 rounded-2xl p-5 shadow-sm " + (mgmtClientFilter !== "all" ? "xl:col-span-2" : "")}>
+                          <h3 className="font-semibold text-lg text-slate-800">{t("mgmtJobTypeTitle")}</h3>
+                          <p className="text-xs text-slate-500 mt-0.5 mb-4">{t("mgmtJobTypeHint")}</p>
+                          {mgmtReport.jobTypeBreakdown.length ? (
+                            <div className="flex flex-col sm:flex-row items-center gap-6">
+                              <MgmtDonutChart
+                                breakdown={mgmtReport.jobTypeBreakdown}
+                                size={176}
+                                centerLabel={t("mgmtNetProfit")}
+                                centerSub={mgmtReport.displayCurrency}
+                              />
+                              <ul className="flex-1 w-full">
+                                <li className="grid grid-cols-[minmax(0,1fr)_5.5rem_2.75rem] gap-x-3 text-[10px] uppercase tracking-wide text-slate-400 pb-1 mb-1 border-b border-slate-100">
+                                  <span />
+                                  <span className="text-right">{mgmtReport.displayCurrency}</span>
+                                  <span className="text-right">%</span>
+                                </li>
+                                {mgmtReport.jobTypeBreakdown.map((row) => {
+                                  const palette = MGMT_JOB_TYPE_COLORS[row.type] || { to: "#94a3b8" };
+                                  return (
+                                    <li key={row.type} className="grid grid-cols-[minmax(0,1fr)_5.5rem_2.75rem] gap-x-3 items-center text-sm py-1.5">
+                                      <span className="flex items-center gap-2 min-w-0">
+                                        <span className="w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-white shadow-sm" style={{ background: "linear-gradient(135deg, " + (MGMT_JOB_TYPE_COLORS[row.type]?.from || "#475569") + ", " + palette.to + ")" }} />
+                                        <span className="text-slate-700 truncate">{mgmtNatureLabel(row.type, t)}</span>
+                                      </span>
+                                      <span className="text-right tabular-nums font-semibold text-slate-800">{money(row.profit)}</span>
+                                      <span className="text-right tabular-nums text-xs text-slate-500">{row.sharePct.toFixed(0)}%</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-400 text-center py-6">{t("mgmtNoQualifyingData")}</p>
+                          )}
+                        </article>
+                      </section>
+
+                      <section>
+                        <article className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                          <h3 className="font-semibold text-lg text-slate-800">
+                            {mgmtClientFilter === "all" ? t("mgmtCashForecastTitle") : t("mgmtClientRiskTitle")}
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-0.5 mb-4">
+                            {mgmtClientFilter === "all" ? t("mgmtCashForecastHint") : t("mgmtClientRiskHint")}
+                          </p>
+                          {mgmtClientFilter !== "all" && mgmtReport.overdueAr > 0 && (
+                            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex justify-between items-center">
+                              <span className="text-sm font-medium text-red-800">{t("mgmtOverdueAr")}</span>
+                              <span className="text-lg font-bold tabular-nums text-red-700">{money(mgmtReport.overdueAr)} {mgmtReport.displayCurrency}</span>
+                            </div>
+                          )}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {mgmtReport.cashForecast.map((mo) => {
+                              const cashAlert = mo.netCash < 0;
+                              return (
+                              <div key={mo.key} className={"rounded-xl border p-4 " + (cashAlert ? "border-red-500/50 bg-red-950/20" : "border-slate-200 bg-slate-50/50")}>
+                                <p className="font-semibold text-slate-800 mb-3">{mo.label}</p>
+                                {mgmtClientFilter === "all" ? (
+                                  <>
+                                    <div className="space-y-2 text-sm">
+                                      <div className="flex justify-between"><span className="text-slate-600">{t("mgmtCashIn")}</span><span className="font-semibold tabular-nums text-emerald-700">{money(mo.cashIn)}</span></div>
+                                      <div className="flex justify-between"><span className="text-slate-600">{t("mgmtCashOut")}</span><span className="font-semibold tabular-nums text-orange-700">{money(mo.cashOut)}</span></div>
+                                      <div className="flex justify-between pt-2 border-t border-slate-200"><span className="font-medium">{t("mgmtNetCashFlow")}</span><span className={"font-bold tabular-nums " + (mo.netCash >= 0 ? "text-emerald-700" : "text-red-600")}>{mo.netCash >= 0 ? "+" : ""}{money(mo.netCash)}</span></div>
+                                    </div>
+                                    {cashAlert && (
+                                      <p className="mt-3 text-xs font-medium text-red-700 flex items-start gap-1">
+                                        <span>⚠️</span> {t("mgmtDryRunAlert")}
+                                      </p>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between"><span className="text-slate-600">{t("mgmtExpectedInMonth")}</span><span className="font-semibold tabular-nums text-emerald-700">{money(mo.cashIn)} {mgmtReport.displayCurrency}</span></div>
+                                    <div className="flex justify-between pt-2 border-t border-slate-200"><span className="font-medium">{t("mgmtNetCashFlow")}</span><span className="font-bold tabular-nums text-slate-800">{money(mo.cashIn)}</span></div>
+                                  </div>
+                                )}
+                                <p className="text-[10px] text-slate-400 mt-2">{mgmtReport.displayCurrency}</p>
+                              </div>
+                            );})}
+                          </div>
+                        </article>
+                      </section>
+                    </>
+                  )}
                 </div>
               )}
 
