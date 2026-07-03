@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import JSON
 from sqlalchemy.orm import relationship
@@ -102,10 +102,10 @@ class ExchangeRate(Base):
 class ErpEntityRecord(Base):
     __tablename__ = "erp_entity_records"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), index=True)
     entity_type = Column(String(64), index=True)
-    entity_id = Column(Integer, index=True)
+    entity_id = Column(BigInteger, index=True)
     region = Column(String(16))
     payload = Column(JsonType, nullable=False, default=dict)
     is_deleted = Column(Boolean, default=False)
@@ -117,5 +117,5 @@ class ErpSyncMeta(Base):
     __tablename__ = "erp_sync_meta"
 
     tenant_id = Column(Integer, ForeignKey("tenants.id"), primary_key=True)
-    server_version = Column(Integer, default=0)
+    server_version = Column(BigInteger, default=0)
     updated_at = Column(DateTime, default=datetime.utcnow)
