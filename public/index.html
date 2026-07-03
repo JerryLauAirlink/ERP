@@ -2973,7 +2973,12 @@
         const [worldClock, setWorldClock] = useState(() => new Date());
         const [settingsTab, setSettingsTab] = useState("general");
         const [companyName, setCompanyName] = useState(() => localStorage.getItem("erp_company_name") || AIRLINK_BRAND.name);
-        const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem("erp_company_logo") || AIRLINK_BRAND.logo);
+        const sidebarLogo = AIRLINK_BRAND.logo;
+
+        useEffect(() => {
+          localStorage.setItem("erp_company_logo", sidebarLogo);
+          localStorage.setItem("erp_company_name", AIRLINK_BRAND.name);
+        }, [sidebarLogo]);
         const [erpSyncKey, setErpSyncKey] = useState(() => localStorage.getItem("erp_sync_key") || "");
         const [cloudDbStatus, setCloudDbStatus] = useState(null);
         const [liveSyncEnabled, setLiveSyncEnabled] = useState(false);
@@ -3059,7 +3064,7 @@
           if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current);
           livePushTimerRef.current = setTimeout(() => { flushLiveSyncPush(); }, 2000);
           return () => { if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current); };
-        }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, companyLogo, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
+        }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
 
         useEffect(() => {
           if (liveSyncEnabled && !liveSyncReady) {
@@ -3074,7 +3079,7 @@
         }
 
         function buildSharedSettings() {
-          return { lang, activeRegion, worldTimeZone, companyName, companyLogo, sidebarCollapsed };
+          return { lang, activeRegion, worldTimeZone, sidebarCollapsed };
         }
 
         function applySharedSettings(s) {
@@ -3082,8 +3087,6 @@
           if (s.lang) { localStorage.setItem("erp_lang", s.lang); setLang(s.lang); }
           if (s.activeRegion) { localStorage.setItem("erp_active_region", s.activeRegion); setActiveRegion(s.activeRegion); }
           if (s.worldTimeZone) setWorldTimeZone(s.worldTimeZone);
-          if (s.companyName != null) { localStorage.setItem("erp_company_name", s.companyName); setCompanyName(s.companyName); }
-          if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", s.companyLogo); setCompanyLogo(s.companyLogo); }
           if (s.sidebarCollapsed != null) setSidebarCollapsed(!!s.sidebarCollapsed);
         }
 
@@ -5648,8 +5651,18 @@
               <div className={"mb-4 shrink-0 " + (sidebarCollapsed ? "flex flex-col items-center gap-2" : "px-0.5")}>
                 <div className={"flex items-center w-full gap-2 " + (sidebarCollapsed ? "justify-center" : "")}>
                   <div className={sidebarCollapsed ? "w-10 rounded-md bg-white px-1 py-0.5 flex items-center justify-center overflow-hidden shrink-0" : "flex-1 min-w-0 rounded-md bg-white px-2 py-1 flex items-center overflow-hidden"}>
-                    {companyLogo ? (
-                      <img src={companyLogo} alt="AIRLINK" className={sidebarCollapsed ? "max-h-8 max-w-full object-contain" : "h-8 w-full object-contain object-left"} />
+                    {sidebarLogo ? (
+                      <img
+                        src={sidebarLogo}
+                        alt="AIRLINK"
+                        className={sidebarCollapsed ? "max-h-8 max-w-full object-contain" : "h-8 w-full object-contain object-left"}
+                        onError={(e) => {
+                          const el = e.currentTarget;
+                          if (el.dataset.fallback === "1") return;
+                          el.dataset.fallback = "1";
+                          el.src = "/AIRLINK/logo.png";
+                        }}
+                      />
                     ) : (
                       <svg className="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                         <rect x="3" y="5" width="18" height="14" rx="2" />
