@@ -2898,6 +2898,7 @@
         sessionStorage.removeItem("erp_session_user_id");
         localStorage.removeItem("erp_session_user_id");
         localStorage.removeItem("erp_remember_login");
+        localStorage.removeItem("erp_current_user_id");
       }
 
       function ErpRoot() {
@@ -2965,8 +2966,8 @@
 
         const [users, setUsers] = useState(() => getErpUsers());
         const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+        const sessionUserId = authUserId;
         const [auditLogs, setAuditLogs] = useState(() => loadJson("erp_audit_logs", initialAuditLogs));
-        const [currentUserId, setCurrentUserId] = useState(() => authUserId || Number(localStorage.getItem("erp_current_user_id") || 1));
         const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "Asia/Taipei");
         const [worldClock, setWorldClock] = useState(() => new Date());
         const [settingsTab, setSettingsTab] = useState("general");
@@ -3023,7 +3024,7 @@
         useEffect(() => { if (saveErpStorage("erp_monthly_po_lines", monthlyPoLines)) localStorage.setItem("erp_monthly_po_saved_at", new Date().toISOString()); }, [monthlyPoLines]);
         useEffect(() => { if (saveErpStorage("erp_monthly_ar_lines", monthlyArLines)) localStorage.setItem("erp_monthly_ar_saved_at", new Date().toISOString()); }, [monthlyArLines]);
         useEffect(() => { saveErpStorage("erp_monthly_ar_expected", monthlyArExpectedSnapshots); }, [monthlyArExpectedSnapshots]);
-        useEffect(() => { localStorage.setItem("erp_current_user_id", String(currentUserId)); }, [currentUserId]);
+        useEffect(() => { localStorage.setItem("erp_current_user_id", String(sessionUserId)); }, [sessionUserId]);
         useEffect(() => { localStorage.setItem("erp_world_timezone", worldTimeZone); }, [worldTimeZone]);
         useEffect(() => { localStorage.setItem("erp_sidebar_collapsed", sidebarCollapsed ? "1" : "0"); }, [sidebarCollapsed]);
         useEffect(() => { localStorage.setItem("erp_active_region", activeRegion); }, [activeRegion]);
@@ -3057,7 +3058,7 @@
           if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current);
           livePushTimerRef.current = setTimeout(() => { flushLiveSyncPush(); }, 2000);
           return () => { if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current); };
-        }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, currentUserId]);
+        }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, companyLogo, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
 
         useEffect(() => {
           if (liveSyncEnabled && !liveSyncReady) {
@@ -3068,7 +3069,21 @@
         }, [liveSyncEnabled]);
 
         function getCurrentUser() {
-          return users.find((u) => u.id === currentUserId) || users.find((u) => u.role === "root") || users[0];
+          return users.find((u) => u.id === sessionUserId && u.is_active) || null;
+        }
+
+        function buildSharedSettings() {
+          return { lang, activeRegion, worldTimeZone, companyName, companyLogo, sidebarCollapsed };
+        }
+
+        function applySharedSettings(s) {
+          if (!s) return;
+          if (s.lang) { localStorage.setItem("erp_lang", s.lang); setLang(s.lang); }
+          if (s.activeRegion) { localStorage.setItem("erp_active_region", s.activeRegion); setActiveRegion(s.activeRegion); }
+          if (s.worldTimeZone) setWorldTimeZone(s.worldTimeZone);
+          if (s.companyName != null) { localStorage.setItem("erp_company_name", s.companyName); setCompanyName(s.companyName); }
+          if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", s.companyLogo); setCompanyLogo(s.companyLogo); }
+          if (s.sidebarCollapsed != null) setSidebarCollapsed(!!s.sidebarCollapsed);
         }
 
         function getUserRegions() {
@@ -3105,7 +3120,7 @@
           if (!allowed.includes(activeRegion)) {
             setActiveRegion(allowed.includes("ALL") ? "ALL" : allowed[0]);
           }
-        }, [currentUserId, users]);
+        }, [sessionUserId, users]);
 
         function isRoot() {
           const u = getCurrentUser();
@@ -3249,20 +3264,20 @@
         const regionListCurrency = currencyForRegion(activeRegion, activeBaseCurrency);
         const amtInLabel = amtInCurrencyLabel(regionListCurrency, t);
 
-        const scopedClients = useMemo(() => clients.filter(recordInActiveRegion), [clients, activeRegion, users, currentUserId]);
-        const scopedJobs = useMemo(() => jobs.filter(recordInActiveRegion), [jobs, activeRegion, users, currentUserId]);
-        const scopedQuotations = useMemo(() => quotations.filter(recordInActiveRegion), [quotations, activeRegion, users, currentUserId]);
-        const scopedVendors = useMemo(() => vendors.filter(recordInActiveRegion), [vendors, activeRegion, users, currentUserId]);
-        const scopedSis = useMemo(() => sis.filter(recordInActiveRegion), [sis, activeRegion, users, currentUserId]);
-        const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, currentUserId]);
-        const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, currentUserId]);
+        const scopedClients = useMemo(() => clients.filter(recordInActiveRegion), [clients, activeRegion, users, sessionUserId]);
+        const scopedJobs = useMemo(() => jobs.filter(recordInActiveRegion), [jobs, activeRegion, users, sessionUserId]);
+        const scopedQuotations = useMemo(() => quotations.filter(recordInActiveRegion), [quotations, activeRegion, users, sessionUserId]);
+        const scopedVendors = useMemo(() => vendors.filter(recordInActiveRegion), [vendors, activeRegion, users, sessionUserId]);
+        const scopedSis = useMemo(() => sis.filter(recordInActiveRegion), [sis, activeRegion, users, sessionUserId]);
+        const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, sessionUserId]);
+        const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, sessionUserId]);
 
         const mgmtDisplayCurrency = activeRegion === "ALL" ? mgmtGroupCurrency : (REGION_CURRENCY[activeRegion] || regionListCurrency);
         const mgmtRegionCount = useMemo(() => {
           if (activeRegion !== "ALL") return 1;
           const allowed = getUserRegions().filter((r) => r !== "ALL");
           return allowed.length || DATA_REGION_IDS.length;
-        }, [activeRegion, users, currentUserId]);
+        }, [activeRegion, users, sessionUserId]);
         const mgmtReport = useMemo(() => buildManagementReport({
           jobs: scopedJobs,
           quotations: scopedQuotations,
@@ -3462,7 +3477,7 @@
             const activeJobs = rJobs.filter((j) => !isJobCompleted(j.status)).length;
             return { regionId, arTotal, apTotal, activeJobs, hasOverdueAr };
           });
-        }, [arInvoices, jobs, apBills, regionListCurrency, users, currentUserId]);
+        }, [arInvoices, jobs, apBills, regionListCurrency, users, sessionUserId]);
 
         const filteredJobs = useMemo(() => {
           let list = scopedJobs;
@@ -3542,8 +3557,8 @@
           });
         }
 
-        const scopedMonthlyPoLines = useMemo(() => filterMonthlySheetLines(monthlyPoLines, monthlyReportYear), [monthlyPoLines, monthlyReportYear, activeRegion, currentUserId, users]);
-        const scopedMonthlyArLines = useMemo(() => filterMonthlySheetLines(monthlyArLines, monthlyReportYear), [monthlyArLines, monthlyReportYear, activeRegion, currentUserId, users]);
+        const scopedMonthlyPoLines = useMemo(() => filterMonthlySheetLines(monthlyPoLines, monthlyReportYear), [monthlyPoLines, monthlyReportYear, activeRegion, sessionUserId, users]);
+        const scopedMonthlyArLines = useMemo(() => filterMonthlySheetLines(monthlyArLines, monthlyReportYear), [monthlyArLines, monthlyReportYear, activeRegion, sessionUserId, users]);
 
         const poMonthTotals = useMemo(() => {
           const totals = Array(12).fill(0);
@@ -4466,7 +4481,7 @@
             data: {
               users, auditLogs, clients, jobs, quotations, vendors, sis,
               arInvoices, apBills, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots,
-              settings: { lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed }
+              settings: buildSharedSettings()
             }
           };
         }
@@ -4497,14 +4512,7 @@
           saveErpStorage("erp_monthly_po_lines", d.monthlyPoLines || []);
           saveErpStorage("erp_monthly_ar_lines", d.monthlyArLines || []);
           saveErpStorage("erp_monthly_ar_expected", d.monthlyArExpectedSnapshots || {});
-          if (d.settings) {
-            if (d.settings.lang) { localStorage.setItem("erp_lang", d.settings.lang); setLang(d.settings.lang); }
-            if (d.settings.activeRegion) { localStorage.setItem("erp_active_region", d.settings.activeRegion); setActiveRegion(d.settings.activeRegion); }
-            if (d.settings.worldTimeZone) setWorldTimeZone(d.settings.worldTimeZone);
-            if (d.settings.companyName != null) { localStorage.setItem("erp_company_name", d.settings.companyName); setCompanyName(d.settings.companyName); }
-            if (d.settings.companyLogo != null) { localStorage.setItem("erp_company_logo", d.settings.companyLogo); setCompanyLogo(d.settings.companyLogo); }
-            if (d.settings.currentUserId) setCurrentUserId(Number(d.settings.currentUserId));
-          }
+          if (d.settings) applySharedSettings(d.settings);
           return true;
         }
 
@@ -4608,7 +4616,7 @@
           markSyncedArray("monthly_po_lines", monthlyPoLines);
           markSyncedArray("monthly_ar_lines", monthlyArLines);
           markSyncedSingleton("monthly_ar_expected", monthlyArExpectedSnapshots);
-          markSyncedSingleton("settings", { lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed });
+          markSyncedSingleton("settings", buildSharedSettings());
         }
 
         function collectAllLiveChanges() {
@@ -4628,7 +4636,7 @@
           if (liveSyncedSnapshotRef.current.monthly_ar_expected !== expectedSnap) {
             changes.push({ entity_type: "monthly_ar_expected", entity_id: 0, payload: monthlyArExpectedSnapshots || {}, is_deleted: false, region: null });
           }
-          const settingsPayload = { lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed };
+          const settingsPayload = buildSharedSettings();
           const settingsSnap = JSON.stringify(settingsPayload);
           if (liveSyncedSnapshotRef.current.settings !== settingsSnap) {
             changes.push({ entity_type: "settings", entity_id: 0, payload: settingsPayload, is_deleted: false, region: null });
@@ -4654,7 +4662,7 @@
           pushArr("monthly_po_lines", monthlyPoLines);
           pushArr("monthly_ar_lines", monthlyArLines);
           changes.push({ entity_type: "monthly_ar_expected", entity_id: 0, payload: monthlyArExpectedSnapshots || {}, is_deleted: false, region: null });
-          changes.push({ entity_type: "settings", entity_id: 0, payload: { lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed }, is_deleted: false, region: null });
+          changes.push({ entity_type: "settings", entity_id: 0, payload: buildSharedSettings(), is_deleted: false, region: null });
           return changes;
         }
 
@@ -4666,7 +4674,7 @@
             const res = await fetch("/api/sync/push", {
               method: "POST",
               headers: liveSyncHeaders(),
-              body: JSON.stringify({ changes: changes.slice(i, i + BATCH), updated_by: currentUserId })
+              body: JSON.stringify({ changes: changes.slice(i, i + BATCH), updated_by: sessionUserId })
             });
             const body = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(body.detail || res.statusText);
@@ -4714,15 +4722,7 @@
             if (!ch.is_deleted) setMonthlyArExpectedSnapshots(ch.payload || {});
           }
           if (byType.settings && byType.settings.length) {
-            const ch = byType.settings[byType.settings.length - 1];
-            const s = ch.payload || {};
-            if (s.lang) { localStorage.setItem("erp_lang", s.lang); setLang(s.lang); }
-            if (s.activeRegion) { localStorage.setItem("erp_active_region", s.activeRegion); setActiveRegion(s.activeRegion); }
-            if (s.worldTimeZone) setWorldTimeZone(s.worldTimeZone);
-            if (s.companyName != null) { localStorage.setItem("erp_company_name", s.companyName); setCompanyName(s.companyName); }
-            if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", s.companyLogo); setCompanyLogo(s.companyLogo); }
-            if (s.currentUserId) setCurrentUserId(Number(s.currentUserId));
-            if (s.sidebarCollapsed != null) setSidebarCollapsed(!!s.sidebarCollapsed);
+            applySharedSettings(byType.settings[byType.settings.length - 1].payload || {});
           }
           setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
         }
@@ -4743,16 +4743,7 @@
           if (e.monthly_ar_lines) setMonthlyArLines(e.monthly_ar_lines || []);
           const singletons = body.singletons || {};
           if (singletons.monthly_ar_expected) setMonthlyArExpectedSnapshots(singletons.monthly_ar_expected);
-          if (singletons.settings) {
-            const s = singletons.settings;
-            if (s.lang) { localStorage.setItem("erp_lang", s.lang); setLang(s.lang); }
-            if (s.activeRegion) { localStorage.setItem("erp_active_region", s.activeRegion); setActiveRegion(s.activeRegion); }
-            if (s.worldTimeZone) setWorldTimeZone(s.worldTimeZone);
-            if (s.companyName != null) { localStorage.setItem("erp_company_name", s.companyName); setCompanyName(s.companyName); }
-            if (s.companyLogo != null) { localStorage.setItem("erp_company_logo", s.companyLogo); setCompanyLogo(s.companyLogo); }
-            if (s.currentUserId) setCurrentUserId(Number(s.currentUserId));
-            if (s.sidebarCollapsed != null) setSidebarCollapsed(!!s.sidebarCollapsed);
-          }
+          if (singletons.settings) applySharedSettings(singletons.settings);
           liveServerVersionRef.current = body.server_version || 0;
           setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
         }
