@@ -2259,6 +2259,62 @@
         return users;
       }
 
+      async function fetchAllCloudUsersForLogin() {
+        const batches = [];
+        try {
+          const statusRes = await fetch("/api/sync/status");
+          if (statusRes.ok) {
+            const status = await statusRes.json();
+            if (status.entity_count > 0) {
+              const fullRes = await fetch("/api/sync/full");
+              if (fullRes.ok) {
+                const full = await fullRes.json();
+                const syncUsers = full.entities && full.entities.users;
+                if (Array.isArray(syncUsers) && syncUsers.length) batches.push(syncUsers);
+              }
+            }
+          }
+        } catch { /* ignore */ }
+        try {
+          const cfgRes = await fetch("/api/sync/client-config");
+          if (cfgRes.ok) {
+            const cfg = await cfgRes.json();
+            if (cfg.sync_key) {
+              const backupRes = await fetch("/api/backup", {
+                headers: { "X-ERP-Sync-Key": cfg.sync_key }
+              });
+              if (backupRes.ok) {
+                const body = await backupRes.json();
+                const backupUsers = body.payload && body.payload.data && body.payload.data.users;
+                if (Array.isArray(backupUsers) && backupUsers.length) batches.push(backupUsers);
+              }
+            }
+          }
+        } catch { /* ignore */ }
+        if (!batches.length) return null;
+        let merged = [];
+        batches.forEach((batch) => { merged = mergeUsersForLogin(merged, batch); });
+        return merged;
+      }
+
+      function mergeUsersForLogin(localUsers, cloudUsers) {
+        const byId = new Map((normalizeStoredUsers(localUsers) || []).map((u) => [u.id, { ...u }]));
+        (cloudUsers || []).forEach((u) => {
+          if (!u || u.id == null) return;
+          byId.set(u.id, { ...u });
+        });
+        return normalizeStoredUsers(Array.from(byId.values()));
+      }
+
+      async function getUsersForLogin() {
+        const local = getErpUsers();
+        const cloudUsers = await fetchAllCloudUsersForLogin();
+        if (!cloudUsers) return local;
+        const merged = mergeUsersForLogin(local, cloudUsers);
+        saveErpStorage("erp_users", merged);
+        return merged;
+      }
+
       function findUserForLogin(users, id, pw) {
         const key = String(id || "").trim().toLowerCase();
         const pwStr = String(pw || "");
@@ -2810,16 +2866,27 @@
         const [showPw, setShowPw] = useState(false);
         const [error, setError] = useState("");
         const [submitting, setSubmitting] = useState(false);
+        const [cloudReady, setCloudReady] = useState(false);
 
-        function handleSubmit(e) {
+        useEffect(() => {
+          let cancelled = false;
+          getUsersForLogin().finally(() => { if (!cancelled) setCloudReady(true); });
+          return () => { cancelled = true; };
+        }, []);
+
+        async function handleSubmit(e) {
           e.preventDefault();
           setError("");
           const id = String(username || "").trim();
           const pw = String(password || "");
           if (!id || !pw) { setError(t("loginFail")); return; }
           setSubmitting(true);
-          const users = getErpUsers();
-          const found = findUserForLogin(users, id, pw);
+          let users = getErpUsers();
+          let found = findUserForLogin(users, id, pw);
+          if (!found) {
+            users = await getUsersForLogin();
+            found = findUserForLogin(users, id, pw);
+          }
           if (!found) { setError(t("loginFail")); setSubmitting(false); return; }
           if (!found.is_active) { setError(t("loginInactive")); setSubmitting(false); return; }
           if (remember) localStorage.setItem("erp_saved_username", id);
@@ -2867,7 +2934,7 @@
                   {t("loginRemember")}
                 </label>
                 {error && <p className="erp-login-error">{error}</p>}
-                <button type="submit" className="erp-login-btn" disabled={submitting}>{submitting ? "…" : t("loginBtn")}</button>
+                <button type="submit" className="erp-login-btn" disabled={submitting || !cloudReady}>{submitting ? "…" : (!cloudReady ? "…" : t("loginBtn"))}</button>
               </form>
             </div>
           </div>

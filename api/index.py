@@ -106,6 +106,21 @@ def post_cloud_backup(
     if not isinstance(body.data.get("clients"), list) or not isinstance(body.data.get("jobs"), list):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid backup: clients/jobs required")
     record = save_erp_backup(db, tenant_id, body.model_dump(), note="cloud sync")
+    users = body.data.get("users") or []
+    if isinstance(users, list) and users:
+        changes = []
+        for u in users:
+            if not isinstance(u, dict) or u.get("id") is None:
+                continue
+            changes.append({
+                "entity_type": "users",
+                "entity_id": int(u["id"]),
+                "payload": u,
+                "is_deleted": False,
+                "region": None,
+            })
+        if changes:
+            upsert_entity_changes(db, tenant_id, changes, updated_by=None)
     return {
         "message": "Cloud backup saved",
         "id": record.id,
