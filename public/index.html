@@ -13,8 +13,45 @@
     <script src="world-map-data.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-      html, body { overflow-x: auto; }
-      .erp-app-shell { min-width: 1280px; }
+      html, body { overflow-x: auto; height: 100%; }
+      .erp-app-shell { min-width: 0; width: 100%; min-height: 100dvh; }
+      .erp-list-scroll {
+        overflow: auto;
+        max-height: calc(100dvh - 11rem);
+        -webkit-overflow-scrolling: touch;
+      }
+      .erp-list-scroll--toolbar { max-height: calc(100dvh - 15.5rem); }
+      .erp-list-scroll--ongoing { max-height: calc(100dvh - 10rem); }
+      .erp-list-scroll--dash { max-height: 20rem; }
+      .erp-list-scroll--settings { max-height: 28rem; }
+      .erp-list-scroll table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+      .erp-list-scroll thead th {
+        position: sticky;
+        top: 0;
+        z-index: 4;
+        background-color: #f8fafc;
+        color: #64748b;
+        box-shadow: inset 0 -1px 0 #e2e8f0;
+      }
+      .erp-list-scroll--ongoing thead th {
+        background-color: #dae3f3;
+        color: #1e293b;
+        box-shadow: inset 0 -1px 0 #cbd5e1;
+      }
+      .erp-list-scroll tbody td { background-color: #fff; }
+      .erp-list-scroll tbody tr[class*="bg-green-50"] td { background-color: #f0fdf4; }
+      @media (max-width: 1536px) {
+        .erp-list-scroll { max-height: calc(100dvh - 10rem); }
+        .erp-list-scroll--toolbar { max-height: calc(100dvh - 14.5rem); }
+      }
+      @media (max-width: 1280px) {
+        .erp-list-scroll table { font-size: 0.8125rem; }
+        .erp-list-scroll th, .erp-list-scroll td { padding: 0.5rem 0.625rem; }
+      }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -421,6 +458,9 @@
           monthlyTabReport: "Report", monthlyTabPoReceived: "PO Received", monthlyTabArInvoice: "AR Invoice",
           monthlyColJobNo: "Job#", monthlyColOtherCurrency: "Currency", monthlyColSourceAmount: "Amount", monthlyTotal: "TOTAL",
           monthlySyncFromJobs: "Sync from Jobs", monthlySyncFromAr: "Sync from AR",
+          monthlySyncReport: "Sync Report",
+          monthlySyncReportDone: "Report updated from Jobs and AR. PO / Invoice rows refreshed. Past months' AR Expected stay frozen.",
+          monthlyReportSyncHint: "Report does not auto-update. After editing Jobs or AR, click Sync Report (or sync on PO Received / AR Invoice tabs).",
           monthlyPoDetailHint: "PO by month — Job#, currency, original PO amount (Customer PO Amount), then converted to {currency}. Click Sync from Jobs after editing jobs. Report tab uses the {currency} TOTAL.",
           monthlyArDetailHint: "AR by month — Job#, currency, original invoice amount, then converted to {currency}. Report tab uses the {currency} TOTAL.",
           monthlySyncSaved: "Synced and saved to this browser. Data remains after refresh (F5).",
@@ -565,6 +605,9 @@
           monthlyTabReport: "Report", monthlyTabPoReceived: "PO Received", monthlyTabArInvoice: "AR Invoice",
           monthlyColJobNo: "Job#", monthlyColOtherCurrency: "幣別", monthlyColSourceAmount: "原幣金額", monthlyTotal: "TOTAL",
           monthlySyncFromJobs: "從 Job 同步", monthlySyncFromAr: "從 AR 同步",
+          monthlySyncReport: "同步月報",
+          monthlySyncReportDone: "已從 Job 同 AR 同步月報，PO / Invoice 列已更新。已過月份嘅 AR Expected 維持凍結。",
+          monthlyReportSyncHint: "Report 唔會自動更新。改完 Job 或 AR 後請按「同步月報」（或喺 PO Received / AR Invoice 分頁分別同步）。",
           monthlyPoDetailHint: "按月 PO — Job#、幣別、原幣 PO 金額（Customer PO Amount）、換算成 {currency}。改完 Job 請按「從 Job 同步」。Report 頁用 {currency} TOTAL。",
           monthlyArDetailHint: "按月 AR — Job#、幣別、原幣 Invoice 金額、換算成 {currency}。Report 頁用 {currency} TOTAL。",
           monthlySyncSaved: "已同步並儲存到本機瀏覽器，F5 重新整理後仍會保留。",
@@ -1777,8 +1820,8 @@
       function MonthlyDetailGrid({ grid, baseCurrency, canEdit, moneyFn, t, onOtherCurrencyChange }) {
         const { months, maxRows } = grid;
         return (
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse min-w-[1100px]">
+          <div className="erp-list-scroll erp-list-scroll--ongoing">
+            <table className="text-xs min-w-[1100px]">
               <thead>
                 <tr className="bg-[#dae3f3] text-slate-800">
                   {months.map((m, i) => (
@@ -2724,13 +2767,18 @@
           const y = Number(monthlyReportYear);
           const pending = {};
           for (let m = 0; m < 12; m++) {
-            if (!reportMonthHasEnded(y, m, today)) continue;
             const key = arExpectedSnapshotKey(y, m, activeRegion);
-            if (monthlyArExpectedSnapshots[key] != null) continue;
-            pending[key] = computeArExpectedForReportMonth(y, m, scopedArInvoices, regionListCurrency, monthEndIso(y, m));
+            const ended = reportMonthHasEnded(y, m, today);
+            const asOf = ended ? monthEndIso(y, m) : today;
+            if (ended && monthlyArExpectedSnapshots[key] != null) continue;
+            pending[key] = computeArExpectedForReportMonth(y, m, scopedArInvoices, regionListCurrency, asOf);
           }
           if (Object.keys(pending).length) {
-            setMonthlyArExpectedSnapshots((prev) => ({ ...prev, ...pending }));
+            setMonthlyArExpectedSnapshots((prev) => {
+              const changed = Object.keys(pending).some((k) => prev[k] !== pending[k]);
+              if (!changed) return prev;
+              return { ...prev, ...pending };
+            });
           }
         }, [monthlyReportYear, activeRegion, scopedArInvoices, regionListCurrency, monthlyArExpectedSnapshots]);
 
@@ -3020,6 +3068,46 @@
           });
           logAudit("monthly_report", "update", "AR Invoice", `Synced AR invoice lines for ${monthlyReportYear}`);
           alert(t("monthlySyncSaved"));
+        }
+
+        function refreshMonthlyArExpectedSnapshots() {
+          const today = new Date().toISOString().slice(0, 10);
+          const y = Number(monthlyReportYear);
+          setMonthlyArExpectedSnapshots((prev) => {
+            const updates = { ...prev };
+            let changed = false;
+            for (let m = 0; m < 12; m++) {
+              const key = arExpectedSnapshotKey(y, m, activeRegion);
+              const ended = reportMonthHasEnded(y, m, today);
+              if (ended && prev[key] != null) continue;
+              const asOf = ended ? monthEndIso(y, m) : today;
+              const val = computeArExpectedForReportMonth(y, m, scopedArInvoices, regionListCurrency, asOf);
+              if (updates[key] !== val) {
+                updates[key] = val;
+                changed = true;
+              }
+            }
+            return changed ? updates : prev;
+          });
+        }
+
+        function syncMonthlyReportAll() {
+          if (!guardPermission("monthly_report", "edit")) return;
+          setMonthlyPoLines((prev) => {
+            const next = syncPoLinesFromJobs(scopedJobs, monthlyReportYear, regionListCurrency, prev);
+            if (!saveErpStorage("erp_monthly_po_lines", next)) alert(t("storageSaveFailed"));
+            else localStorage.setItem("erp_monthly_po_saved_at", new Date().toISOString());
+            return next;
+          });
+          setMonthlyArLines((prev) => {
+            const next = syncArLinesFromInvoices(scopedArInvoices, monthlyReportYear, regionListCurrency, prev);
+            if (!saveErpStorage("erp_monthly_ar_lines", next)) alert(t("storageSaveFailed"));
+            else localStorage.setItem("erp_monthly_ar_saved_at", new Date().toISOString());
+            return next;
+          });
+          refreshMonthlyArExpectedSnapshots();
+          logAudit("monthly_report", "update", "Report", `Synced full monthly report for ${monthlyReportYear}`);
+          alert(t("monthlySyncReportDone"));
         }
 
         function updateMonthlyPoOtherCurrency(id, value) {
@@ -4472,7 +4560,7 @@
               </nav>
             </aside>
 
-            <main className="flex-1 min-w-[1080px] p-5 space-y-5">
+            <main className="flex-1 min-w-0 p-5 space-y-5">
               <header className="flex flex-wrap justify-between items-start gap-3">
                 <div className="min-w-0">
                   <h2 className="text-2xl font-bold">
@@ -4752,10 +4840,10 @@
                       <div className="px-4 py-3 border-b bg-blue-50/60">
                         <h3 className="font-semibold text-blue-900">{t("nav_ar")} ({overviewReport.arRows.length})</h3>
                       </div>
-                      <div className="overflow-auto max-h-80">
+                      <div className="erp-list-scroll erp-list-scroll--dash">
                         {overviewReport.arRows.length ? (
                           <table className="w-full text-sm">
-                            <thead className="bg-slate-50 text-slate-500 sticky top-0">
+                            <thead className="bg-slate-50 text-slate-500">
                               <tr>
                                 <th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Customer</th><th className="p-2 text-left">Date</th><th className="p-2 text-right">Amount</th>
                               </tr>
@@ -4780,10 +4868,10 @@
                       <div className="px-4 py-3 border-b bg-orange-50/60">
                         <h3 className="font-semibold text-orange-900">{t("nav_ap")} ({overviewReport.apRows.length})</h3>
                       </div>
-                      <div className="overflow-auto max-h-80">
+                      <div className="erp-list-scroll erp-list-scroll--dash">
                         {overviewReport.apRows.length ? (
                           <table className="w-full text-sm">
-                            <thead className="bg-slate-50 text-slate-500 sticky top-0">
+                            <thead className="bg-slate-50 text-slate-500">
                               <tr>
                                 <th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Payee</th><th className="p-2 text-left">Date</th><th className="p-2 text-right">Amount</th>
                               </tr>
@@ -4817,7 +4905,7 @@
                       {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: emptyClient() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
                     </div>
                   </div>
-                  <div className="overflow-auto">
+                  <div className="erp-list-scroll">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
                         <tr>
@@ -4852,7 +4940,7 @@
                       {can("quotation", "add") && <button onClick={() => setQuotationModal({ mode: "add", data: emptyQuotation() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addQuotation")}</button>}
                     </div>
                   </div>
-                  <div className="overflow-auto">
+                  <div className="erp-list-scroll">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
                         <tr>
@@ -4897,7 +4985,7 @@
                     <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
                   </div>
                   <ListToolbar t={t} mode="job" clients={scopedClients} jobs={scopedJobs} viewMode={jobViewMode} setViewMode={setJobViewMode} clientFilter={jobClientFilter} setClientFilter={setJobClientFilter} statusFilter={jobStatusFilter} setStatusFilter={setJobStatusFilter} lang={lang} />
-                  <div className="overflow-auto">
+                  <div className="erp-list-scroll erp-list-scroll--toolbar">
                     {jobViewMode === "grouped" ? (
                       groupRows(filteredJobs, (j) => j.company).map(([group, rows]) => (
                         <div key={group} className="mb-4">
@@ -4943,8 +5031,8 @@
                         <ReportExportButtons onExcel={exportOngoingExcel} onPdf={exportOngoingPdf} />
                       )}
                     </div>
-                  <div className="overflow-auto" id="ongoing-report-area">
-                    <table className="w-full text-xs border-collapse min-w-[1100px]">
+                  <div className="erp-list-scroll erp-list-scroll--ongoing" id="ongoing-report-area">
+                    <table className="w-full text-xs min-w-[1100px]">
                       <thead>
                         <tr className="bg-[#dae3f3] text-slate-800">
                           <th className="p-2 text-left border border-slate-300 font-semibold whitespace-nowrap">{t("ongoingColJobNo")}</th>
@@ -5083,7 +5171,7 @@
                       {can("vendors", "add") && <button onClick={() => setVendorModal({ mode: "add", data: emptyVendor() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>}
                     </div>
                   </div>
-                  <div className="overflow-auto">
+                  <div className="erp-list-scroll">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
                         <tr><th className="p-3 text-left">{t("vendorNo")}</th><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("actions")}</th></tr>
@@ -5111,7 +5199,7 @@
                     </div>
                   </div>
                   <p className="px-4 py-2 text-xs text-slate-500 border-b bg-amber-50/50">{t("siPageHint")}</p>
-                  <div className="overflow-auto">
+                  <div className="erp-list-scroll">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
                         <tr><th className="p-3 text-left">{t("siNo")}</th><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
@@ -5140,7 +5228,7 @@
                     </div>
                   </div>
                   <ListToolbar t={t} mode="ar" clients={scopedClients} jobs={scopedJobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} searchQ={arSearch} setSearchQ={setArSearch} lang={lang} />
-                  <div className="overflow-auto">
+                  <div className="erp-list-scroll erp-list-scroll--toolbar">
                     {arViewMode === "grouped" ? (
                       groupRows(filteredAr, (r) => r.customer).map(([group, rows]) => (
                         <div key={group} className="mb-4">
@@ -5185,7 +5273,7 @@
                     </div>
                   </div>
                   <ListToolbar t={t} mode="ap" clients={scopedClients} jobs={scopedJobs} viewMode={apViewMode} setViewMode={setApViewMode} clientFilter={apClientFilter} setClientFilter={setApClientFilter} jobFilter={apJobFilter} setJobFilter={setApJobFilter} searchQ={apSearch} setSearchQ={setApSearch} lang={lang} />
-                  <div className="overflow-auto">
+                  <div className="erp-list-scroll erp-list-scroll--toolbar">
                     {apViewMode === "grouped" ? (
                       groupRows(filteredAp, (r) => r.company_name).map(([group, rows]) => (
                         <div key={group} className="mb-4">
@@ -5230,6 +5318,9 @@
                       <div className="flex flex-nowrap items-center gap-2 shrink-0">
                         <span className="text-xs font-medium text-slate-600 whitespace-nowrap">{t("monthlyReportYear")}</span>
                         <Input type="number" min="2020" max="2099" value={monthlyReportYear} onChange={(e) => setMonthlyReportYear(e.target.value)} className="h-9 w-24 shrink-0" />
+                        {can("monthly_report", "edit") && (
+                          <button type="button" onClick={syncMonthlyReportAll} className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap font-medium">{t("monthlySyncReport")}</button>
+                        )}
                         {can("monthly_report", "export") && (
                           <ReportExportButtons
                             onExcel={monthlyReportTab === "report" ? () => exportModuleExcel("monthly_report", "data") : monthlyReportTab === "po_received" ? () => exportMonthlyDetailExcel("po") : () => exportMonthlyDetailExcel("ar")}
@@ -5245,8 +5336,9 @@
                     </div>
 
                     {monthlyReportTab === "report" && (
-                      <div className="overflow-x-auto p-4">
-                        <table className="w-full text-xs border-collapse min-w-[960px]">
+                      <div className="erp-list-scroll erp-list-scroll--ongoing p-4">
+                        <p className="text-xs text-slate-500 mb-3">{t("monthlyReportSyncHint")}</p>
+                        <table className="w-full text-xs min-w-[960px]">
                           <thead>
                             <tr className="bg-[#dae3f3] text-slate-800">
                               <th className="p-2 text-left border border-slate-300 font-semibold w-48"></th>
@@ -5377,7 +5469,7 @@
                         </div>
                         <button type="button" onClick={() => setUserModal({ mode: "add", data: emptyUserForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addUser")}</button>
                       </div>
-                      <div className="overflow-auto border rounded-lg">
+                      <div className="erp-list-scroll erp-list-scroll--settings border rounded-lg">
                         <table className="w-full text-sm">
                           <thead className="bg-slate-50 text-slate-500">
                             <tr>
@@ -5445,9 +5537,9 @@
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setAuditFilters({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" })} className="px-3 py-2 text-sm rounded-lg border">{t("auditReset")}</button>
                       </div>
-                      <div className="overflow-auto border rounded-lg max-h-[28rem]">
+                      <div className="erp-list-scroll erp-list-scroll--settings border rounded-lg">
                         <table className="w-full text-sm">
-                          <thead className="bg-slate-50 text-slate-500 sticky top-0">
+                          <thead className="bg-slate-50 text-slate-500">
                             <tr>
                               <th className="p-3 text-left">{t("auditWhen")}</th>
                               <th className="p-3 text-left">{t("auditUser")}</th>
@@ -5515,7 +5607,7 @@
                     {userModal.data.role !== "root" && (
                       <div>
                         <p className="text-sm font-semibold mb-2">{t("accessRights")}</p>
-                        <div className="overflow-auto border rounded-lg">
+                        <div className="erp-list-scroll erp-list-scroll--settings border rounded-lg">
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
@@ -5555,9 +5647,9 @@
               {importPreview && (
                 <Modal title={t("importPreviewTitle") + " — " + moduleLabel(importPreview.module, t)} onClose={() => setImportPreview(null)} wide>
                   <p className="text-sm text-slate-500 mb-3">{t("importModeHint")} · {importPreview.fileName}</p>
-                  <div className="overflow-auto border rounded-lg max-h-80 mb-4">
+                  <div className="erp-list-scroll erp-list-scroll--dash border rounded-lg mb-4">
                     <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-slate-500 sticky top-0">
+                      <thead className="bg-slate-50 text-slate-500">
                         <tr>
                           <th className="p-2 text-left">#</th>
                           <th className="p-2 text-left">{t("auditAction")}</th>
