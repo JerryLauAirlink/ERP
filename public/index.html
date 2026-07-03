@@ -4284,10 +4284,14 @@
           data.email = String(data.email || "").trim();
           if (userModal.mode === "add") {
             if (users.some((u) => String(u.email || "").trim().toLowerCase() === loginId)) { alert("Username already exists"); return; }
-            setUsers([...users, { id: Date.now(), ...data }]);
+            const created = { id: Date.now(), ...data };
+            setUsers([...users, created]);
+            pushUserRecordToCloud(created);
             logAudit("settings", "user_create", data.email, `Created user ${data.name} (${data.email})`);
           } else {
-            setUsers(users.map((u) => (u.id === userModal.id ? { ...u, ...data, id: u.id } : u)));
+            const updated = { ...users.find((u) => u.id === userModal.id), ...data, id: userModal.id };
+            setUsers(users.map((u) => (u.id === userModal.id ? updated : u)));
+            pushUserRecordToCloud(updated);
             logAudit("settings", "user_update", data.email, `Updated user ${data.name} (${data.email})`);
           }
           setUserModal(null);
@@ -4303,7 +4307,12 @@
           if (String(u.password || "") !== cur) { alert(t("passwordWrong")); return; }
           if (!next || next.length < 3) { alert(t("loginFail")); return; }
           if (next !== confirm) { alert(t("passwordMismatch")); return; }
-          setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, password: next } : x)));
+          setUsers((prev) => {
+            const updatedUsers = prev.map((x) => (x.id === u.id ? { ...x, password: next } : x));
+            const updated = updatedUsers.find((x) => x.id === u.id);
+            if (updated) pushUserRecordToCloud(updated);
+            return updatedUsers;
+          });
           setPwForm({ current: "", next: "", confirm: "" });
           alert(t("passwordChanged"));
         }
@@ -4629,6 +4638,35 @@
 
         function liveSyncHeaders() {
           return { "Content-Type": "application/json", "X-ERP-Sync-Key": erpSyncKey.trim() };
+        }
+
+        async function pushUserRecordToCloud(userRecord) {
+          if (!userRecord || userRecord.id == null) return;
+          let key = erpSyncKey.trim();
+          if (!key) {
+            try {
+              const cfgRes = await fetch("/api/sync/client-config");
+              const cfg = cfgRes.ok ? await cfgRes.json() : {};
+              key = cfg.sync_key || "";
+            } catch { return; }
+          }
+          if (!key) return;
+          try {
+            await fetch("/api/sync/push", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "X-ERP-Sync-Key": key },
+              body: JSON.stringify({
+                changes: [{
+                  entity_type: "users",
+                  entity_id: userRecord.id,
+                  payload: userRecord,
+                  is_deleted: false,
+                  region: null
+                }],
+                updated_by: sessionUserId
+              })
+            });
+          } catch { /* ignore */ }
         }
 
         function stripSyncMeta(rec) {
