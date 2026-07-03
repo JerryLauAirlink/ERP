@@ -390,6 +390,12 @@
           jobQuotationLinesTitle: "Linked Quotations",
           jobQuotationAdd: "+ Add Quotation",
           jobQuotationInputHint: "Enter Accepted quotation no., then blur or click Add.",
+          quotationAmountTotal: "Quotation Amount (Total)",
+          invoiceAmountTotal: "Invoice Amount (Total)",
+          combinedJobAmount: "Amount (Quotation + PO)",
+          jobCompleteCol: "Job Complete",
+          arPaymentStatusAutoHint: "Status is automatic: Paid when payment date is entered; Overdue after due date; otherwise Awaiting Payment.",
+          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; Overdue after due date; otherwise Awaiting Payment.",
           jobPoLinesTitle: "Customer PO lines",
           jobPoAddLine: "+ Add PO",
           jobPoColNo: "PO No.",
@@ -528,6 +534,12 @@
           jobQuotationLinesTitle: "已連結報價單",
           jobQuotationAdd: "+ 新增報價單",
           jobQuotationInputHint: "輸入 Accepted 報價單號，再離開欄位或按新增。",
+          quotationAmountTotal: "報價金額（總計）",
+          invoiceAmountTotal: "發票金額（總計）",
+          combinedJobAmount: "金額（報價 + PO）",
+          jobCompleteCol: "工作完成",
+          arPaymentStatusAutoHint: "狀態自動更新：有收款日期 = 已收款；過 due date = 逾期；否則 = 待收款。",
+          apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；過 due date = 逾期；否則 = 待付款。",
           jobPoLinesTitle: "客戶 PO 明細",
           jobPoAddLine: "+ 新增 PO",
           jobPoColNo: "PO 編號",
@@ -637,6 +649,27 @@
         return t("awaitingPayment");
       }
 
+      function deriveArPaymentStatus(r) {
+        if (!r) return "Awaiting Payment";
+        const stored = String(r.payment_status || "").trim();
+        if (stored === "Cancel" || stored === "Cancelled" || stored === "Canceled") return "Cancel";
+        if (r.payment_received_date) return "Paid";
+        if (r.due_date && calcOverdueDays(r.due_date) > 0) return "Overdue";
+        return "Awaiting Payment";
+      }
+
+      function sumLinkedQuotationAmounts(job, quotations, targetCurrency) {
+        return findLinkedQuotationsForJob(job, quotations).reduce((s, q) => s + convertCurrency(Number(q.amount || 0), q.currency || "USD", targetCurrency), 0);
+      }
+
+      function sumJobPoAmount(job) {
+        return Number(normalizeJobPoFields(job).customer_po_amount || 0);
+      }
+
+      function sumJobArInvoiceAmount(jobNo, arList, targetCurrency) {
+        return (arList || []).filter((r) => r.job_no === jobNo).reduce((s, r) => s + resolveArDisplayAmount(r, targetCurrency), 0);
+      }
+
       function paymentStatusClass(status) {
         const base = "inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-xs";
         if (status === "Paid") return base + " text-green-700 bg-green-100";
@@ -655,17 +688,30 @@
         return "text-amber-700 bg-amber-100";
       }
 
+      function deriveApPaymentStatus(b) {
+        if (!b) return "Awaiting Payment";
+        const stored = String(b.payment_status || "").trim();
+        if (stored === "Cancel" || stored === "Cancelled" || stored === "Canceled") return "Cancel";
+        if (b.pay_date) return "Paid";
+        if (b.due_date && calcOverdueDays(b.due_date) > 0) return "Overdue";
+        return "Awaiting Payment";
+      }
+
       function isApPaid(bill) {
-        return !!(bill && bill.pay_date);
+        return deriveApPaymentStatus(bill) === "Paid";
+      }
+
+      function isApUnpaid(bill) {
+        const s = deriveApPaymentStatus(bill);
+        return s === "Awaiting Payment" || s === "Overdue";
       }
 
       function apPaymentLabel(bill, t) {
-        return isApPaid(bill) ? t("apPaid") : t("apUnpaid");
+        return paymentStatusLabel(deriveApPaymentStatus(bill), t);
       }
 
       function apPaymentClass(bill) {
-        const base = "inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded text-xs";
-        return isApPaid(bill) ? base + " text-green-800 bg-green-100 font-semibold ring-1 ring-green-300" : base + " text-amber-700 bg-amber-100";
+        return paymentStatusClass(deriveApPaymentStatus(bill));
       }
 
       // Lucide-style sidebar icons (stroke 2, rounded caps — distinct from previous Heroicons set)
@@ -1021,7 +1067,7 @@
       }
 
       function isArUnpaid(r) {
-        return !!(r && r.payment_status !== "Paid" && !r.payment_received_date);
+        return deriveArPaymentStatus(r) === "Awaiting Payment" || deriveArPaymentStatus(r) === "Overdue";
       }
 
       function resolveArDisplayAmount(r, targetCurrency) {
@@ -1441,7 +1487,7 @@
       }
 
       function emptyApForm() {
-        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
+        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", payment_status: "Awaiting Payment", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
       }
 
       function patchApFromPayeeMaster(payeeType, siId, companyName, vendorList, siList) {
@@ -2208,7 +2254,8 @@
         const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
 
         function patchArModalData(data) {
-          return applyArDueDate(data, clients, jobs);
+          const next = applyArDueDate(data, clients, jobs);
+          return { ...next, payment_status: deriveArPaymentStatus(next) };
         }
 
         useEffect(() => {
@@ -2378,7 +2425,7 @@
           if (!guardPermission("ap", "edit")) return;
           const row = apBills.find((b) => b.id === id);
           const today = new Date().toISOString().slice(0, 10);
-          setApBills((prev) => prev.map((b) => (b.id === id ? { ...b, pay_date: b.pay_date || today } : b)));
+          setApBills((prev) => prev.map((b) => (b.id === id ? { ...b, pay_date: b.pay_date || today, payment_status: "Paid" } : b)));
           logAudit("ap", "mark_paid", row ? row.invoice_no : String(id), `Marked AP ${row ? row.invoice_no : id} as paid`);
         }
 
@@ -2413,11 +2460,16 @@
 
         const arDisplay = useMemo(() => scopedArInvoices.map((r) => {
           const due_date = r.due_date || computeArDueDate(r, clients, jobs);
-          return { ...r, due_date, display_base_amount: resolveArDisplayAmount(r, regionListCurrency) };
+          const payment_status = deriveArPaymentStatus({ ...r, due_date });
+          return { ...r, due_date, payment_status, display_base_amount: resolveArDisplayAmount(r, regionListCurrency) };
         }), [scopedArInvoices, regionListCurrency, clients, jobs]);
-        const apDisplay = useMemo(() => scopedApBills.map((r) => ({ ...r, display_base_amount: resolveApDisplayAmount(r, regionListCurrency) })), [scopedApBills, regionListCurrency]);
+        const apDisplay = useMemo(() => scopedApBills.map((b) => ({
+          ...b,
+          payment_status: deriveApPaymentStatus(b),
+          display_base_amount: resolveApDisplayAmount(b, regionListCurrency)
+        })), [scopedApBills, regionListCurrency]);
         const arTotal = useMemo(() => arDisplay.filter(isArUnpaid).reduce((a, b) => a + b.display_base_amount, 0), [arDisplay]);
-        const apTotal = useMemo(() => apDisplay.filter((b) => !isApPaid(b)).reduce((a, b) => a + b.display_base_amount, 0), [apDisplay]);
+        const apTotal = useMemo(() => apDisplay.filter(isApUnpaid).reduce((a, b) => a + b.display_base_amount, 0), [apDisplay]);
         const scopedArCount = scopedArInvoices.length;
         const scopedApCount = scopedApBills.length;
         const dashShowsAllPaid = scopedArCount + scopedApCount > 0 && arTotal === 0 && apTotal === 0;
@@ -3153,7 +3205,7 @@
             manual_override: Math.abs(baseInput - calcValue) > 0.01,
             job_completed: selectedJob ? isJobCompleted(selectedJob.status) : false,
             payment_received_date: f.payment_received_date || "",
-            payment_status: f.payment_received_date ? "Paid" : (f.payment_status || "Awaiting Payment"),
+            payment_status: deriveArPaymentStatus({ ...f, due_date: f.due_date || computeArDueDate(f, clients, jobs) }),
             payment_stage: f.payment_stage || "",
             due_date: f.due_date || computeArDueDate(f, clients, jobs)
           };
@@ -3201,7 +3253,9 @@
             lock_timestamp: nowIso(),
             rate_source: "MANUAL",
             manual_override: Math.abs(baseInput - calcValue) > 0.01,
-            payment_stage: f.payment_stage || ""
+            payment_stage: f.payment_stage || "",
+            pay_date: f.pay_date || "",
+            payment_status: deriveApPaymentStatus(f)
           };
           const apDup = findDuplicateInvoiceNo(apBills, rec.invoice_no, apModal.mode === "edit" ? apModal.id : null);
           if (apDup) {
@@ -3267,10 +3321,26 @@
         function getExportRows(module) {
           if (module === "clients") return scopedClients.map((c) => rowFromSchema(EXCEL_SCHEMAS.clients, c));
           if (module === "job") return scopedJobs.map((j) => rowFromSchema(EXCEL_SCHEMAS.job, j));
-          if (module === "ar") return scopedArInvoices.map((r) => ({
-            ...rowFromSchema(EXCEL_SCHEMAS.ar, r),
-            base_amount_region: resolveArDisplayAmount(r, regionListCurrency)
-          }));
+          if (module === "ar") return scopedArInvoices.map((r) => {
+            const due_date = r.due_date || computeArDueDate(r, clients, jobs);
+            const linkedJob = jobs.find((j) => j.job_no === r.job_no);
+            const status = deriveArPaymentStatus({ ...r, due_date });
+            return {
+              job_no: r.job_no || "",
+              customer: r.customer || "",
+              customer_po: r.customer_po || "",
+              job_completed: r.job_completed || (linkedJob && isJobCompleted(linkedJob.status)) ? "Yes" : "No",
+              invoice_no: r.invoice_no || "",
+              invoice_currency: r.invoice_currency || "",
+              invoice_amt: r.invoice_amt ?? "",
+              base_amount_region: resolveArDisplayAmount(r, regionListCurrency),
+              invoice_date: r.invoice_date || "",
+              due_date: due_date || "",
+              overdue_days: status === "Paid" ? 0 : calcOverdueDays(due_date),
+              days: calcDaysBetween(r.invoice_date, due_date),
+              payment_received_date: r.payment_received_date || ""
+            };
+          });
           if (module === "ap") return scopedApBills.map((b) => ({
             ...rowFromSchema(EXCEL_SCHEMAS.ap, b),
             base_amount_region: resolveApDisplayAmount(b, regionListCurrency)
@@ -3291,7 +3361,27 @@
         function exportModuleExcel(module, mode) {
           if (!guardPermission(module, "export")) return;
           let schema = EXCEL_SCHEMAS[module];
-          if (module === "ar" || module === "ap") {
+          if (module === "ar") {
+            schema = {
+              sheetName: "AR",
+              filePrefix: "ar",
+              columns: [
+                { header: "Job No", field: "job_no" },
+                { header: "Customer", field: "customer" },
+                { header: "Customer PO", field: "customer_po" },
+                { header: "Job Complete", field: "job_completed" },
+                { header: "Invoice No", field: "invoice_no" },
+                { header: "Invoice Currency", field: "invoice_currency" },
+                { header: "Invoice Amt", field: "invoice_amt" },
+                { header: "Amount (" + regionListCurrency + ")", field: "base_amount_region" },
+                { header: "Invoice Date", field: "invoice_date" },
+                { header: "Due Date", field: "due_date" },
+                { header: "Overdue Days", field: "overdue_days" },
+                { header: "Days", field: "days" },
+                { header: "Payment Received Date", field: "payment_received_date" }
+              ]
+            };
+          } else if (module === "ap") {
             schema = {
               ...schema,
               columns: [
@@ -3617,7 +3707,11 @@
                 invoice_date: p.data.invoice_date || "",
                 due_date: p.data.due_date || "",
                 payment_received_date: p.data.payment_received_date || "",
-                payment_status: p.data.payment_received_date ? "Paid" : (p.data.payment_status || "Awaiting Payment"),
+                payment_status: deriveArPaymentStatus({
+                  payment_status: p.data.payment_status,
+                  payment_received_date: p.data.payment_received_date || "",
+                  due_date: p.data.due_date || ""
+                }),
                 job_completed: job ? isJobCompleted(job.status) : false
               };
               const existing = nextAr.find((r) => r.invoice_no.toLowerCase() === p.key.toLowerCase());
@@ -3657,6 +3751,11 @@
                 manual_override: false,
                 override_reason: "",
                 pay_date: p.data.pay_date || "",
+                payment_status: deriveApPaymentStatus({
+                  pay_date: p.data.pay_date || "",
+                  due_date: p.data.due_date || "",
+                  payment_status: p.data.payment_status
+                }),
                 remarks: p.data.remarks || "",
                 bank: "", charge: "OUR", swift_code: "", payment_advice_email: ""
               };
@@ -3983,6 +4082,11 @@
             const relatedAp = getApByJob(j.job_no);
             const client = clients.find((c) => c.id === j.client_id);
             const linkedQuotations = findLinkedQuotationsForJob(j, quotations);
+            const jobCurrency = j.currency || "USD";
+            const quotationTotal = sumLinkedQuotationAmounts(j, quotations, jobCurrency);
+            const poTotal = sumJobPoAmount(j);
+            const combinedTotal = quotationTotal + poTotal;
+            const invoiceTotal = sumJobArInvoiceAmount(j.job_no, arInvoices, regionListCurrency);
             return (
               <Modal title={t("jobDetail") + " - " + j.job_no} onClose={() => setDetailPanel(null)} wide>
                 <p className="text-xs text-slate-500 mb-4">{t("jobFlowHint")}</p>
@@ -3993,7 +4097,11 @@
                   <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotations.length ? linkedQuotations.map((q, i) => (
                     <span key={q.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>{q.quotation_no}</LinkBtn></span>
                   )) : (j.quotation_no || "-")}</p></div>
-                  <div><p className="text-slate-500">Customer PO Amount</p><p>{j.customer_po_amount ? money(j.customer_po_amount) + " " + (j.currency || "") : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("quotationAmountTotal")}</p><p>{quotationTotal ? money(quotationTotal) + " " + jobCurrency : "-"}</p></div>
+                  <div><p className="text-slate-500">Customer PO Amount</p><p>{poTotal ? money(poTotal) + " " + jobCurrency : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("combinedJobAmount")}</p><p className="font-medium">{combinedTotal ? money(combinedTotal) + " " + jobCurrency : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("invoiceAmountTotal")}</p><p className="font-medium">{invoiceTotal ? money(invoiceTotal) + " " + regionListCurrency : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
                   <div className="col-span-2">
                     <p className="text-slate-500 mb-2">{t("jobPoLinesTitle")}</p>
                     {j.po_lines && j.po_lines.length ? (
@@ -4005,8 +4113,6 @@
                       </table>
                     ) : <p>-</p>}
                   </div>
-                  <div><p className="text-slate-500">{t("amount")}</p><p>{j.amount ? money(j.amount) + " " + (j.currency || "") : "-"}</p></div>
-                  <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
                   <div><p className="text-slate-500">Start Date</p><p>{j.start_date || "-"}</p></div>
                   <div><p className="text-slate-500">Description</p><p>{j.description || "-"}</p></div>
                   <div className="col-span-2"><p className="text-slate-500">{t("ongoingColRemarks")}</p><p>{j.remarks || "-"}</p></div>
@@ -4033,7 +4139,7 @@
                         <td className="p-2">{paymentStageLabel(r.payment_stage, t)}</td>
                         <td className="p-2 text-right">{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</td>
                         <td className="p-2">{r.due_date}</td>
-                        <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
+                        <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(deriveArPaymentStatus(r))}>{paymentStatusLabel(deriveArPaymentStatus(r), t)}</span></td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -4149,6 +4255,7 @@
             const r = arInvoices.find((x) => x.id === id);
             if (!r) return null;
             const job = jobs.find((j) => j.job_no === r.job_no);
+            const arStatus = deriveArPaymentStatus(r);
             return (
               <Modal title={t("arDetail") + " - " + r.invoice_no} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -4158,15 +4265,15 @@
                   <div><p className="text-slate-500">{t("jobStatus")}</p><p>{getJobForAr(r) ? <span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(getJobForAr(r).status)}>{getJobForAr(r).status}</span> : "-"}</p></div>
                   <div><p className="text-slate-500">Invoice Amt</p><p>{money(r.invoice_amt)} {r.invoice_currency}</p></div>
                   <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</p></div>
-                  <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></p></div>
+                  <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(arStatus)}>{paymentStatusLabel(arStatus, t)}</span></p></div>
                 </div>
                 {job && <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm"><p className="font-medium">{t("linkedJob")}</p><p><LinkBtn onClick={() => navigateTo("job", { client: r.customer, highlightId: job.id })}>{job.job_no}</LinkBtn> · {job.job_type} · <span className={"px-1.5 py-0.5 rounded text-xs " + jobStatusClass(job.status)}>{job.status}</span></p></div>}
-                {job && isJobCompleted(job.status) && r.payment_status !== "Paid" && (
+                {job && isJobCompleted(job.status) && arStatus !== "Paid" && (
                   <div className="mt-4">
                     <button type="button" onClick={() => openArFromJob(job)} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700">{t("issueInvoiceToClient")}</button>
                   </div>
                 )}
-                {r.payment_status !== "Paid" && (
+                {arStatus !== "Paid" && (
                   <div className="mt-4">
                     <button type="button" onClick={() => { markArPaid(r.id); setDetailPanel(null); }} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700">{t("markPaid")}</button>
                   </div>
@@ -4179,6 +4286,7 @@
             const b = apBills.find((x) => x.id === id);
             if (!b) return null;
             const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+            const apStatus = deriveApPaymentStatus(b);
             return (
               <Modal title={t("apDetail") + " - " + b.invoice_no} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -4188,12 +4296,12 @@
                   <div><p className="text-slate-500">Amount</p><p>{money(b.amount)} {b.currency}</p></div>
                   <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</p></div>
                   <div><p className="text-slate-500">Due Date</p><p>{b.due_date}</p></div>
-                  <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></p></div>
+                  <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(apStatus)}>{paymentStatusLabel(apStatus, t)}</span></p></div>
                   <div><p className="text-slate-500">Pay Date</p><p>{b.pay_date || "-"}</p></div>
                   <div><p className="text-slate-500">Bank</p><p>{b.bank}</p></div>
                   <div><p className="text-slate-500">SWIFT</p><p>{b.swift_code}</p></div>
                 </div>
-                {!isApPaid(b) && (
+                {apStatus !== "Paid" && (
                   <div className="mt-4">
                     <button type="button" onClick={() => { markApPaid(b.id); setDetailPanel(null); }} className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm hover:bg-green-700">{t("markApPaid")}</button>
                   </div>
@@ -4264,11 +4372,11 @@
               <td className="p-3">{r.company_name}</td><td className="p-3">{r.invoice_no}</td><td className="p-3">{paymentStageLabel(r.payment_stage, t)}</td><td className="p-3">{r.invoice_date || "-"}</td><td className="p-3">{r.invoice_received_date || "-"}</td>
               <td className="p-3">{r.due_date || "-"}</td><td className="p-3">{r.currency}</td><td className="p-3 text-right">{money(r.amount)}</td>
               <td className="p-3 text-right font-medium">{money(r.display_base_amount)}</td>
-              <td className="p-3 whitespace-nowrap"><span className={apPaymentClass(r)}>{apPaymentLabel(r, t)}</span></td>
-              <td className="p-3">{r.pay_date || "-"}</td><td className="p-3">{r.remarks || "-"}</td><td className="p-3">{r.bank || "-"}</td><td className="p-3">{r.charge || "-"}</td><td className="p-3">{r.swift_code || "-"}</td><td className="p-3">{r.payment_advice_email || "-"}</td>
+              <td className="p-3 whitespace-nowrap"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
+              <td className="p-3">{r.pay_date || "-"}</td><td className="p-3">{r.remarks || "-"}</td>
               <td className="p-3">
                 <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("ap", "edit")} canDelete={can("ap", "delete")} onDelete={() => deleteAp(r.id)} onView={() => setDetailPanel({ type: "ap", id: r.id })} onEdit={() => setApModal({ mode: "edit", id: r.id, data: { ...r, job_id: String(r.job_id || ""), si_id: String(r.si_id || ""), payee_type: r.payee_type || "Vendor", amount: String(r.amount ?? ""), exchange_rate: String(r.exchange_rate_locked || ""), base_amount: String(r.base_amount_locked || r.base_amount || ""), payment_stage: r.payment_stage || "" } })}
-                  extra={!isApPaid(r) && can("ap", "edit") ? <button type="button" onClick={(e) => { e.stopPropagation(); markApPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markApPaid")}</button> : null}
+                  extra={r.payment_status !== "Paid" && can("ap", "edit") ? <button type="button" onClick={(e) => { e.stopPropagation(); markApPaid(r.id); }} className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200">{t("markApPaid")}</button> : null}
                 />
               </td>
             </tr>
@@ -5057,7 +5165,7 @@
                               <tr>
                                 <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
                                 <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">{amtInLabel}</th>
-                            <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">Charge</th><th className="p-3 text-left">SWIFT CODE</th><th className="p-3 text-left">Payment Advice email</th><th className="p-3 text-left">{t("actions")}</th>
+                            <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y">{renderApRows(rows)}</tbody>
@@ -5070,7 +5178,7 @@
                           <tr>
                             <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
                             <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">{amtInLabel}</th>
-                            <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">Charge</th><th className="p-3 text-left">SWIFT CODE</th><th className="p-3 text-left">Payment Advice email</th><th className="p-3 text-left">{t("actions")}</th>
+                            <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">{renderApRows(filteredAp)}</tbody>
@@ -5730,15 +5838,23 @@
                     </Field>
                     <Field label="Invoice Date"><Input type="date" required value={arModal.data.invoice_date} onChange={(e) => setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, invoice_date: e.target.value }) })} /></Field>
                     <Field label="Due Date">
-                      <Input type="date" required value={arModal.data.due_date} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, due_date: e.target.value } })} />
+                      <Input type="date" required value={arModal.data.due_date} onChange={(e) => {
+                        const next = { ...arModal.data, due_date: e.target.value };
+                        setArModal({ ...arModal, data: { ...next, payment_status: deriveArPaymentStatus(next) } });
+                      }} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("arDueAutoHint")}</p>
                     </Field>
                     <Field label={t("paymentReceived")}><Input type="date" value={arModal.data.payment_received_date} onChange={(e) => {
                       const v = e.target.value;
-                      setArModal({ ...arModal, data: { ...arModal.data, payment_received_date: v, payment_status: v ? "Paid" : arModal.data.payment_status } });
+                      const next = { ...arModal.data, payment_received_date: v };
+                      setArModal({ ...arModal, data: { ...next, payment_status: deriveArPaymentStatus(next) } });
                     }} /></Field>
-                    <p className="md:col-span-2 text-xs text-slate-500">{t("autoPaidHint")}</p>
-                    <Field label={t("paymentStatus")}><Select value={arModal.data.payment_status} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, payment_status: e.target.value } })}><option value="Awaiting Payment">{t("awaitingPayment")}</option><option value="Overdue">{t("overdue")}</option><option value="Paid">{t("paid")}</option><option value="Cancel">Cancel</option></Select></Field>
+                    <Field label={t("paymentStatus")}>
+                      <p className="px-3 py-2 border rounded-lg bg-slate-50 text-sm">
+                        <span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(deriveArPaymentStatus(arModal.data))}>{paymentStatusLabel(deriveArPaymentStatus(arModal.data), t)}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1">{t("arPaymentStatusAutoHint")}</p>
+                    </Field>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setArModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
@@ -5791,7 +5907,10 @@
                     </Field>
                     <Field label="Invoice Date"><Input type="date" required value={apModal.data.invoice_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_date: e.target.value } })} /></Field>
                     <Field label="Invoice Received Date"><Input type="date" value={apModal.data.invoice_received_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_received_date: e.target.value } })} /></Field>
-                    <Field label="Due Date"><Input type="date" required value={apModal.data.due_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, due_date: e.target.value } })} /></Field>
+                    <Field label="Due Date"><Input type="date" required value={apModal.data.due_date} onChange={(e) => {
+                      const next = { ...apModal.data, due_date: e.target.value };
+                      setApModal({ ...apModal, data: { ...next, payment_status: deriveApPaymentStatus(next) } });
+                    }} /></Field>
                     <Field label="Currency">
                       <Select value={apModal.data.currency || "USD"} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, currency: e.target.value } })}>
                         {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
@@ -5806,8 +5925,17 @@
                       <Input type="number" step="0.01" value={apModal.data.base_amount} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, base_amount: e.target.value } })} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("baseAmountHint")}</p>
                     </Field>
-                    <Field label="Pay Date"><Input type="date" value={apModal.data.pay_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, pay_date: e.target.value } })} /></Field>
-                    <p className="md:col-span-2 text-xs text-slate-500">{t("autoApPaidHint")}</p>
+                    <Field label="Pay Date"><Input type="date" value={apModal.data.pay_date} onChange={(e) => {
+                      const v = e.target.value;
+                      const next = { ...apModal.data, pay_date: v };
+                      setApModal({ ...apModal, data: { ...next, payment_status: deriveApPaymentStatus(next) } });
+                    }} /></Field>
+                    <Field label={t("paymentStatus")}>
+                      <p className="px-3 py-2 border rounded-lg bg-slate-50 text-sm">
+                        <span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(deriveApPaymentStatus(apModal.data))}>{paymentStatusLabel(deriveApPaymentStatus(apModal.data), t)}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1">{t("apPaymentStatusAutoHint")}</p>
+                    </Field>
                     <Field label="Remarks"><Input value={apModal.data.remarks} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, remarks: e.target.value } })} /></Field>
                     <Field label="Bank"><Input value={apModal.data.bank} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, bank: e.target.value } })} className="bg-slate-50" /></Field>
                     <Field label="Charge"><Input value={apModal.data.charge} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, charge: e.target.value } })} placeholder="OUR" className="bg-slate-50" /></Field>
