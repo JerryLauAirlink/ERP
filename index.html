@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -119,7 +119,7 @@
       function regionLabel(id, lang) {
         const r = ERP_REGIONS.find((x) => x.id === id);
         if (!r) return id;
-        return lang === "zh_TW" ? r.labelZh : r.labelEn;
+        return i18nLang(lang) === "zh_TW" ? r.labelZh : r.labelEn;
       }
 
       function ensureRegionOnRecords(arr, fallback = "HK") {
@@ -138,7 +138,7 @@
       function timezoneLabel(id, lang) {
         const tz = WORLD_TIMEZONES.find((x) => x.id === id);
         if (!tz) return id.replace(/^Asia\//, "").replace(/_/g, " ");
-        return lang === "zh_TW" ? tz.labelZh : tz.labelEn;
+        return i18nLang(lang) === "zh_TW" ? tz.labelZh : tz.labelEn;
       }
 
       const PERM_KEYS = ["view", "add", "edit", "delete", "export", "import"];
@@ -357,7 +357,7 @@
       }
 
       function formatWorldTime(date, timeZone, lang) {
-        const locale = lang === "zh_TW" ? "zh-TW" : "en-GB";
+        const locale = i18nLang(lang) === "zh_TW" ? "zh-TW" : "en-GB";
         return new Intl.DateTimeFormat(locale, {
           timeZone,
           year: "numeric",
@@ -386,6 +386,12 @@
           settings: t("nav_settings")
         };
         return map[module] || module;
+      }
+
+      function i18nLang(lang) {
+        if (!lang) return "en";
+        if (lang === "zh_TW" || lang === "zh" || lang.startsWith("zh")) return "zh_TW";
+        return "en";
       }
 
       const I18N = {
@@ -466,6 +472,18 @@
           monthlySyncSaved: "Synced and saved to this browser. Data remains after refresh (F5).",
           monthlyStorageHint: "Data is saved in your browser (localStorage), not a server database. Use Settings → Backup to save a copy. Import applies to the current region filter.",
           monthlyExportPdf: "Export PDF",
+          allRegions: "All Regions",
+          paymentCancel: "Cancel",
+          colJobNo: "Job No.", colCustomer: "Customer", colCustomerPo: "Customer PO", colCustomerPoAmount: "Customer PO Amount",
+          colInvoiceNo: "Invoice No.", colInvoiceDate: "Invoice Date", colInvoiceReceivedDate: "Invoice Received Date",
+          colInvoiceCurrency: "Invoice Currency", colInvoiceAmt: "Invoice Amt", colDueDate: "Due Date", colPayDate: "Pay Date",
+          colCompanyName: "Company Name", colPaymentTerms: "Payment Terms", colStartDate: "Start Date", colProjectName: "Project Name",
+          colPayee: "Payee", colRemarks: "Remarks", colOverdueDays: "Overdue Days", colDays: "Days", colAmt: "Amt", colDate: "Date",
+          colAccountDeptContact: "Account Dept Contact", colBankCharge: "Bank Charge", colSwiftCode: "SWIFT CODE",
+          colPaymentAdviceEmail: "Payment Advice email", colCustomerNo: "Customer No.",
+          colCompany: "Company", colGstNo: "GST#", colPrimaryContact: "Primary Contact",
+          colCompanyPhone: "Company Phone #", colMobilePhone: "Mobile Phone #", colEmail: "E-mail", colPostalCode: "Postal Code",
+          colName: "Name", colBank: "Bank", colSwift: "SWIFT", colContact: "Contact",
           importReading: "Reading file…",
           importPreviewReady: "Import preview ready — please confirm.",
           storageSaveFailed: "Could not save to browser storage. Check privacy settings or disk space.",
@@ -506,7 +524,7 @@
           overviewPaidTitle: "Collected vs Paid — Full Year", overviewPaidHint: "Grouped by payment date · current calendar year",
           overviewArCollected: "AR Collected", overviewApPaid: "AP Paid", overviewArCollectedTotal: "Total AR Collected", overviewApPaidTotal: "Total AP Paid",
           amtInCurrency: "Amt in {ccy}",
-          amountManualOverride: "editable", settingsLangHint: "The interface will switch to English immediately.",
+          amountManualOverride: "editable", settingsLangHint: "The interface language updates immediately when you switch.",
           invoiceAmountOrig: "Amount (invoice currency)", invoiceAmountHint: "Original amount on vendor/client invoice. Editable — updates base amount when rate changes.",
           baseAmountHint: "Usually Amount × Exchange Rate. Override here if bank/rounding differs.",
           siPageHint: "SI completes work and sends PO/Invoice to you — pay them via AP List.",
@@ -528,6 +546,11 @@
           importNoRows: "No valid rows found.", importFileError: "Could not read file.",
           actionExport: "Export", actionImport: "Import",           importModeHint: "Existing keys will be updated; new keys will be created.",
           filterStatus: "Filter Status", searchPlaceholder: "Search...", searchHint: "Matches invoice no., client, job no., PO, etc.",
+          searchHintClients: "Matches customer no., company, contact, email, phone, address, etc.",
+          searchHintQuotation: "Matches quotation no., client, job no., description, status, etc.",
+          searchHintJob: "Matches job no., client, PO, quotation no., description, status, etc.",
+          searchHintVendors: "Matches vendor no., name, email, bank, SWIFT, contact, phone, etc.",
+          searchHintSi: "Matches SI no., name, email, bank, SWIFT, contact, phone, etc.",
           region: "Region", regionAccess: "Region Access", regionScopeHint: "Data you create is tagged to the active region. ALL shows every region you can access.",
           regionDataHint: "New records are saved under the currently selected region (not ALL).",
           importRegionHint: "Imported under region: {region}. Switch region (top-right) or set ALL to see records.",
@@ -556,20 +579,20 @@
           quotationNo: "報價單號", amount: "金額", currency: "幣別", description: "說明",
           addQuotation: "+ 新增報價", addQuotationTitle: "新增報價單", editQuotation: "修改報價單", quotationDetail: "報價詳情",
           quotationDate: "報價日期", validUntil: "有效期至", quotationStatus: "狀態",
-          ongoingHint: "幣別同 PO Amt 來自 AR Invoice（同一 Job 會加總）。按「修改」先可改 Billed Amt 同 Remarks，儲存後鎖定。",
+          ongoingHint: "幣別與 PO 金額來自應收發票（同一工作會加總）。點擊「修改」可變更已開票金額或備註，儲存後鎖定。",
           ongoingListTitle: "進行中項目清單",
-          ongoingColJobNo: "Job No.", ongoingColNature: "Job Nature", ongoingColCustomer: "Customer",
-          ongoingColProject: "Project Name", ongoingColPo: "Customer PO", ongoingColStart: "Start Date",
-          ongoingColCurrency: "Currency", ongoingColPoAmt: "PO Amt", ongoingColBilled: "Billed Amt",
-          ongoingColBalance: "PO Balance", ongoingColBalanceUsd: "Balance Amt in USD", ongoingColRemarks: "Remarks",
-          ongoingNatureHint: "(Maintenance/Service/Project/Trade)",
-          ongoingTotalPoUsd: "Total PO Amount in USD", ongoingTotalMaintUsd: "Total Amount for Maintenance in USD",
-          ongoingTotalServiceUsd: "Total Amount for Service in USD", ongoingTotalProjectUsd: "Total Amount for Project in USD",
-          ongoingTotalTradeUsd: "Total Amount for Trade in USD", exportPdf: "匯出 PDF",
-          quotationSelectHint: "輸入已 Accepted 嘅報價單號，離開欄位或按新增。一個 Job 可連結多張 Quotation。",
-          quotationNotAccepted: "搵唔到報價單，或狀態唔係 Accepted。",
-          quotationNotFound: "此區域冇呢張報價單。",
-          quotationAlreadyLinked: "呢張報價單已連結去工作 {job}。",
+          ongoingColJobNo: "工作編號", ongoingColNature: "工作性質", ongoingColCustomer: "客戶",
+          ongoingColProject: "專案名稱", ongoingColPo: "客戶 PO", ongoingColStart: "開始日期",
+          ongoingColCurrency: "幣別", ongoingColPoAmt: "PO 金額", ongoingColBilled: "已開票金額",
+          ongoingColBalance: "PO 餘額", ongoingColBalanceUsd: "餘額（USD）", ongoingColRemarks: "備註",
+          ongoingNatureHint: "（維護／服務／專案／貿易）",
+          ongoingTotalPoUsd: "PO 總額（USD）", ongoingTotalMaintUsd: "維護類總額（USD）",
+          ongoingTotalServiceUsd: "服務類總額（USD）", ongoingTotalProjectUsd: "專案類總額（USD）",
+          ongoingTotalTradeUsd: "貿易類總額（USD）", exportPdf: "匯出 PDF",
+          quotationSelectHint: "輸入狀態為 Accepted 的報價單號，離開欄位或按新增。一個工作可連結多張報價單。",
+          quotationNotAccepted: "找不到報價單，或狀態不是 Accepted。",
+          quotationNotFound: "此區域沒有這張報價單。",
+          quotationAlreadyLinked: "這張報價單已連結至工作 {job}。",
           quotationMultiJobHint: "亦已連結工作：{jobs}",
           jobQuotationLinesTitle: "已連結報價單",
           jobQuotationAdd: "+ 新增報價單",
@@ -591,43 +614,55 @@
           duplicateInvoiceNo: "Invoice 編號 {no} 已存在於 {module}。",
           duplicateQuotationNo: "報價單號 {no} 已存在。",
           duplicateJobNo: "工作編號 {no} 已存在。",
-          jobAlreadyHasQuotation: "呢個工作已連結咗報價單 {quotation}。",
+          jobAlreadyHasQuotation: "這個工作已連結報價單 {quotation}。",
           quotationLinkedOk: "已對應 Accepted 報價單。",
           monthlyReportTitle: "月報表",
-          monthlyReportHint: "全年各月 PO 收單、開票同預計應收（AR Expected = 下月 due date）。",
+          monthlyReportHint: "全年各月 PO 收單、開票及預計應收（AR Expected = 下月到期日）。",
           monthlyReportYear: "報表年份",
-          monthlyPoReceived: "PO Received (Current Month)",
-          monthlyInvoiceIssued: "Invoice Issued (Current Month)",
-          monthlyArExpected: "AR Expected",
-          monthlyArExpectedHint: "預計下月應收（例如 7 月欄顯示 8 月 due date）。未收 overdue 會計入；Paid/Cancel 唔計。月份一過就凍結，之後收款唔會改返之前月份。",
-          monthlyReportChartTitle: "{region} Monthly Report {year}",
-          monthlyChartPo: "PO Received", monthlyChartInvoice: "Invoice Issued", monthlyChartArExpected: "AR Expected",
-          monthlyTabReport: "Report", monthlyTabPoReceived: "PO Received", monthlyTabArInvoice: "AR Invoice",
-          monthlyColJobNo: "Job#", monthlyColOtherCurrency: "幣別", monthlyColSourceAmount: "原幣金額", monthlyTotal: "TOTAL",
-          monthlySyncFromJobs: "從 Job 同步", monthlySyncFromAr: "從 AR 同步",
+          monthlyPoReceived: "本月 PO 收單",
+          monthlyInvoiceIssued: "本月開立發票",
+          monthlyArExpected: "預計應收",
+          monthlyArExpectedHint: "預計下月應收（例如 7 月欄顯示 8 月到期日）。未收的逾期項目會計入；已收款／已取消不計。月份結束後凍結，之後收款不會改變歷史月份。",
+          monthlyReportChartTitle: "{region} 月報表 {year}",
+          monthlyChartPo: "PO 收單", monthlyChartInvoice: "開立發票", monthlyChartArExpected: "預計應收",
+          monthlyTabReport: "報表", monthlyTabPoReceived: "PO 收單", monthlyTabArInvoice: "AR 發票",
+          monthlyColJobNo: "工作編號", monthlyColOtherCurrency: "幣別", monthlyColSourceAmount: "原幣金額", monthlyTotal: "合計",
+          monthlySyncFromJobs: "從工作同步", monthlySyncFromAr: "從應收同步",
           monthlySyncReport: "同步月報",
-          monthlySyncReportDone: "已從 Job 同 AR 同步月報，PO / Invoice 列已更新。已過月份嘅 AR Expected 維持凍結。",
-          monthlyReportSyncHint: "Report 唔會自動更新。改完 Job 或 AR 後請按「同步月報」（或喺 PO Received / AR Invoice 分頁分別同步）。",
-          monthlyPoDetailHint: "按月 PO — Job#、幣別、原幣 PO 金額（Customer PO Amount）、換算成 {currency}。改完 Job 請按「從 Job 同步」。Report 頁用 {currency} TOTAL。",
-          monthlyArDetailHint: "按月 AR — Job#、幣別、原幣 Invoice 金額、換算成 {currency}。Report 頁用 {currency} TOTAL。",
-          monthlySyncSaved: "已同步並儲存到本機瀏覽器，F5 重新整理後仍會保留。",
-          monthlyStorageHint: "資料儲存在瀏覽器（localStorage），唔係伺服器 database。請用 設定→備份 下載備份。匯入會跟目前右上角地區。",
+          monthlySyncReportDone: "已從工作及應收同步月報，PO／發票列已更新。已結束月份的預計應收維持凍結。",
+          monthlyReportSyncHint: "報表不會自動更新。修改工作或應收後，請點擊「同步月報」（或在 PO 收單／AR 發票頁籤分別同步）。",
+          monthlyPoDetailHint: "按月 PO — 工作編號、幣別、原幣 PO 金額（客戶 PO 金額）、換算成 {currency}。修改工作後請點擊「從工作同步」。報表頁使用 {currency} 合計。",
+          monthlyArDetailHint: "按月 AR — 工作編號、幣別、原幣發票金額、換算成 {currency}。報表頁使用 {currency} 合計。",
+          monthlySyncSaved: "已同步並儲存至本機瀏覽器，重新整理（F5）後仍會保留。",
+          monthlyStorageHint: "資料儲存在瀏覽器（localStorage），並非伺服器資料庫。請至「設定 → 備份」下載備份。匯入會套用目前右上角所選地區。",
           monthlyExportPdf: "匯出 PDF",
+          allRegions: "全部地區",
+          paymentCancel: "已取消",
+          colJobNo: "工作編號", colCustomer: "客戶", colCustomerPo: "客戶 PO", colCustomerPoAmount: "客戶 PO 金額",
+          colInvoiceNo: "發票編號", colInvoiceDate: "發票日期", colInvoiceReceivedDate: "發票收到日期",
+          colInvoiceCurrency: "發票幣別", colInvoiceAmt: "發票金額", colDueDate: "到期日", colPayDate: "付款日期",
+          colCompanyName: "公司名稱", colPaymentTerms: "付款條件", colStartDate: "開始日期", colProjectName: "專案名稱",
+          colPayee: "付款對象", colRemarks: "備註", colOverdueDays: "逾期天數", colDays: "天數", colAmt: "金額", colDate: "日期",
+          colAccountDeptContact: "會計聯絡人", colBankCharge: "銀行手續費", colSwiftCode: "SWIFT 代碼",
+          colPaymentAdviceEmail: "付款通知電郵", colCustomerNo: "客戶編號",
+          colCompany: "公司名稱", colGstNo: "GST／統一編號", colPrimaryContact: "主要聯絡人",
+          colCompanyPhone: "公司電話", colMobilePhone: "手機", colEmail: "電子郵件", colPostalCode: "郵遞區號",
+          colName: "名稱", colBank: "銀行", colSwift: "SWIFT", colContact: "聯絡人",
           importReading: "正在讀取檔案…",
           importPreviewReady: "匯入預覽已準備好，請確認。",
           storageSaveFailed: "無法儲存到瀏覽器，請檢查私隱設定或儲存空間。",
           arOutstanding: "應收未結", apOutstanding: "應付未結", netPosition: "淨部位", dueSoon: "即將到期", overdueCount: "筆已逾期", pendingBills: "筆待處理", dueSoonHint: "未收款、即將到期",
           topOverdue: "逾期發票排行", approvalQueue: "審批佇列", cashFlow: "現金流入 vs 流出（90 天）", arAging: "應收帳齡",
-          dashSubtitle: "管理層總覽 — 現金狀況同需要跟進嘅單",
+          dashSubtitle: "管理層總覽 — 現金狀況及需要跟進的項目",
           dashCashIn: "現金流入（應收）", dashCashOut: "現金流出（應付）", dashCashInHint: "客戶未收款發票", dashCashOutHint: "供應商／分包商未付款", dashNetHint: "應收減應付",
-          dashActiveJobs: "進行中工作", dashActiveJobsHint: "Open 或 In Progress",
+          dashActiveJobs: "進行中工作", dashActiveJobsHint: "開啟或進行中",
           dashIncomeOut: "預期收入 vs 支出", dashIncomeOutHint: "按到期日 · 全年（1–12月）· 只計未結清",
           dashIncomeOutH1: "1 – 6 月", dashIncomeOutH2: "7 – 12 月",
           dashCashInLegend: "收入（應收到期）", dashCashOutLegend: "支出（應付到期）",
           dashAllPaidHint: "此區域有記錄，但應收／應付已全部標記為已付款。",
           dashRegionHint: "應收／應付資料在其他區域。請將「區域」改為 ALL 或對應區域。",
           dashArDueSoon: "14 日內應收到期", dashApDueSoon: "14 日內應付到期",
-          dashOverdueAr: "逾期應收 — 追數", dashOverdueAp: "逾期應付 — 付款",
+          dashOverdueAr: "逾期應收 — 催收", dashOverdueAp: "逾期應付 — 付款",
           dashDueToday: "今日到期", dashDueInDays: "{n} 日後到期", dashDaysOverdue: "逾期 {n} 日",
           dashNoDueSoon: "14 日內無到期項目", dashNoOverdue: "無逾期項目",
           dashAgingCurrent: "未到期", dashAging1_30: "逾期 1–30 日", dashAging31_60: "逾期 31–60 日", dashAging61_90: "逾期 61–90 日", dashAging90plus: "逾期 90 日以上",
@@ -654,16 +689,16 @@
           overviewArCollected: "應收已收", overviewApPaid: "應付已付", overviewArCollectedTotal: "全年應收已收", overviewApPaidTotal: "全年應付已付",
           amtInCurrency: "折合 {ccy}",
           amountManualOverride: "可手改", settingsLangHint: "切換後介面會即時更新為繁體中文（台灣）。",
-          invoiceAmountOrig: "金額（發票原幣）", invoiceAmountHint: "供應商／客戶發票上嘅原幣金額，可以改；改動後會按匯率重算本位幣。",
-          baseAmountHint: "一般 = 金額 × 匯率。若銀行實收、四捨五入唔同，可喺呢度手改。",
-          siPageHint: "分包商 (SI) 完成工作後向你開 PO／Invoice，你在 AP List 付款給佢。",
+          invoiceAmountOrig: "金額（發票原幣）",           invoiceAmountHint: "供應商／客戶發票上的原幣金額，可以修改；修改後會按匯率重算本位幣。",
+          baseAmountHint: "一般 = 金額 × 匯率。若銀行實收、四捨五入不同，可在此手動修改。",
+          siPageHint: "分包商 (SI) 完成工作後向你開立 PO／發票，你在應付清單付款給對方。",
           settingsGeneral: "一般", settingsManagement: "用戶管理", settingsAudit: "操作記錄",
-          worldTime: "世界時間", worldTimeHint: "依所選時區顯示（唔跟電腦本機時間）。",
+          worldTime: "世界時間", worldTimeHint: "依所選時區顯示（不跟電腦本機時間）。",
           timezone: "時區", currentUser: "目前登入", switchUser: "切換用戶（示範）",
           mgmtTitle: "用戶與權限管理", mgmtHint: "Root 管理員可新增用戶，並按模組設定檢視／新增／修改／刪除權限。",
           addUser: "+ 新增用戶", editUser: "修改用戶", userName: "顯示名稱", userEmail: "電郵", userPassword: "密碼", userRole: "角色", roleRoot: "Root（最高權限）", roleUser: "一般用戶",
           userActive: "啟用", accessRights: "存取權限", permView: "檢視", permAdd: "新增", permEdit: "修改", permDelete: "刪除",
-          auditTitle: "操作記錄", auditHint: "可按日期、用戶、模組、動作篩選，好似報表咁搵。",
+          auditTitle: "操作記錄", auditHint: "可按日期、用戶、模組、動作篩選，如同報表查詢。",
           auditWhen: "時間（UTC 儲存）", auditUser: "用戶", auditModule: "模組", auditAction: "動作", auditEntity: "記錄", auditDetail: "詳情",
           auditDateFrom: "開始日期", auditDateTo: "結束日期", auditSearch: "搜尋", auditReset: "重設篩選", auditNoRows: "沒有符合條件的記錄。",
           actionCreate: "新增", actionUpdate: "修改", actionDelete: "刪除", actionMarkPaid: "標記已付款", actionUserCreate: "建立用戶", actionUserUpdate: "更新用戶",
@@ -675,19 +710,24 @@
           importNoRows: "找不到有效資料列。", importFileError: "無法讀取檔案。",
           actionExport: "匯出", actionImport: "匯入",           importModeHint: "已存在的主鍵會更新；新主鍵會新增。",
           filterStatus: "篩選狀態", searchPlaceholder: "搜尋...", searchHint: "可搜發票號、客戶、工作編號、PO 等。",
-          region: "地區", regionAccess: "地區權限", regionScopeHint: "你新增嘅資料會標記為目前地區；ALL 顯示你有權限嘅所有地區。",
-          regionDataHint: "新增資料會儲存於目前所選地區（ALL 時用你有權限嘅第一個地區）。",
-          importRegionHint: "已匯入至地區：{region}。請確認右上角 Region 設為 ALL 或正確地區先會見到資料。",
+          searchHintClients: "可搜客戶編號、公司名稱、聯絡人、電郵、電話、地址等。",
+          searchHintQuotation: "可搜報價單號、客戶、工作編號、說明、狀態等。",
+          searchHintJob: "可搜工作編號、客戶、PO、報價單號、說明、狀態等。",
+          searchHintVendors: "可搜供應商編號、名稱、電郵、銀行、SWIFT、聯絡人等。",
+          searchHintSi: "可搜分包商編號、名稱、電郵、銀行、SWIFT、聯絡人等。",
+          region: "地區", regionAccess: "地區權限",           regionScopeHint: "您新增的資料會標記為目前地區；ALL 顯示您有權限的所有地區。",
+          regionDataHint: "新增資料會儲存於目前所選地區（選 ALL 時使用您有權限的第一個地區）。",
+          importRegionHint: "已匯入至地區：{region}。請確認右上角「地區」設為 ALL 或正確地區後才會看到資料。",
           settingsBackup: "備份與還原", backupTitle: "備份與還原", backupHint: "所有 LIST 資料只儲存在此瀏覽器。下載備份檔可搬到另一部電腦／瀏覽器。還原會覆蓋目前所有資料。",
           backupDownload: "下載備份", restoreUpload: "還原備份", restoreConfirm: "還原會覆蓋此瀏覽器內所有 ERP 資料，確定繼續？",
           restoreDone: "還原完成，頁面將重新載入。", restoreInvalid: "備份檔案無效。", backupDone: "已下載備份檔。",
-          noDatabaseNote: "目前未有 server database — Excel 匯入只會更新瀏覽器資料。上傳後請在預覽視窗按「確認匯入」。"
+          noDatabaseNote: "目前尚無伺服器資料庫 — Excel 匯入只會更新瀏覽器資料。上傳後請在預覽視窗按「確認匯入」。"
         },
       };
 
       function paymentStatusLabel(status, t) {
         if (status === "Paid") return t("paid");
-        if (status === "Cancel" || status === "Cancelled" || status === "Canceled") return "Cancel";
+        if (status === "Cancel" || status === "Cancelled" || status === "Canceled") return t("paymentCancel");
         if (status === "Overdue") return t("overdue");
         return t("awaitingPayment");
       }
@@ -917,17 +957,17 @@
       }
 
       function monthChartLabel(year, monthIndex, lang) {
-        const locale = lang === "zh_TW" ? "zh-TW" : "en-US";
+        const locale = i18nLang(lang) === "zh_TW" ? "zh-TW" : "en-US";
         return new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(year, monthIndex, 1));
       }
 
       function monthShortLabel(year, monthIndex, lang) {
-        const locale = lang === "zh_TW" ? "zh-TW" : "en-US";
+        const locale = i18nLang(lang) === "zh_TW" ? "zh-TW" : "en-US";
         return new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(year, monthIndex, 1));
       }
 
       function monthTableHeader(year, monthIndex, lang) {
-        const locale = lang === "zh_TW" ? "zh-TW" : "en-US";
+        const locale = i18nLang(lang) === "zh_TW" ? "zh-TW" : "en-US";
         return new Intl.DateTimeFormat(locale, { month: "long" }).format(new Date(year, monthIndex, 1));
       }
 
@@ -1605,6 +1645,9 @@
       }
 
       function ListToolbar({ t, mode, clients, jobs, viewMode, setViewMode, clientFilter, setClientFilter, jobFilter, setJobFilter, statusFilter, setStatusFilter, searchQ, setSearchQ, lang }) {
+        const showSearch = ["job", "ar", "ap", "clients", "quotation", "vendors", "si"].includes(mode);
+        const showDisplayMode = ["job", "ar", "ap"].includes(mode);
+        const searchHintKey = { ar: "searchHint", ap: "searchHint", job: "searchHintJob", clients: "searchHintClients", quotation: "searchHintQuotation", vendors: "searchHintVendors", si: "searchHintSi" }[mode] || "filterClientHint";
         return (
           <div className="p-4 border-b flex flex-wrap gap-3 items-center bg-slate-50/80">
             {(mode === "job" || mode === "ar" || mode === "ap") && (
@@ -1634,21 +1677,24 @@
                 </Select>
               </label>
             )}
-            {(mode === "ar" || mode === "ap") && (
+            {showSearch && setSearchQ && (
               <label className="text-sm flex items-center gap-2 flex-1 min-w-[12rem]">
                 <span className="text-slate-600 shrink-0">{t("auditSearch")}:</span>
-                <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder={t("searchPlaceholder")} className="bg-white" />
+                <Input value={searchQ || ""} onChange={(e) => setSearchQ(e.target.value)} placeholder={t("searchPlaceholder")} className="bg-white" />
               </label>
             )}
-            <label className="text-sm flex items-center gap-2">
-              <span className="text-slate-600">{t("displayMode")}:</span>
-              <Select value={viewMode} onChange={(e) => setViewMode(e.target.value)} className="w-52 bg-white">
-                <option value="list">{t("listView")}</option>
-                <option value="grouped">{mode === "ap" ? t("groupByVendor") : t("groupByClient")}</option>
-              </Select>
-            </label>
+            {showDisplayMode && (
+              <label className="text-sm flex items-center gap-2">
+                <span className="text-slate-600">{t("displayMode")}:</span>
+                <Select value={viewMode} onChange={(e) => setViewMode(e.target.value)} className="w-52 bg-white">
+                  <option value="list">{t("listView")}</option>
+                  <option value="grouped">{mode === "ap" ? t("groupByVendor") : t("groupByClient")}</option>
+                </Select>
+              </label>
+            )}
             <span className="text-xs text-slate-500">
-              {mode === "ap" && jobFilter !== "all" ? t("filterJobHint") : mode === "ar" || mode === "ap" ? t("searchHint") : t("filterClientHint")} · {t("groupHint")}
+              {showSearch ? t(searchHintKey) : mode === "ap" && jobFilter !== "all" ? t("filterJobHint") : t("filterClientHint")}
+              {showDisplayMode ? " · " + t("groupHint") : ""}
             </span>
           </div>
         );
@@ -2247,6 +2293,11 @@
         const [apViewMode, setApViewMode] = useState("list");
         const [jobClientFilter, setJobClientFilter] = useState("all");
         const [jobStatusFilter, setJobStatusFilter] = useState("all");
+        const [jobSearch, setJobSearch] = useState("");
+        const [clientsSearch, setClientsSearch] = useState("");
+        const [quotationSearch, setQuotationSearch] = useState("");
+        const [vendorsSearch, setVendorsSearch] = useState("");
+        const [siSearch, setSiSearch] = useState("");
         const [arClientFilter, setArClientFilter] = useState("all");
         const [arSearch, setArSearch] = useState("");
         const [apClientFilter, setApClientFilter] = useState("all");
@@ -2294,7 +2345,7 @@
         const [monthlyArLines, setMonthlyArLines] = useState(() => loadJson("erp_monthly_ar_lines", []));
         const [monthlyArExpectedSnapshots, setMonthlyArExpectedSnapshots] = useState(() => loadJson("erp_monthly_ar_expected", {}));
 
-        const t = (key) => (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+        const t = (key) => (I18N[i18nLang(lang)] && I18N[i18nLang(lang)][key]) || I18N.en[key] || key;
 
         function patchArModalData(data) {
           const next = applyArDueDate(data, clients, jobs);
@@ -2430,6 +2481,12 @@
           setLang(next);
           localStorage.setItem("erp_lang", next);
         }
+
+        useEffect(() => {
+          const L = i18nLang(lang);
+          document.documentElement.lang = L === "zh_TW" ? "zh-TW" : "en";
+          document.title = (I18N[L] && I18N[L].appTitle) || I18N.en.appTitle;
+        }, [lang]);
 
         function navigateTo(targetPage, opts = {}) {
           setDetailPanel(null);
@@ -2686,8 +2743,33 @@
           let list = scopedJobs;
           if (jobClientFilter !== "all") list = list.filter((j) => j.company === jobClientFilter);
           if (jobStatusFilter !== "all") list = list.filter((j) => j.status === jobStatusFilter);
+          if (jobSearch.trim()) list = list.filter((j) => matchesSearch(j, jobSearch, ["job_no", "company", "description", "customer_po", "quotation_no", "job_type", "status", "remarks", "currency"]));
           return list;
-        }, [scopedJobs, jobClientFilter, jobStatusFilter]);
+        }, [scopedJobs, jobClientFilter, jobStatusFilter, jobSearch]);
+
+        const filteredClients = useMemo(() => {
+          let list = scopedClients;
+          if (clientsSearch.trim()) list = list.filter((c) => matchesSearch(c, clientsSearch, ["customer_no", "company", "gst_no", "primary_contact", "company_phone", "mobile_phone", "email", "address", "postal_code", "account_dept_contact", "payment_terms"]));
+          return list;
+        }, [scopedClients, clientsSearch]);
+
+        const filteredQuotations = useMemo(() => {
+          let list = scopedQuotations;
+          if (quotationSearch.trim()) list = list.filter((q) => matchesSearch(q, quotationSearch, ["quotation_no", "company", "description", "job_no", "status", "currency", "quotation_date", "valid_until"]));
+          return list;
+        }, [scopedQuotations, quotationSearch]);
+
+        const filteredVendors = useMemo(() => {
+          let list = scopedVendors;
+          if (vendorsSearch.trim()) list = list.filter((v) => matchesSearch(v, vendorsSearch, ["vendor_no", "name", "email", "bank", "swift_code", "charge", "contact", "phone", "address"]));
+          return list;
+        }, [scopedVendors, vendorsSearch]);
+
+        const filteredSis = useMemo(() => {
+          let list = scopedSis;
+          if (siSearch.trim()) list = list.filter((s) => matchesSearch(s, siSearch, ["si_no", "name", "email", "bank", "swift_code", "charge", "contact", "phone", "address"]));
+          return list;
+        }, [scopedSis, siSearch]);
 
         const ongoingJobsList = useMemo(() => scopedJobs
           .filter((j) => !isJobCompleted(j.status))
@@ -3130,7 +3212,7 @@
 
         function exportMonthlyReportPdfClick() {
           if (!guardPermission("monthly_report", "export")) return;
-          const title = t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear);
+          const title = t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear);
           ensurePdfLibs().then(function (ok) {
             if (!ok) { alert("PDF library not loaded"); return; }
             exportMonthlyReportPdf({ series: monthlyReportSeries, title, t, moneyFn: money });
@@ -3935,14 +4017,14 @@
 
           logAudit(module, "import", fileName, `Imported ${created} new, ${updated} updated, ${preview.length - valid.length} errors`);
           setImportPreview(null);
-          const regionNote = t("importRegionHint").replace("{region}", activeRegion === "ALL" ? "ALL" : regionLabel(activeRegion, lang));
+          const regionNote = t("importRegionHint").replace("{region}", activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang));
           alert(t("importSummary") + ": " + created + " " + t("importRowCreate") + ", " + updated + " " + t("importRowUpdate") + "\n" + regionNote);
         }
 
         function exportOngoingExcel() {
           if (!guardPermission("ongoing", "export")) return;
           if (typeof XLSX === "undefined") { alert("Excel library not loaded"); return; }
-          const regionName = activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang);
+          const regionName = activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang);
           const rows = ongoingJobsList.map((j) => ({
             job_no: j.job_no,
             nature: j.nature,
@@ -3975,7 +4057,7 @@
 
         function exportOngoingPdf() {
           if (!guardPermission("ongoing", "export")) return;
-          const regionName = activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang);
+          const regionName = activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang);
           const title = t("ongoingListTitle") + " - " + regionName;
           ensurePdfLibs().then(function (ok) {
             if (!ok) { alert("PDF library not loaded"); return; }
@@ -4111,11 +4193,11 @@
             return (
               <Modal title={t("clientDetail") + " - " + c.company} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div><p className="text-slate-500">Customer No.</p><p className="font-medium">{c.customer_no}</p></div>
-                  <div><p className="text-slate-500">COMPANY</p><p className="font-medium">{c.company}</p></div>
-                  <div><p className="text-slate-500">Primary Contact</p><p>{c.primary_contact}</p></div>
+                  <div><p className="text-slate-500">{t("colCustomerNo")}</p><p className="font-medium">{c.customer_no}</p></div>
+                  <div><p className="text-slate-500">{t("colCompany")}</p><p className="font-medium">{c.company}</p></div>
+                  <div><p className="text-slate-500">{t("colPrimaryContact")}</p><p>{c.primary_contact}</p></div>
                   <div><p className="text-slate-500">E-mail</p><p>{c.email}</p></div>
-                  <div><p className="text-slate-500">Payment Terms</p><p>{c.payment_terms}</p></div>
+                  <div><p className="text-slate-500">{t("colPaymentTerms")}</p><p>{c.payment_terms}</p></div>
                   <div><p className="text-slate-500">Address</p><p>{c.address}</p></div>
                 </div>
                 <div className="mt-6 space-y-4">
@@ -4123,7 +4205,7 @@
                     <h4 className="font-semibold mb-2">{t("relatedJobs")} ({relatedJobs.length})</h4>
                     {relatedJobs.length ? (
                       <table className="w-full text-sm border rounded-lg overflow-hidden">
-                        <thead className="bg-slate-50"><tr><th className="p-2 text-left">Job No</th><th className="p-2 text-left">{t("type")}</th><th className="p-2 text-left">PO</th><th className="p-2 text-left">{t("status")}</th><th className="p-2 text-left"></th></tr></thead>
+                        <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-left">{t("type")}</th><th className="p-2 text-left">{t("colCustomerPo")}</th><th className="p-2 text-left">{t("status")}</th><th className="p-2 text-left"></th></tr></thead>
                         <tbody>{relatedJobs.map((j) => (
                           <tr key={j.id} className="border-t">
                             <td className="p-2"><LinkBtn onClick={() => navigateTo("job", { client: c.company, highlightId: j.id })}>{j.job_no}</LinkBtn></td>
@@ -4140,7 +4222,7 @@
                     <h4 className="font-semibold mb-2">{t("relatedInvoices")} ({relatedAr.length})</h4>
                     {relatedAr.length ? (
                       <table className="w-full text-sm border rounded-lg overflow-hidden">
-                        <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">Amt</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left"></th></tr></thead>
+                        <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{t("colAmt")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left"></th></tr></thead>
                         <tbody>{relatedAr.map((r) => (
                           <tr key={r.id} className="border-t">
                             <td className="p-2"><LinkBtn onClick={() => navigateTo("ar", { client: c.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></td>
@@ -4177,7 +4259,7 @@
                   <div><p className="text-slate-500">{t("quotationDate")}</p><p>{q.quotation_date || "-"}</p></div>
                   <div><p className="text-slate-500">{t("validUntil")}</p><p>{q.valid_until || "-"}</p></div>
                   <div><p className="text-slate-500">{t("amount")}</p><p>{money(q.amount)} {q.currency}</p></div>
-                  <div><p className="text-slate-500">Job No.</p><p>{quotationJobNos(q).length ? quotationJobNos(q).map((jno, i) => (
+                  <div><p className="text-slate-500">{t("colJobNo")}</p><p>{quotationJobNos(q).length ? quotationJobNos(q).map((jno, i) => (
                     <span key={jno}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === jno); if (j) setDetailPanel({ type: "job", id: j.id }); }}>{jno}</LinkBtn></span>
                   )) : "-"}</p></div>
                   <div className="col-span-2"><p className="text-slate-500">{t("description")}</p><p>{q.description || "-"}</p></div>
@@ -4203,11 +4285,11 @@
                 <div className="grid grid-cols-2 gap-6 text-sm mb-6">
                   <div className="space-y-4">
                     <div><p className="text-slate-500">Client</p><p className="font-medium">{j.company}</p></div>
-                    <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
+                    <div><p className="text-slate-500">{t("colCustomerPo")}</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
                     <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotations.length ? linkedQuotations.map((q, i) => (
                       <span key={q.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>{q.quotation_no}</LinkBtn></span>
                     )) : (j.quotation_no || "-")}</p></div>
-                    <div><p className="text-slate-500">Invoice No.</p><p>{relatedAr.length ? relatedAr.map((r, i) => (
+                    <div><p className="text-slate-500">{t("colInvoiceNo")}</p><p>{relatedAr.length ? relatedAr.map((r, i) => (
                       <span key={r.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => navigateTo("ar", { client: j.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></span>
                     )) : "-"}</p></div>
                     <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
@@ -4231,7 +4313,7 @@
                       </table>
                     ) : <p>-</p>}
                   </div>
-                  <div><p className="text-slate-500">Start Date</p><p>{j.start_date || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colStartDate")}</p><p>{j.start_date || "-"}</p></div>
                   <div><p className="text-slate-500">Description</p><p>{j.description || "-"}</p></div>
                   <div className="col-span-2"><p className="text-slate-500">{t("ongoingColRemarks")}</p><p>{j.remarks || "-"}</p></div>
                 </div>
@@ -4250,7 +4332,7 @@
                 <h4 className="font-semibold mb-2">{t("relatedInvoices")} ({relatedAr.length})</h4>
                 {relatedAr.length ? (
                   <table className="w-full text-sm border rounded-lg overflow-hidden mb-6">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">{t("paymentStage")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("paymentStage")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
                     <tbody>{relatedAr.map((r) => (
                       <tr key={r.id} className="border-t">
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ar", { client: j.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></td>
@@ -4265,7 +4347,7 @@
                 <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
                 {relatedAp.length ? (
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">{t("payeeType")}</th><th className="p-2 text-left">Payee</th><th className="p-2 text-right">Amount</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("payeeType")}</th><th className="p-2 text-left">{t("colPayee")}</th><th className="p-2 text-right">{t("amount")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left"></th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
                       <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/50" : "")}>
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { client: j.company, jobId: j.id, highlightId: b.id })}>{b.invoice_no}</LinkBtn></td>
@@ -4306,7 +4388,7 @@
                       {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
                     </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">Pay Date</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">{t("colPayDate")}</th><th className="p-2 text-left"></th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
                       <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/70" : "")}>
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
@@ -4349,7 +4431,7 @@
                       {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
                     </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Job No.</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">Due Date</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">Pay Date</th><th className="p-2 text-left">Remarks</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">{t("colPayDate")}</th><th className="p-2 text-left">{t("colRemarks")}</th><th className="p-2 text-left"></th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
                       <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/70" : "")}>
                         <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
@@ -4377,9 +4459,9 @@
             return (
               <Modal title={t("arDetail") + " - " + r.invoice_no} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                  <div><p className="text-slate-500">Job No.</p><p>{r.job_no ? <LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === r.job_no); navigateTo("job", { client: r.customer, highlightId: j ? j.id : null }); }}>{r.job_no}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colJobNo")}</p><p>{r.job_no ? <LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === r.job_no); navigateTo("job", { client: r.customer, highlightId: j ? j.id : null }); }}>{r.job_no}</LinkBtn> : "-"}</p></div>
                   <div><p className="text-slate-500">Customer</p><p>{r.customer}</p></div>
-                  <div><p className="text-slate-500">Customer PO</p><p>{r.customer_po ? <LinkBtn onClick={() => navigateToArByPo(r.customer, r.customer_po)}>{r.customer_po}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colCustomerPo")}</p><p>{r.customer_po ? <LinkBtn onClick={() => navigateToArByPo(r.customer, r.customer_po)}>{r.customer_po}</LinkBtn> : "-"}</p></div>
                   <div><p className="text-slate-500">{t("jobStatus")}</p><p>{getJobForAr(r) ? <span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(getJobForAr(r).status)}>{getJobForAr(r).status}</span> : "-"}</p></div>
                   <div><p className="text-slate-500">Invoice Amt</p><p>{money(r.invoice_amt)} {r.invoice_currency}</p></div>
                   <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</p></div>
@@ -4408,14 +4490,14 @@
             return (
               <Modal title={t("apDetail") + " - " + b.invoice_no} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                  <div><p className="text-slate-500">Job No.</p><p>{b.job_no ? <LinkBtn onClick={() => navigateTo("job", { client: job ? job.company : "all", highlightId: job ? job.id : null })}>{b.job_no}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colJobNo")}</p><p>{b.job_no ? <LinkBtn onClick={() => navigateTo("job", { client: job ? job.company : "all", highlightId: job ? job.id : null })}>{b.job_no}</LinkBtn> : "-"}</p></div>
                   <div><p className="text-slate-500">{t("payeeType")}</p><p>{b.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</p></div>
                   <div><p className="text-slate-500">Company</p><p>{b.company_name}</p></div>
-                  <div><p className="text-slate-500">Amount</p><p>{money(b.amount)} {b.currency}</p></div>
+                  <div><p className="text-slate-500">{t("amount")}</p><p>{money(b.amount)} {b.currency}</p></div>
                   <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</p></div>
-                  <div><p className="text-slate-500">Due Date</p><p>{b.due_date}</p></div>
+                  <div><p className="text-slate-500">{t("colDueDate")}</p><p>{b.due_date}</p></div>
                   <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(apStatus)}>{paymentStatusLabel(apStatus, t)}</span></p></div>
-                  <div><p className="text-slate-500">Pay Date</p><p>{b.pay_date || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colPayDate")}</p><p>{b.pay_date || "-"}</p></div>
                   <div><p className="text-slate-500">Bank</p><p>{b.bank}</p></div>
                   <div><p className="text-slate-500">SWIFT</p><p>{b.swift_code}</p></div>
                 </div>
@@ -4845,7 +4927,7 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Customer</th><th className="p-2 text-left">Date</th><th className="p-2 text-right">Amount</th>
+                                <th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colCustomer")}</th><th className="p-2 text-left">{t("colDate")}</th><th className="p-2 text-right">{t("amount")}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y">
@@ -4873,7 +4955,7 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-2 text-left">Invoice No.</th><th className="p-2 text-left">Payee</th><th className="p-2 text-left">Date</th><th className="p-2 text-right">Amount</th>
+                                <th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colPayee")}</th><th className="p-2 text-left">{t("colDate")}</th><th className="p-2 text-right">{t("amount")}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y">
@@ -4905,18 +4987,19 @@
                       {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: emptyClient() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
                     </div>
                   </div>
+                  <ListToolbar t={t} mode="clients" searchQ={clientsSearch} setSearchQ={setClientsSearch} lang={lang} />
                   <div className="erp-list-scroll">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
                         <tr>
-                          <th className="p-3 text-left">Customer No.</th><th className="p-3 text-left">COMPANY</th><th className="p-3 text-left">GST#</th>
-                          <th className="p-3 text-left">Primary Contact</th><th className="p-3 text-left">Company Phone #</th><th className="p-3 text-left">Mobile Phone #</th>
-                          <th className="p-3 text-left">E-mail</th><th className="p-3 text-left">Address</th><th className="p-3 text-left">Postal Code</th>
-                          <th className="p-3 text-left">Account Dept Contact</th><th className="p-3 text-left">Payment Terms</th><th className="p-3 text-left">{t("actions")}</th>
+                          <th className="p-3 text-left">{t("colCustomerNo")}</th><th className="p-3 text-left">{t("colCompany")}</th><th className="p-3 text-left">{t("colGstNo")}</th>
+                          <th className="p-3 text-left">{t("colPrimaryContact")}</th><th className="p-3 text-left">{t("colCompanyPhone")}</th><th className="p-3 text-left">{t("colMobilePhone")}</th>
+                          <th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colPostalCode")}</th>
+                          <th className="p-3 text-left">{t("colAccountDeptContact")}</th><th className="p-3 text-left">{t("colPaymentTerms")}</th><th className="p-3 text-left">{t("actions")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {scopedClients.map((c) => (
+                        {filteredClients.map((c) => (
                           <tr key={c.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "client", id: c.id })}>
                             <td className="p-3">{c.customer_no}</td><td className="p-3 font-medium">{c.company}</td><td className="p-3">{c.gst_no}</td>
                             <td className="p-3">{c.primary_contact}</td><td className="p-3">{c.company_phone}</td><td className="p-3">{c.mobile_phone}</td>
@@ -4940,17 +5023,18 @@
                       {can("quotation", "add") && <button onClick={() => setQuotationModal({ mode: "add", data: emptyQuotation() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addQuotation")}</button>}
                     </div>
                   </div>
+                  <ListToolbar t={t} mode="quotation" searchQ={quotationSearch} setSearchQ={setQuotationSearch} lang={lang} />
                   <div className="erp-list-scroll">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
                         <tr>
                           <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("quotationDate")}</th>
                           <th className="p-3 text-left">{t("validUntil")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
-                          <th className="p-3 text-left">{t("quotationStatus")}</th><th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("actions")}</th>
+                          <th className="p-3 text-left">{t("quotationStatus")}</th><th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("actions")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {scopedQuotations.map((q) => (
+                        {filteredQuotations.map((q) => (
                           <tr key={q.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>
                             <td className="p-3 font-medium">{q.quotation_no}</td>
                             <td className="p-3">{q.company}</td>
@@ -4984,7 +5068,7 @@
                     </div>
                     <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
                   </div>
-                  <ListToolbar t={t} mode="job" clients={scopedClients} jobs={scopedJobs} viewMode={jobViewMode} setViewMode={setJobViewMode} clientFilter={jobClientFilter} setClientFilter={setJobClientFilter} statusFilter={jobStatusFilter} setStatusFilter={setJobStatusFilter} lang={lang} />
+                  <ListToolbar t={t} mode="job" clients={scopedClients} jobs={scopedJobs} viewMode={jobViewMode} setViewMode={setJobViewMode} clientFilter={jobClientFilter} setClientFilter={setJobClientFilter} statusFilter={jobStatusFilter} setStatusFilter={setJobStatusFilter} searchQ={jobSearch} setSearchQ={setJobSearch} lang={lang} />
                   <div className="erp-list-scroll erp-list-scroll--toolbar">
                     {jobViewMode === "grouped" ? (
                       groupRows(filteredJobs, (j) => j.company).map(([group, rows]) => (
@@ -4993,9 +5077,9 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
+                                <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
                                 <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
-                                <th className="p-3 text-left">Customer PO</th><th className="p-3 text-right">Customer PO Amount</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
+                                <th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-right">{t("colCustomerPoAmount")}</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">{t("colStartDate")}</th>
                                 <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
                             </thead>
@@ -5007,9 +5091,9 @@
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
-                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
+                                <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
                                 <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
-                                <th className="p-3 text-left">Customer PO</th><th className="p-3 text-right">Customer PO Amount</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">Start Date</th>
+                                <th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-right">{t("colCustomerPoAmount")}</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">{t("colStartDate")}</th>
                                 <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
                         </thead>
@@ -5024,7 +5108,7 @@
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                     <div className="p-4 border-b flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-semibold text-lg">{t("ongoingListTitle")} - {activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang)}</h3>
+                        <h3 className="font-semibold text-lg">{t("ongoingListTitle")} - {activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang)}</h3>
                         <p className="text-xs text-slate-500 mt-1">{t("ongoingHint")}</p>
                       </div>
                       {can("ongoing", "export") && (
@@ -5171,13 +5255,14 @@
                       {can("vendors", "add") && <button onClick={() => setVendorModal({ mode: "add", data: emptyVendor() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>}
                     </div>
                   </div>
+                  <ListToolbar t={t} mode="vendors" searchQ={vendorsSearch} setSearchQ={setVendorsSearch} lang={lang} />
                   <div className="erp-list-scroll">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><th className="p-3 text-left">{t("vendorNo")}</th><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("actions")}</th></tr>
+                        <tr><th className="p-3 text-left">{t("vendorNo")}</th><th className="p-3 text-left">{t("colName")}</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
-                        {scopedVendors.map((v) => (
+                        {filteredVendors.map((v) => (
                           <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
                             <td className="p-3 whitespace-nowrap">{v.vendor_no || "-"}</td><td className="p-3 font-medium">{v.name}</td><td className="p-3 whitespace-nowrap">{v.phone || "-"}</td><td className="p-3 max-w-[14rem] truncate" title={v.address || ""}>{v.address || "-"}</td><td className="p-3">{v.email}</td><td className="p-3">{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
                             <td className="p-3"><ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("vendors", "edit")} canDelete={can("vendors", "delete")} onDelete={() => deleteVendor(v.id)} onView={() => setDetailPanel({ type: "vendor", id: v.id })} onEdit={() => setVendorModal({ mode: "edit", id: v.id, data: { ...v } })} /></td>
@@ -5199,13 +5284,14 @@
                     </div>
                   </div>
                   <p className="px-4 py-2 text-xs text-slate-500 border-b bg-amber-50/50">{t("siPageHint")}</p>
+                  <ListToolbar t={t} mode="si" searchQ={siSearch} setSearchQ={setSiSearch} lang={lang} />
                   <div className="erp-list-scroll">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><th className="p-3 text-left">{t("siNo")}</th><th className="p-3 text-left">Name</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">Email</th><th className="p-3 text-left">Bank</th><th className="p-3 text-left">SWIFT</th><th className="p-3 text-left">Contact</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
+                        <tr><th className="p-3 text-left">{t("siNo")}</th><th className="p-3 text-left">{t("colName")}</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th><th className="p-3 text-left">{t("apBills")}</th><th className="p-3 text-left">{t("actions")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
-                        {scopedSis.map((s) => (
+                        {filteredSis.map((s) => (
                           <tr key={s.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "si", id: s.id })}>
                             <td className="p-3 whitespace-nowrap">{s.si_no || "-"}</td><td className="p-3 font-medium">{s.name}</td><td className="p-3 whitespace-nowrap">{s.phone || "-"}</td><td className="p-3 max-w-[14rem] truncate" title={s.address || ""}>{s.address || "-"}</td><td className="p-3">{s.email}</td><td className="p-3">{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
                             <td className="p-3">{getApBySi(s.name).length}</td>
@@ -5236,10 +5322,10 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("jobStatus")}</th>
-                                <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
-                                <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
-                                <th className="p-3 text-right">Overdue Days</th><th className="p-3 text-right">Days</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
+                                <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("colCustomer")}</th><th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-left">{t("jobStatus")}</th>
+                                <th className="p-3 text-left">{t("colInvoiceNo")}</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceCurrency")}</th><th className="p-3 text-right">{t("colInvoiceAmt")}</th>
+                                <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colDueDate")}</th>
+                                <th className="p-3 text-right">{t("colOverdueDays")}</th><th className="p-3 text-right">{t("colDays")}</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y">{renderArRows(rows)}</tbody>
@@ -5250,10 +5336,10 @@
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
-                            <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Customer PO</th><th className="p-3 text-left">{t("jobStatus")}</th>
-                            <th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Currency</th><th className="p-3 text-right">Invoice Amt</th>
-                            <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Due Date</th>
-                            <th className="p-3 text-right">Overdue Days</th><th className="p-3 text-right">Days</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
+                            <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("colCustomer")}</th><th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-left">{t("jobStatus")}</th>
+                            <th className="p-3 text-left">{t("colInvoiceNo")}</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceCurrency")}</th><th className="p-3 text-right">{t("colInvoiceAmt")}</th>
+                            <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colDueDate")}</th>
+                            <th className="p-3 text-right">{t("colOverdueDays")}</th><th className="p-3 text-right">{t("colDays")}</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">{renderArRows(filteredAr)}</tbody>
@@ -5281,9 +5367,9 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
-                                <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">{amtInLabel}</th>
-                            <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">{t("actions")}</th>
+                                <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><th className="p-3 text-left">{t("colInvoiceNo")}</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
+                                <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-right">{amtInLabel}</th>
+                            <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">{t("colPayDate")}</th><th className="p-3 text-left">{t("colRemarks")}</th><th className="p-3 text-left">{t("actions")}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y">{renderApRows(rows)}</tbody>
@@ -5294,9 +5380,9 @@
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
-                            <th className="p-3 text-left">Job No.</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">Company Name</th><th className="p-3 text-left">Invoice No.</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">Invoice Date</th><th className="p-3 text-left">Invoice Received Date</th>
-                            <th className="p-3 text-left">Due Date</th><th className="p-3 text-left">Currency</th><th className="p-3 text-right">Amount</th><th className="p-3 text-right">{amtInLabel}</th>
-                            <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">Pay Date</th><th className="p-3 text-left">Remarks</th><th className="p-3 text-left">{t("actions")}</th>
+                            <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><th className="p-3 text-left">{t("colInvoiceNo")}</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
+                            <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-right">{amtInLabel}</th>
+                            <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">{t("colPayDate")}</th><th className="p-3 text-left">{t("colRemarks")}</th><th className="p-3 text-left">{t("actions")}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">{renderApRows(filteredAp)}</tbody>
@@ -5311,7 +5397,7 @@
                   <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                     <div className="p-4 border-b flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-lg">{t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear)}</h3>
+                        <h3 className="font-semibold text-lg">{t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear)}</h3>
                         <p className="text-xs text-slate-500 mt-0.5">{t("monthlyReportHint")} · {regionListCurrency}</p>
                         <p className="text-[10px] text-slate-400 mt-1">{t("monthlyStorageHint")}</p>
                       </div>
@@ -5405,7 +5491,7 @@
 
                   {monthlyReportTab === "report" && (
                     <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
-                      <h4 className="font-semibold text-center text-slate-700 mb-4">{t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? "All Regions" : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear)}</h4>
+                      <h4 className="font-semibold text-center text-slate-700 mb-4">{t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear)}</h4>
                       <MonthlyReportBarChart series={monthlyReportSeries} maxBar={monthlyReportMaxBar} t={t} moneyFn={money} />
                     </section>
                   )}
@@ -5433,7 +5519,7 @@
                       <p className="text-sm text-slate-500">{t("settingsLangHint")}</p>
                       <Field label={t("timezone")}>
                         <Select value={worldTimeZone} onChange={(e) => setWorldTimeZone(e.target.value)}>
-                          {WORLD_TIMEZONES.map((tz) => <option key={tz.id} value={tz.id}>{lang === "zh_TW" ? tz.labelZh : tz.labelEn}</option>)}
+                          {WORLD_TIMEZONES.map((tz) => <option key={tz.id} value={tz.id}>{i18nLang(lang) === "zh_TW" ? tz.labelZh : tz.labelEn}</option>)}
                         </Select>
                       </Field>
                       <p className="text-sm text-slate-500">{t("worldTimeHint")}</p>
@@ -5598,7 +5684,7 @@
                           {ERP_REGIONS.map((rg) => (
                             <label key={rg.id} className="text-sm flex items-center gap-1.5">
                               <input type="checkbox" checked={!!(userModal.data.allowed_regions && userModal.data.allowed_regions.includes(rg.id))} onChange={() => toggleUserRegion(rg.id)} />
-                              {lang === "zh_TW" ? rg.labelZh : rg.labelEn}
+                              {i18nLang(lang) === "zh_TW" ? rg.labelZh : rg.labelEn}
                             </label>
                           ))}
                         </div>
@@ -5699,17 +5785,17 @@
               {clientModal && (
                 <Modal title={clientModal.mode === "add" ? t("addClientTitle") : t("editClient")} onClose={() => setClientModal(null)}>
                   <form onSubmit={saveClient} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Field label="Customer No."><Input required value={clientModal.data.customer_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, customer_no: e.target.value } })} /></Field>
-                    <Field label="COMPANY"><Input required value={clientModal.data.company} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company: e.target.value } })} /></Field>
-                    <Field label="GST#"><Input value={clientModal.data.gst_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, gst_no: e.target.value } })} /></Field>
-                    <Field label="Primary Contact"><Input value={clientModal.data.primary_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, primary_contact: e.target.value } })} /></Field>
-                    <Field label="Company Phone #"><Input value={clientModal.data.company_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company_phone: e.target.value } })} /></Field>
-                    <Field label="Mobile Phone #"><Input value={clientModal.data.mobile_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, mobile_phone: e.target.value } })} /></Field>
-                    <Field label="E-mail"><Input type="email" value={clientModal.data.email} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, email: e.target.value } })} /></Field>
-                    <Field label="Address"><Input value={clientModal.data.address} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, address: e.target.value } })} /></Field>
-                    <Field label="Postal Code"><Input value={clientModal.data.postal_code} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, postal_code: e.target.value } })} /></Field>
-                    <Field label="Contact Person in Account Dept."><Input value={clientModal.data.account_dept_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_contact: e.target.value } })} /></Field>
-                    <Field label="Payment Terms"><Input value={clientModal.data.payment_terms} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: e.target.value } })} /></Field>
+                    <Field label={t("colCustomerNo")}><Input required value={clientModal.data.customer_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, customer_no: e.target.value } })} /></Field>
+                    <Field label={t("colCompany")}><Input required value={clientModal.data.company} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company: e.target.value } })} /></Field>
+                    <Field label={t("colGstNo")}><Input value={clientModal.data.gst_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, gst_no: e.target.value } })} /></Field>
+                    <Field label={t("colPrimaryContact")}><Input value={clientModal.data.primary_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, primary_contact: e.target.value } })} /></Field>
+                    <Field label={t("colCompanyPhone")}><Input value={clientModal.data.company_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company_phone: e.target.value } })} /></Field>
+                    <Field label={t("colMobilePhone")}><Input value={clientModal.data.mobile_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, mobile_phone: e.target.value } })} /></Field>
+                    <Field label={t("colEmail")}><Input type="email" value={clientModal.data.email} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, email: e.target.value } })} /></Field>
+                    <Field label={t("address")}><Input value={clientModal.data.address} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, address: e.target.value } })} /></Field>
+                    <Field label={t("colPostalCode")}><Input value={clientModal.data.postal_code} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, postal_code: e.target.value } })} /></Field>
+                    <Field label={t("colAccountDeptContact")}><Input value={clientModal.data.account_dept_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_contact: e.target.value } })} /></Field>
+                    <Field label={t("colPaymentTerms")}><Input value={clientModal.data.payment_terms} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: e.target.value } })} /></Field>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setClientModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
@@ -5741,7 +5827,7 @@
                         {QUOTATION_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                       </Select>
                     </Field>
-                    <Field label="Job No.">
+                    <Field label={t("colJobNo")}>
                       <Select value={quotationModal.data.job_no || ""} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, job_no: e.target.value } })}>
                         <option value="">—</option>
                         {scopedJobs.map((j) => <option key={j.id} value={j.job_no}>{j.job_no} · {j.company}</option>)}
@@ -5756,7 +5842,7 @@
               {jobModal && (
                 <Modal title={jobModal.mode === "add" ? t("addJobTitle") : t("editJob")} onClose={() => setJobModal(null)}>
                   <form onSubmit={saveJob} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Field label="Job No."><Input required value={jobModal.data.job_no} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, job_no: e.target.value } })} /></Field>
+                    <Field label={t("colJobNo")}><Input required value={jobModal.data.job_no} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, job_no: e.target.value } })} /></Field>
                     <Field label={t("clientGroup")}>
                       <Select required value={jobModal.data.client_id} onChange={(e) => {
                         const client = clients.find((c) => c.id === Number(e.target.value));
@@ -5818,8 +5904,8 @@
                       <p className="text-[10px] text-slate-400">{t("jobQuotationInputHint")}</p>
                     </div>
                     <Field label="Quotation Amount"><Input type="number" step="0.01" value={jobModal.data.amount} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, amount: e.target.value } })} /></Field>
-                    <Field label="Customer PO"><Input value={jobModal.data.customer_po} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po: e.target.value } })} /></Field>
-                    <Field label="Customer PO Amount (Total)"><Input type="number" step="0.01" readOnly value={jobModal.data.customer_po_amount || ""} className="bg-slate-50" /></Field>
+                    <Field label={t("colCustomerPo")}><Input value={jobModal.data.customer_po} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po: e.target.value } })} /></Field>
+                    <Field label={t("customerPoAmountTotal")}><Input type="number" step="0.01" readOnly value={jobModal.data.customer_po_amount || ""} className="bg-slate-50" /></Field>
                     <div className="md:col-span-2 border rounded-lg p-3 bg-slate-50/50">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-sm font-semibold text-slate-700">{t("jobPoLinesTitle")}</p>
@@ -5872,7 +5958,7 @@
                       </div>
                       <p className="text-[10px] text-slate-400 mt-2">{t("jobPoLinesTitle")}: one row per PO; received date sets Monthly Report month.</p>
                     </div>
-                    <Field label="Start Date"><Input type="date" value={jobModal.data.start_date} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, start_date: e.target.value } })} /></Field>
+                    <Field label={t("colStartDate")}><Input type="date" value={jobModal.data.start_date} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, start_date: e.target.value } })} /></Field>
                     <Field label="Status">
                       <Select value={jobModal.data.status} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, status: e.target.value } })}>
                         <option>Open</option><option>In Progress</option><option>Completed</option><option>On Hold</option>
@@ -5932,12 +6018,12 @@
                       </Select>
                     </Field>
                     <Field label="Customer"><Input value={arModal.data.customer} onChange={(e) => setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, customer: e.target.value }) })} /></Field>
-                    <Field label="Customer PO"><Input value={arModal.data.customer_po} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, customer_po: e.target.value } })} /></Field>
+                    <Field label={t("colCustomerPo")}><Input value={arModal.data.customer_po} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, customer_po: e.target.value } })} /></Field>
                     {(() => {
                       const linked = jobs.find((j) => j.id === Number(arModal.data.job_id));
                       return linked ? <Field label={t("jobStatus")}><Input readOnly value={linked.status} className="bg-slate-50" /></Field> : null;
                     })()}
-                    <Field label="Invoice No."><Input required value={arModal.data.invoice_no} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_no: e.target.value } })} /></Field>
+                    <Field label={t("colInvoiceNo")}><Input required value={arModal.data.invoice_no} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_no: e.target.value } })} /></Field>
                     <Field label={t("paymentStage")}>
                       <Select value={arModal.data.payment_stage || ""} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, payment_stage: e.target.value } })}>
                         {PAYMENT_STAGES.map((s) => <option key={s || "none"} value={s}>{s || "—"}</option>)}
@@ -6000,7 +6086,7 @@
                         <option value="SI">{t("payeeSi")}</option>
                       </Select>
                     </Field>
-                    <Field label="Company Name">
+                    <Field label={t("colCompanyName")}>
                       {apModal.data.payee_type === "SI" ? (
                         <Select required value={apModal.data.si_id} onChange={(e) => {
                           const patch = patchApFromPayeeMaster("SI", e.target.value, "", vendors, sis);
@@ -6020,7 +6106,7 @@
                       )}
                       <p className="text-[10px] text-slate-400 mt-1">{t("apPayeeAutoHint")}</p>
                     </Field>
-                    <Field label="Invoice No."><Input required value={apModal.data.invoice_no} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_no: e.target.value } })} /></Field>
+                    <Field label={t("colInvoiceNo")}><Input required value={apModal.data.invoice_no} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_no: e.target.value } })} /></Field>
                     <Field label={t("paymentStage")}>
                       <Select value={apModal.data.payment_stage || ""} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payment_stage: e.target.value } })}>
                         {PAYMENT_STAGES.map((s) => <option key={s || "none"} value={s}>{s || "—"}</option>)}
