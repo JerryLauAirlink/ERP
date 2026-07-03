@@ -1,7 +1,14 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String
+from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON
 from sqlalchemy.orm import relationship
 
 from database import Base
+
+# SQLite uses JSON; PostgreSQL uses JSONB when available
+JsonType = JSON().with_variant(JSONB, "postgresql")
 
 
 class Tenant(Base):
@@ -20,12 +27,28 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"))
-    email = Column(String, unique=True, index=True)
+    email = Column(String, index=True)
     hashed_password = Column(String)
+    name = Column(String)
     role = Column(String)
     is_active = Column(Boolean, default=True)
+    permissions = Column(JsonType)
+    allowed_regions = Column(JsonType)
 
     tenant = relationship("Tenant", back_populates="users")
+
+
+class ErpBackup(Base):
+    """Full ERP snapshot (same structure as Settings → Download Backup JSON)."""
+
+    __tablename__ = "erp_backups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), index=True)
+    version = Column(Integer, default=1)
+    exported_at = Column(DateTime, default=datetime.utcnow)
+    payload = Column(JsonType, nullable=False)
+    note = Column(String)
 
 
 class Customer(Base):
@@ -55,7 +78,7 @@ class ARInvoice(Base):
     due_date = Column(DateTime)
     payment_received_date = Column(DateTime, nullable=True)
     po_type = Column(String)
-    remark = Column(String)
+    remark = Column(Text)
     balance = Column(Numeric)
     status = Column(String)
 
