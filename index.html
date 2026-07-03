@@ -580,8 +580,9 @@
           cloudPush: "Push to Cloud", cloudPull: "Pull from Cloud", cloudPushDone: "Uploaded to Supabase.", cloudPullDone: "Downloaded from cloud. Reloading…",
           cloudSyncFail: "Cloud sync failed", cloudNoBackup: "No backup found in database.", cloudNotConfigured: "Server cloud sync not configured.",
           liveSyncTitle: "Live Multi-User Sync", liveSyncHint: "Each record syncs to Supabase automatically. All users see changes within a few seconds. Requires sync key + SQL migration 002.",
-          liveSyncEnable: "Enable live sync (auto push & pull)", liveSyncOk: "Live sync active", liveSyncSyncing: "Syncing…", liveSyncError: "Sync error",
+          liveSyncEnable: "Enable live sync (auto push & pull)", liveSyncOk: "Live sync active", liveSyncReadOnly: "Live sync active (read-only)", liveSyncSyncing: "Syncing…", liveSyncError: "Sync error",
           liveSyncLast: "Last sync", liveSyncNeedKey: "Enter cloud sync key first.", liveSyncBootstrapped: "Live sync enabled. Data connected to cloud.",
+          liveSyncAutoHint: "Sync starts automatically when you open the app. View-only users download only; editors upload changes.",
           noDatabaseNote: "No server database yet — Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
         },
         zh_TW: {
@@ -768,8 +769,9 @@
           cloudPush: "上傳至雲端", cloudPull: "從雲端下載", cloudPushDone: "已上傳至 Supabase。", cloudPullDone: "已從雲端下載，正在重新載入…",
           cloudSyncFail: "雲端同步失敗", cloudNoBackup: "資料庫內沒有備份。", cloudNotConfigured: "伺服器尚未設定雲端同步。",
           liveSyncTitle: "即時多人同步", liveSyncHint: "每筆資料（客戶、工作、應收應付等）自動寫入 Supabase，其他用戶幾秒內會看到更新。需先執行 SQL migration 002。",
-          liveSyncEnable: "啟用即時同步（自動上傳及下載）", liveSyncOk: "即時同步運作中", liveSyncSyncing: "同步中…", liveSyncError: "同步錯誤",
+          liveSyncEnable: "啟用即時同步（自動上傳及下載）", liveSyncOk: "即時同步運作中", liveSyncReadOnly: "即時同步運作中（唯讀）", liveSyncSyncing: "同步中…", liveSyncError: "同步錯誤",
           liveSyncLast: "上次同步", liveSyncNeedKey: "請先輸入雲端同步金鑰。", liveSyncBootstrapped: "已啟用即時同步，資料已連接雲端。",
+          liveSyncAutoHint: "開啟網站即自動同步。唯讀用戶只下載；有編輯權限的用戶才會上傳變更。",
           noDatabaseNote: "目前尚無伺服器資料庫 — Excel 匯入只會更新瀏覽器資料。上傳後請在預覽視窗按「確認匯入」。"
         },
       };
@@ -2719,7 +2721,7 @@
         const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem("erp_company_logo") || "");
         const [erpSyncKey, setErpSyncKey] = useState(() => localStorage.getItem("erp_sync_key") || "");
         const [cloudDbStatus, setCloudDbStatus] = useState(null);
-        const [liveSyncEnabled, setLiveSyncEnabled] = useState(() => localStorage.getItem("erp_live_sync") === "1");
+        const [liveSyncEnabled, setLiveSyncEnabled] = useState(false);
         const [liveSyncReady, setLiveSyncReady] = useState(false);
         const [liveSyncStatus, setLiveSyncStatus] = useState("off");
         const [liveSyncLastAt, setLiveSyncLastAt] = useState(null);
@@ -2776,34 +2778,41 @@
         useEffect(() => {
           fetch("/api/health")
             .then((r) => (r.ok ? r.json() : Promise.reject(new Error("health"))))
-            .then((j) => setCloudDbStatus(j))
+            .then(async (j) => {
+              setCloudDbStatus(j);
+              if (!j.cloud_sync_configured) return;
+              try {
+                const cfgRes = await fetch("/api/sync/client-config");
+                const cfg = cfgRes.ok ? await cfgRes.json() : {};
+                if (cfg.sync_key) setErpSyncKey(cfg.sync_key);
+                if (cfg.auto_sync) setLiveSyncEnabled(true);
+              } catch (_) { /* ignore */ }
+            })
             .catch(() => setCloudDbStatus(null));
         }, []);
 
         useEffect(() => {
-          if (!liveSyncEnabled || !liveSyncReady || !erpSyncKey.trim()) return;
+          if (!liveSyncEnabled || !liveSyncReady) return;
           if (livePollRef.current) clearInterval(livePollRef.current);
           livePollRef.current = setInterval(() => { pollLiveSync(); }, 3000);
           return () => { if (livePollRef.current) clearInterval(livePollRef.current); };
-        }, [liveSyncEnabled, liveSyncReady, erpSyncKey]);
+        }, [liveSyncEnabled, liveSyncReady]);
 
         useEffect(() => {
-          if (!liveSyncEnabled || !liveSyncReady || !erpSyncKey.trim() || liveApplyingRemoteRef.current) return;
+          if (!liveSyncEnabled || !liveSyncReady || !canLiveSyncPush() || liveApplyingRemoteRef.current) return;
+          if (!erpSyncKey.trim()) return;
           if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current);
           livePushTimerRef.current = setTimeout(() => { flushLiveSyncPush(); }, 2000);
           return () => { if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current); };
-        }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey]);
+        }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, companyLogo, currentUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, currentUserId]);
 
         useEffect(() => {
-          if (liveSyncEnabled && erpSyncKey.trim() && !liveSyncReady) {
+          if (liveSyncEnabled && !liveSyncReady) {
             bootstrapLiveSync().then((ok) => {
-              if (!ok) {
-                setLiveSyncEnabled(false);
-                localStorage.setItem("erp_live_sync", "0");
-              }
+              if (!ok) setLiveSyncEnabled(false);
             });
           }
-        }, []);
+        }, [liveSyncEnabled]);
 
         function getCurrentUser() {
           return users.find((u) => u.id === currentUserId) || users.find((u) => u.role === "root") || users[0];
@@ -2857,6 +2866,12 @@
           const p = u.permissions && u.permissions[module];
           if (!p) return false;
           return !!p[action];
+        }
+
+        function canLiveSyncPush() {
+          if (isRoot()) return true;
+          const mods = ["clients", "quotation", "job", "ar", "ap", "vendors", "si", "monthly_report", "management_report", "dashboard", "overview", "ongoing", "settings"];
+          return mods.some((m) => can(m, "add") || can(m, "edit") || can(m, "delete") || can(m, "import"));
         }
 
         function actionLabel(action) {
@@ -4472,7 +4487,8 @@
         }
 
         async function flushLiveSyncPush() {
-          if (!liveSyncEnabled || !erpSyncKey.trim() || liveApplyingRemoteRef.current) return;
+          if (!liveSyncEnabled || !canLiveSyncPush() || liveApplyingRemoteRef.current) return;
+          if (!erpSyncKey.trim()) return;
           const changes = collectAllLiveChanges();
           if (!changes.length) return;
           try {
@@ -4488,9 +4504,9 @@
         }
 
         async function pollLiveSync() {
-          if (!liveSyncEnabled || !erpSyncKey.trim() || liveApplyingRemoteRef.current) return;
+          if (!liveSyncEnabled || liveApplyingRemoteRef.current) return;
           try {
-            const res = await fetch("/api/sync/changes?since=" + liveServerVersionRef.current, { headers: liveSyncHeaders() });
+            const res = await fetch("/api/sync/changes?since=" + liveServerVersionRef.current);
             const body = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(body.detail || res.statusText);
             if (body.server_version > liveServerVersionRef.current && body.changes && body.changes.length) {
@@ -4506,18 +4522,19 @@
         }
 
         async function bootstrapLiveSync() {
-          if (!erpSyncKey.trim()) { alert(t("liveSyncNeedKey")); return false; }
           try {
             setLiveSyncStatus("syncing");
-            const statusRes = await fetch("/api/sync/status", { headers: liveSyncHeaders() });
+            const statusRes = await fetch("/api/sync/status");
             const status = await statusRes.json().catch(() => ({}));
             if (!statusRes.ok) throw new Error(status.detail || statusRes.statusText);
             liveServerVersionRef.current = status.server_version || 0;
             if ((status.entity_count || 0) === 0) {
-              await pushLiveChangesInBatches(buildSeedChanges());
-              markAllSyncedFromState();
+              if (canLiveSyncPush() && erpSyncKey.trim()) {
+                await pushLiveChangesInBatches(buildSeedChanges());
+                markAllSyncedFromState();
+              }
             } else {
-              const fullRes = await fetch("/api/sync/full", { headers: liveSyncHeaders() });
+              const fullRes = await fetch("/api/sync/full");
               const full = await fullRes.json().catch(() => ({}));
               if (!fullRes.ok) throw new Error(full.detail || fullRes.statusText);
               applyFullLiveEntities(full);
@@ -4528,24 +4545,8 @@
             return true;
           } catch (err) {
             setLiveSyncStatus("error");
-            alert(t("cloudSyncFail") + ": " + (err.message || ""));
+            console.warn("Live sync bootstrap failed", err);
             return false;
-          }
-        }
-
-        async function toggleLiveSync(on) {
-          if (on && !erpSyncKey.trim()) { alert(t("liveSyncNeedKey")); return; }
-          if (on) {
-            const ok = await bootstrapLiveSync();
-            if (!ok) return;
-            setLiveSyncEnabled(true);
-            localStorage.setItem("erp_live_sync", "1");
-            alert(t("liveSyncBootstrapped"));
-          } else {
-            setLiveSyncEnabled(false);
-            localStorage.setItem("erp_live_sync", "0");
-            setLiveSyncStatus("off");
-            setLiveSyncReady(false);
           }
         }
 
@@ -6572,41 +6573,32 @@
                             {cloudDbStatus.cloud_sync_configured === false ? " · " + t("cloudNotConfigured") : ""}
                           </p>
                         )}
-                        <div className="max-w-md">
-                          <label className="block text-xs text-slate-500 mb-1">{t("cloudSyncKey")}</label>
-                          <input
-                            type="password"
-                            className="w-full h-9 rounded-lg border border-slate-300 px-3 text-sm"
-                            placeholder={t("cloudSyncKeyPlaceholder")}
-                            value={erpSyncKey}
-                            onChange={(e) => setErpSyncKey(e.target.value)}
-                          />
-                        </div>
                         {isRoot() && (
-                          <div className="flex flex-wrap gap-2">
-                            <button type="button" onClick={pushCloudBackup} className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">{t("cloudPush")}</button>
-                            <button type="button" onClick={pullCloudBackup} className="px-4 py-2 text-sm rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-900 hover:bg-indigo-100">{t("cloudPull")}</button>
-                          </div>
+                          <>
+                            <div className="max-w-md">
+                              <label className="block text-xs text-slate-500 mb-1">{t("cloudSyncKey")}</label>
+                              <input
+                                type="password"
+                                className="w-full h-9 rounded-lg border border-slate-300 px-3 text-sm"
+                                placeholder={t("cloudSyncKeyPlaceholder")}
+                                value={erpSyncKey}
+                                onChange={(e) => setErpSyncKey(e.target.value)}
+                              />
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button type="button" onClick={pushCloudBackup} className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">{t("cloudPush")}</button>
+                              <button type="button" onClick={pullCloudBackup} className="px-4 py-2 text-sm rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-900 hover:bg-indigo-100">{t("cloudPull")}</button>
+                            </div>
+                          </>
                         )}
                       </div>
 
                       <div className="mt-6 pt-6 border-t border-slate-200 space-y-3">
                         <h4 className="font-semibold text-slate-800">{t("liveSyncTitle")}</h4>
-                        <p className="text-sm text-slate-500">{t("liveSyncHint")}</p>
-                        {isRoot() && (
-                          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="rounded border-slate-300"
-                              checked={liveSyncEnabled}
-                              onChange={(e) => toggleLiveSync(e.target.checked)}
-                            />
-                            {t("liveSyncEnable")}
-                          </label>
-                        )}
+                        <p className="text-sm text-slate-500">{t("liveSyncAutoHint")}</p>
                         {liveSyncEnabled && (
                           <p className={"text-xs font-medium " + (liveSyncStatus === "error" ? "text-red-600" : liveSyncStatus === "syncing" ? "text-blue-600" : "text-emerald-700")}>
-                            {liveSyncStatus === "syncing" ? t("liveSyncSyncing") : liveSyncStatus === "error" ? t("liveSyncError") : t("liveSyncOk")}
+                            {liveSyncStatus === "syncing" ? t("liveSyncSyncing") : liveSyncStatus === "error" ? t("liveSyncError") : (canLiveSyncPush() ? t("liveSyncOk") : t("liveSyncReadOnly"))}
                             {liveSyncLastAt ? " · " + t("liveSyncLast") + " " + liveSyncLastAt.toLocaleTimeString() : ""}
                           </p>
                         )}

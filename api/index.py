@@ -113,11 +113,24 @@ def post_cloud_backup(
     }
 
 
+@app.get("/sync/client-config")
+@app.get("/api/sync/client-config")
+def sync_client_config():
+    """Auto-sync config for ERP UI (internal team — key delivered to browser)."""
+    secret = os.getenv("ERP_SYNC_SECRET", "").strip()
+    if not secret:
+        return {"auto_sync": False, "sync_key": None, "pull_public": False}
+    return {
+        "auto_sync": True,
+        "sync_key": secret,
+        "pull_public": True,
+    }
+
+
 @app.get("/sync/status")
 @app.get("/api/sync/status")
 def sync_status(
     db: Session = Depends(get_db),
-    _: None = Depends(verify_sync_secret),
     tenant_id: int = default_tenant_id(),
 ):
     try:
@@ -131,7 +144,6 @@ def sync_status(
 def sync_changes(
     since: int = 0,
     db: Session = Depends(get_db),
-    _: None = Depends(verify_sync_secret),
     tenant_id: int = default_tenant_id(),
 ):
     try:
@@ -144,7 +156,6 @@ def sync_changes(
 @app.get("/api/sync/full")
 def sync_full(
     db: Session = Depends(get_db),
-    _: None = Depends(verify_sync_secret),
     tenant_id: int = default_tenant_id(),
 ):
     try:
