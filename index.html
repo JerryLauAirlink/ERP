@@ -382,11 +382,14 @@
           ongoingTotalPoUsd: "Total PO Amount in USD", ongoingTotalMaintUsd: "Total Amount for Maintenance in USD",
           ongoingTotalServiceUsd: "Total Amount for Service in USD", ongoingTotalProjectUsd: "Total Amount for Project in USD",
           ongoingTotalTradeUsd: "Total Amount for Trade in USD", exportPdf: "Export PDF",
-          quotationSelectHint: "Type or pick an Accepted quotation no. — client, amount & description auto-fill. Same quotation may link to multiple jobs (split POs).",
+          quotationSelectHint: "Type Accepted quotation no. and press Enter or blur to add. One job can link multiple quotations.",
           quotationNotAccepted: "Quotation not found or status is not Accepted.",
           quotationNotFound: "No matching quotation in this region.",
           quotationAlreadyLinked: "This quotation is already linked to job {job}.",
-          quotationMultiJobHint: "Also linked to: {jobs}",
+          quotationMultiJobHint: "Also linked to jobs: {jobs}",
+          jobQuotationLinesTitle: "Linked Quotations",
+          jobQuotationAdd: "+ Add Quotation",
+          jobQuotationInputHint: "Enter Accepted quotation no., then blur or click Add.",
           jobPoLinesTitle: "Customer PO lines",
           jobPoAddLine: "+ Add PO",
           jobPoColNo: "PO No.",
@@ -395,6 +398,9 @@
           jobPoColRemarks: "Remarks",
           paymentStage: "Payment Stage",
           paymentStageHint: "Deposit / Progress / Balance — use multiple AR or AP invoices per job for installments.",
+          duplicateInvoiceNo: "Invoice No. {no} already exists in {module}.",
+          duplicateQuotationNo: "Quotation No. {no} already exists.",
+          duplicateJobNo: "Job No. {no} already exists.",
           jobAlreadyHasQuotation: "This job is already linked to quotation {quotation}.",
           quotationLinkedOk: "Linked to Accepted quotation.",
           monthlyReportTitle: "Monthly Report",
@@ -514,11 +520,14 @@
           ongoingTotalPoUsd: "Total PO Amount in USD", ongoingTotalMaintUsd: "Total Amount for Maintenance in USD",
           ongoingTotalServiceUsd: "Total Amount for Service in USD", ongoingTotalProjectUsd: "Total Amount for Project in USD",
           ongoingTotalTradeUsd: "Total Amount for Trade in USD", exportPdf: "匯出 PDF",
-          quotationSelectHint: "輸入或選擇已 Accepted 嘅報價單號 — 會自動帶入客戶、金額同說明。同一報價可連結多個 Job（分 PO）。",
+          quotationSelectHint: "輸入已 Accepted 嘅報價單號，離開欄位或按新增。一個 Job 可連結多張 Quotation。",
           quotationNotAccepted: "搵唔到報價單，或狀態唔係 Accepted。",
           quotationNotFound: "此區域冇呢張報價單。",
           quotationAlreadyLinked: "呢張報價單已連結去工作 {job}。",
-          quotationMultiJobHint: "亦已連結：{jobs}",
+          quotationMultiJobHint: "亦已連結工作：{jobs}",
+          jobQuotationLinesTitle: "已連結報價單",
+          jobQuotationAdd: "+ 新增報價單",
+          jobQuotationInputHint: "輸入 Accepted 報價單號，再離開欄位或按新增。",
           jobPoLinesTitle: "客戶 PO 明細",
           jobPoAddLine: "+ 新增 PO",
           jobPoColNo: "PO 編號",
@@ -527,6 +536,9 @@
           jobPoColRemarks: "備註",
           paymentStage: "付款階段",
           paymentStageHint: "Deposit / Progress / Balance — 同一 Job 可開多張 AR 或 AP 分期單。",
+          duplicateInvoiceNo: "Invoice 編號 {no} 已存在於 {module}。",
+          duplicateQuotationNo: "報價單號 {no} 已存在。",
+          duplicateJobNo: "工作編號 {no} 已存在。",
           jobAlreadyHasQuotation: "呢個工作已連結咗報價單 {quotation}。",
           quotationLinkedOk: "已對應 Accepted 報價單。",
           monthlyReportTitle: "月報表",
@@ -1067,7 +1079,7 @@
       }
 
       function emptyJob() {
-        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", customer_po_amount: "", quotation_no: "", amount: "", currency: "USD", status: "Open", description: "", remarks: "", start_date: "", po_lines: [] };
+        return { job_no: "", client_id: "", company: "", job_type: "Project", customer_po: "", customer_po_amount: "", quotation_no: "", linked_quotation_nos: [], amount: "", currency: "USD", status: "Open", description: "", remarks: "", start_date: "", po_lines: [] };
       }
 
       function emptyPoLine() {
@@ -1107,6 +1119,43 @@
         return (arr || []).map(normalizeJobPoFields);
       }
 
+      function jobQuotationNos(j) {
+        if (!j) return [];
+        if (Array.isArray(j.linked_quotation_nos) && j.linked_quotation_nos.length) {
+          return j.linked_quotation_nos.map((n) => String(n || "").trim()).filter(Boolean);
+        }
+        if (j.quotation_no) {
+          return String(j.quotation_no).split(",").map((s) => s.trim()).filter(Boolean);
+        }
+        return [];
+      }
+
+      function addQuotationToJob(j, quotationNo) {
+        const q = String(quotationNo || "").trim();
+        if (!q) return j;
+        const nos = [...jobQuotationNos(j)];
+        if (!nos.some((n) => n.toLowerCase() === q.toLowerCase())) nos.push(q);
+        return { ...j, linked_quotation_nos: nos, quotation_no: nos.join(", ") };
+      }
+
+      function removeQuotationFromJob(j, quotationNo) {
+        const k = String(quotationNo || "").trim().toLowerCase();
+        const nos = jobQuotationNos(j).filter((n) => n.toLowerCase() !== k);
+        return { ...j, linked_quotation_nos: nos, quotation_no: nos.join(", ") };
+      }
+
+      function normalizeJobQuotations(job) {
+        const j = { ...job };
+        const nos = jobQuotationNos(j);
+        j.linked_quotation_nos = nos;
+        j.quotation_no = nos.join(", ");
+        return j;
+      }
+
+      function ensureJobsQuotations(arr) {
+        return ensureJobsPoLines(arr).map(normalizeJobQuotations);
+      }
+
       function quotationJobNos(q) {
         if (!q) return [];
         if (Array.isArray(q.linked_job_nos) && q.linked_job_nos.length) return q.linked_job_nos.filter(Boolean);
@@ -1133,6 +1182,12 @@
         const ids = quotationJobIds(q).filter((id) => id !== jobId);
         const nos = quotationJobNos(q).filter((n) => n !== jobNo);
         return { ...q, linked_job_ids: ids, linked_job_nos: nos, job_id: ids[0] || null, job_no: nos.join(", ") };
+      }
+
+      function findDuplicateInvoiceNo(list, invoiceNo, excludeId) {
+        const k = String(invoiceNo || "").trim().toLowerCase();
+        if (!k) return null;
+        return (list || []).find((r) => r.id !== excludeId && String(r.invoice_no || "").trim().toLowerCase() === k) || null;
       }
 
       function quotationLinksJob(q, jobNo) {
@@ -1181,17 +1236,23 @@
       }
 
       function findLinkedQuotationForJob(job, quotations) {
-        if (!job) return null;
+        const all = findLinkedQuotationsForJob(job, quotations);
+        return all[0] || null;
+      }
+
+      function findLinkedQuotationsForJob(job, quotations) {
+        if (!job) return [];
         const jobNo = String(job.job_no || "").trim().toLowerCase();
-        const jobQuotationNo = String(job.quotation_no || "").trim().toLowerCase();
-        if (jobQuotationNo) {
-          const exact = quotations.find((q) => String(q.quotation_no || "").trim().toLowerCase() === jobQuotationNo);
-          if (exact) return exact;
-        }
-        return quotations.find((q) =>
-          (job.id != null && q.job_id === job.id) ||
-          (jobNo && String(q.job_no || "").trim().toLowerCase() === jobNo)
-        ) || null;
+        const matched = new Map();
+        jobQuotationNos(job).forEach((qNo) => {
+          const q = quotations.find((x) => String(x.quotation_no || "").trim().toLowerCase() === qNo.toLowerCase());
+          if (q) matched.set(q.id, q);
+        });
+        quotations.forEach((q) => {
+          if (job.id != null && quotationJobIds(q).includes(job.id)) matched.set(q.id, q);
+          else if (jobNo && quotationJobNos(q).some((n) => n.toLowerCase() === jobNo)) matched.set(q.id, q);
+        });
+        return [...matched.values()];
       }
 
       function syncJobsOnQuotationSave(list, jobId, jobNo, quotationNo, oldJobNo, oldQuotationNo) {
@@ -1201,11 +1262,11 @@
         const prevQuotationNo = String(oldQuotationNo || "").trim();
         if (!nextJobNo && !prevJobNo) return list;
         return list.map((j) => {
-          if (prevJobNo && j.job_no === prevJobNo && (!nextJobNo || j.job_no !== nextJobNo) && (!prevQuotationNo || String(j.quotation_no || "").trim().toLowerCase() === prevQuotationNo.toLowerCase())) {
-            return { ...j, quotation_no: "" };
+          if (prevJobNo && j.job_no === prevJobNo && prevQuotationNo && (!nextJobNo || j.job_no !== nextJobNo)) {
+            return removeQuotationFromJob(j, prevQuotationNo);
           }
-          if (nextJobNo && j.job_no === nextJobNo) {
-            return { ...j, quotation_no: nextQuotationNo };
+          if (nextJobNo && j.job_no === nextJobNo && nextQuotationNo) {
+            return addQuotationToJob(j, nextQuotationNo);
           }
           return j;
         });
@@ -2080,7 +2141,7 @@
         const [baseCurrency, setBaseCurrency] = useState("HKD");
         const [customCurrency, setCustomCurrency] = useState("");
         const [clients, setClients] = useState(() => ensureRegionOnRecords(loadJson("erp_clients", initialClients)));
-        const [jobs, setJobs] = useState(() => ensureJobsPoLines(ensureRegionOnRecords(loadJson("erp_jobs", initialJobs))));
+        const [jobs, setJobs] = useState(() => ensureJobsQuotations(ensureRegionOnRecords(loadJson("erp_jobs", initialJobs))));
         const [quotations, setQuotations] = useState(() => ensureRegionOnRecords(loadJson("erp_quotations", initialQuotations)));
         const [vendors, setVendors] = useState(() => ensureVendorNumbers(ensureRegionOnRecords(loadJson("erp_vendors", initialVendors))));
         const [sis, setSis] = useState(() => ensureSiNumbers(ensureRegionOnRecords(loadJson("erp_sis", initialSis))));
@@ -2742,11 +2803,12 @@
           }));
           const data = { ...jobModal.data, po_lines, client_id: Number(jobModal.data.client_id), amount: Number(jobModal.data.amount || 0), customer_po_amount: Number(jobModal.data.customer_po_amount || 0) };
           const client = clients.find((c) => c.id === data.client_id);
-          const payload = normalizeJobPoFields({ ...data, company: client ? client.company : data.company });
+          const payload = normalizeJobQuotations(normalizeJobPoFields({ ...data, company: client ? client.company : data.company }));
           const oldJob = jobModal.mode === "edit" ? jobs.find((j) => j.id === jobModal.id) : null;
-          const oldQuotationNo = oldJob ? oldJob.quotation_no : "";
-          if (payload.quotation_no) {
-            const q = findQuotationByNo(payload.quotation_no, scopedQuotations);
+          const oldQuotationNos = oldJob ? jobQuotationNos(oldJob) : [];
+          const newQuotationNos = jobQuotationNos(payload);
+          for (const qNo of newQuotationNos) {
+            const q = findQuotationByNo(qNo, scopedQuotations);
             const check = canLinkQuotationToJob(q, jobModal, jobs);
             if (!check.ok) {
               if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
@@ -2756,9 +2818,13 @@
           }
           if (jobModal.mode === "add") {
             if (!guardPermission("job", "add")) return;
+            if (jobs.some((j) => String(j.job_no || "").trim().toLowerCase() === String(payload.job_no || "").trim().toLowerCase())) {
+              alert(t("duplicateJobNo").replace("{no}", payload.job_no));
+              return;
+            }
             const newId = Date.now();
             setJobs([{ id: newId, region: regionForNewRecord(), ...payload }, ...jobs]);
-            syncQuotationOnJobSave(newId, payload.job_no, payload.quotation_no, "");
+            syncQuotationsForJob(newId, payload.job_no, newQuotationNos, []);
             logAudit("job", "create", payload.job_no, `Created job ${payload.job_no} for ${payload.company}`);
           } else {
             if (!guardPermission("job", "edit")) return;
@@ -2771,28 +2837,54 @@
               setArInvoices((prev) => prev.map((r) => (r.job_no === payload.job_no ? { ...r, customer: payload.company } : r)));
             }
             syncArWithJobStatus(jobModal.id, payload.job_no, payload.status);
-            syncQuotationOnJobSave(jobModal.id, payload.job_no, payload.quotation_no, oldQuotationNo || "");
+            syncQuotationsForJob(jobModal.id, payload.job_no, newQuotationNos, oldQuotationNos);
             logAudit("job", "update", payload.job_no, `Updated job ${payload.job_no}`);
           }
           setJobModal(null);
         }
 
-        function syncQuotationOnJobSave(jobId, jobNo, quotationNo, oldQuotationNo) {
-          const qNo = String(quotationNo || "").trim();
-          const oldNo = String(oldQuotationNo || "").trim();
+        function syncQuotationsForJob(jobId, jobNo, newNos, oldNos) {
           const jNo = String(jobNo || "").trim();
-          if (!qNo && !oldNo) return;
+          if (!jobId || !jNo) return;
+          const newSet = new Set((newNos || []).map((n) => String(n).trim().toLowerCase()).filter(Boolean));
+          const oldSet = new Set((oldNos || []).map((n) => String(n).trim().toLowerCase()).filter(Boolean));
+          const added = [...newSet].filter((k) => !oldSet.has(k));
+          const removed = [...oldSet].filter((k) => !newSet.has(k));
+          if (!added.length && !removed.length) return;
           setQuotations((prev) => prev.map((q) => {
             const qKey = String(q.quotation_no || "").toLowerCase();
             let next = { ...q };
-            if (oldNo && qKey === oldNo.toLowerCase() && qKey !== qNo.toLowerCase()) {
-              next = removeJobFromQuotation(next, jobId, jNo);
-            }
-            if (qNo && qKey === qNo.toLowerCase() && jobId && jNo) {
-              next = addJobToQuotation(next, jobId, jNo);
-            }
+            if (removed.includes(qKey)) next = removeJobFromQuotation(next, jobId, jNo);
+            if (added.includes(qKey)) next = addJobToQuotation(next, jobId, jNo);
             return next;
           }));
+        }
+
+        function addQuotationDraftToJob() {
+          if (!jobModal) return;
+          const trimmed = String(jobModal.data._quotationDraft || "").trim();
+          if (!trimmed) return;
+          const q = findQuotationByNo(trimmed, scopedQuotations);
+          const check = canLinkQuotationToJob(q, jobModal, jobs);
+          if (!check.ok) {
+            if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
+            else alert(t("quotationNotFound"));
+            return;
+          }
+          const existing = jobQuotationNos(jobModal.data);
+          if (existing.some((n) => n.toLowerCase() === trimmed.toLowerCase())) {
+            setJobModal({ ...jobModal, data: { ...jobModal.data, _quotationDraft: "" } });
+            return;
+          }
+          const withQ = addQuotationToJob(jobModal.data, trimmed);
+          const patch = { ...withQ, _quotationDraft: "" };
+          if (!existing.length) Object.assign(patch, fieldsFromQuotation(q));
+          setJobModal({ ...jobModal, data: { ...jobModal.data, ...patch } });
+        }
+
+        function removeQuotationFromJobModal(quotationNo) {
+          if (!jobModal) return;
+          setJobModal({ ...jobModal, data: removeQuotationFromJob(jobModal.data, quotationNo) });
         }
 
         function applyQuotationNoToJob(quotationNo) {
@@ -2806,18 +2898,25 @@
             else alert(t("quotationNotFound"));
             return;
           }
-          setJobModal({ ...jobModal, data: { ...jobModal.data, ...fieldsFromQuotation(q) } });
+          const existing = jobQuotationNos(jobModal.data);
+          if (existing.some((n) => n.toLowerCase() === trimmed.toLowerCase())) return;
+          const withQ = addQuotationToJob(jobModal.data, trimmed);
+          const patch = { ...withQ, _quotationDraft: "" };
+          if (!existing.length) Object.assign(patch, fieldsFromQuotation(q));
+          setJobModal({ ...jobModal, data: { ...jobModal.data, ...patch } });
         }
 
         function deleteJob(id) {
           if (!guardPermission("job", "delete")) return;
           const j = jobs.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          if (j && j.quotation_no) {
-            setQuotations((prev) => prev.map((q) => {
-              if (String(q.quotation_no || "").toLowerCase() !== String(j.quotation_no).trim().toLowerCase()) return q;
-              return removeJobFromQuotation(q, j.id, j.job_no);
-            }));
+          if (j) {
+            jobQuotationNos(j).forEach((qNo) => {
+              setQuotations((prev) => prev.map((q) => {
+                if (String(q.quotation_no || "").toLowerCase() !== qNo.toLowerCase()) return q;
+                return removeJobFromQuotation(q, j.id, j.job_no);
+              }));
+            });
           }
           setJobs(jobs.filter((x) => x.id !== id));
           logAudit("job", "delete", j ? j.job_no : String(id), `Deleted job ${j ? j.job_no : id}`);
@@ -2941,19 +3040,10 @@
           const currentQuotation = quotationModal.mode === "edit" ? quotations.find((q) => q.id === quotationModal.id) : null;
           const oldJobNo = currentQuotation ? currentQuotation.job_no || "" : "";
           const oldQuotationNo = currentQuotation ? currentQuotation.quotation_no || "" : "";
-          const conflictQuotation = payload.job_no
-            ? quotations.find((q) => q.id !== quotationModal.id && String(q.job_no || "").trim().toLowerCase() === String(payload.job_no).trim().toLowerCase())
-            : null;
-          if (conflictQuotation) {
-            alert(t("jobAlreadyHasQuotation").replace("{quotation}", conflictQuotation.quotation_no || ""));
+          const dupQuotationNo = quotations.find((q) => q.id !== quotationModal.id && String(q.quotation_no || "").trim().toLowerCase() === String(payload.quotation_no || "").trim().toLowerCase());
+          if (dupQuotationNo) {
+            alert(t("duplicateQuotationNo").replace("{no}", payload.quotation_no || ""));
             return;
-          }
-          if (job) {
-            const jobLinkedQuotationNo = String(job.quotation_no || "").trim();
-            if (jobLinkedQuotationNo && jobLinkedQuotationNo.toLowerCase() !== String(payload.quotation_no || "").trim().toLowerCase()) {
-              alert(t("jobAlreadyHasQuotation").replace("{quotation}", jobLinkedQuotationNo));
-              return;
-            }
           }
           if (quotationModal.mode === "add") {
             if (!guardPermission("quotation", "add")) return;
@@ -2979,8 +3069,9 @@
           const q = quotations.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
           if (q) {
+            const qNo = String(q.quotation_no || "").trim();
             quotationJobNos(q).forEach((jno) => {
-              setJobs((prev) => prev.map((j) => (j.job_no === jno ? { ...j, quotation_no: "" } : j)));
+              setJobs((prev) => prev.map((j) => (j.job_no === jno ? removeQuotationFromJob(j, qNo) : j)));
             });
           }
           setQuotations(quotations.filter((x) => x.id !== id));
@@ -3066,6 +3157,11 @@
             payment_stage: f.payment_stage || "",
             due_date: f.due_date || computeArDueDate(f, clients, jobs)
           };
+          const arDup = findDuplicateInvoiceNo(arInvoices, rec.invoice_no, arModal.mode === "edit" ? arModal.id : null);
+          if (arDup) {
+            alert(t("duplicateInvoiceNo").replace("{no}", rec.invoice_no).replace("{module}", "AR"));
+            return;
+          }
           if (arModal.mode === "add") {
             if (!guardPermission("ar", "add")) return;
             setArInvoices([{ id: Date.now(), region: regionForNewRecord(), ...rec }, ...arInvoices]);
@@ -3107,6 +3203,11 @@
             manual_override: Math.abs(baseInput - calcValue) > 0.01,
             payment_stage: f.payment_stage || ""
           };
+          const apDup = findDuplicateInvoiceNo(apBills, rec.invoice_no, apModal.mode === "edit" ? apModal.id : null);
+          if (apDup) {
+            alert(t("duplicateInvoiceNo").replace("{no}", rec.invoice_no).replace("{module}", "AP"));
+            return;
+          }
           if (apModal.mode === "add") {
             if (!guardPermission("ap", "add")) return;
             setApBills([{ id: Date.now(), region: regionForNewRecord(), ...rec }, ...apBills]);
@@ -3166,8 +3267,14 @@
         function getExportRows(module) {
           if (module === "clients") return scopedClients.map((c) => rowFromSchema(EXCEL_SCHEMAS.clients, c));
           if (module === "job") return scopedJobs.map((j) => rowFromSchema(EXCEL_SCHEMAS.job, j));
-          if (module === "ar") return scopedArInvoices.map((r) => rowFromSchema(EXCEL_SCHEMAS.ar, r));
-          if (module === "ap") return scopedApBills.map((b) => rowFromSchema(EXCEL_SCHEMAS.ap, b));
+          if (module === "ar") return scopedArInvoices.map((r) => ({
+            ...rowFromSchema(EXCEL_SCHEMAS.ar, r),
+            base_amount_region: resolveArDisplayAmount(r, regionListCurrency)
+          }));
+          if (module === "ap") return scopedApBills.map((b) => ({
+            ...rowFromSchema(EXCEL_SCHEMAS.ap, b),
+            base_amount_region: resolveApDisplayAmount(b, regionListCurrency)
+          }));
           if (module === "vendors") return scopedVendors.map((v) => rowFromSchema(EXCEL_SCHEMAS.vendors, v));
           if (module === "si") return scopedSis.map((s) => rowFromSchema(EXCEL_SCHEMAS.si, s));
           if (module === "quotation") return scopedQuotations.map((q) => rowFromSchema(EXCEL_SCHEMAS.quotation, q));
@@ -3184,6 +3291,15 @@
         function exportModuleExcel(module, mode) {
           if (!guardPermission(module, "export")) return;
           let schema = EXCEL_SCHEMAS[module];
+          if (module === "ar" || module === "ap") {
+            schema = {
+              ...schema,
+              columns: [
+                ...schema.columns,
+                { header: "Amount (" + regionListCurrency + ")", field: "base_amount_region", hint: "Converted to active region currency" }
+              ]
+            };
+          }
           if (module === "monthly_report") {
             schema = { sheetName: "MonthlyReport", filePrefix: "monthly_report_" + monthlyReportYear, columns: [
               { header: "Month", field: "month" }, { header: "Currency", field: "currency" },
@@ -3221,6 +3337,11 @@
             const jt = String(row.job_type || "").trim();
             if (jt && !JOB_TYPES.includes(jt)) errors.push("Invalid Type: " + jt);
             if (!String(row.status || "").trim()) row.status = "Open";
+            const qNo = String(row.quotation_no || "").trim();
+            if (qNo) {
+              const q = quotations.find((x) => String(x.quotation_no || "").trim().toLowerCase() === qNo.toLowerCase());
+              if (q && q.status !== "Accepted") errors.push("Quotation not Accepted: " + qNo);
+            }
           }
           if (module === "quotation") {
             const st = String(row.status || "").trim();
@@ -3347,7 +3468,7 @@
               setUsers(d.users || users);
               setAuditLogs(d.auditLogs || []);
               setClients(ensureRegionOnRecords(d.clients));
-              setJobs(ensureJobsPoLines(ensureRegionOnRecords(d.jobs)));
+              setJobs(ensureJobsQuotations(ensureRegionOnRecords(d.jobs)));
               setQuotations(ensureRegionOnRecords(d.quotations || []));
               setVendors(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || [])));
               setSis(ensureSiNumbers(ensureRegionOnRecords(d.sis || [])));
@@ -3359,7 +3480,7 @@
               localStorage.setItem("erp_users", JSON.stringify(d.users || users));
               localStorage.setItem("erp_audit_logs", JSON.stringify(d.auditLogs || []));
               localStorage.setItem("erp_clients", JSON.stringify(ensureRegionOnRecords(d.clients)));
-              localStorage.setItem("erp_jobs", JSON.stringify(ensureJobsPoLines(ensureRegionOnRecords(d.jobs))));
+              localStorage.setItem("erp_jobs", JSON.stringify(ensureJobsQuotations(ensureRegionOnRecords(d.jobs))));
               localStorage.setItem("erp_quotations", JSON.stringify(ensureRegionOnRecords(d.quotations || [])));
               localStorage.setItem("erp_vendors", JSON.stringify(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || []))));
               localStorage.setItem("erp_sis", JSON.stringify(ensureSiNumbers(ensureRegionOnRecords(d.sis || []))));
@@ -3401,6 +3522,7 @@
           let nextSis = sis;
           let nextAr = arInvoices;
           let nextAp = apBills;
+          let nextQuotationsFromJobs = quotations;
           if (module === "clients") {
             nextClients = [...clients];
             valid.forEach((p) => {
@@ -3421,12 +3543,13 @@
             nextJobs = [...jobs];
             valid.forEach((p) => {
               const client = clients.find((c) => c.company.toLowerCase() === String(p.data.company || "").trim().toLowerCase());
-              const payload = {
+              const payload = normalizeJobQuotations({
                 job_no: p.data.job_no,
                 company: client ? client.company : p.data.company,
                 client_id: client ? client.id : null,
                 job_type: p.data.job_type || "Project",
                 quotation_no: p.data.quotation_no || "",
+                linked_quotation_nos: p.data.quotation_no ? String(p.data.quotation_no).split(",").map((s) => s.trim()).filter(Boolean) : [],
                 amount: Number(p.data.amount || 0),
                 customer_po_amount: Number(p.data.customer_po_amount || p.data.amount || 0),
                 currency: p.data.currency || "USD",
@@ -3435,12 +3558,14 @@
                 start_date: p.data.start_date || "",
                 description: p.data.description || "",
                 remarks: p.data.remarks || ""
-              };
+              });
               const normalizedPayload = normalizeJobPoFields(payload);
               const existing = nextJobs.find((j) => j.job_no.toLowerCase() === p.key.toLowerCase());
               if (existing) {
                 const oldNo = existing.job_no;
-                nextJobs = nextJobs.map((j) => (j.id === existing.id ? { ...j, ...normalizedPayload } : j));
+                const merged = p.data.quotation_no ? addQuotationToJob(existing, p.data.quotation_no) : existing;
+                const updatePayload = { ...merged, ...normalizedPayload, linked_quotation_nos: merged.linked_quotation_nos, quotation_no: merged.quotation_no };
+                nextJobs = nextJobs.map((j) => (j.id === existing.id ? { ...j, ...updatePayload } : j));
                 if (oldNo !== payload.job_no) {
                   setArInvoices((prev) => prev.map((r) => (r.job_no === oldNo ? { ...r, job_no: payload.job_no, job_id: existing.id } : r)));
                 }
@@ -3452,7 +3577,21 @@
                 created++;
               }
             });
+            let nextQuotationsFromJobs = [...quotations];
+            valid.forEach((p) => {
+              const jobNo = String(p.data.job_no || "").trim();
+              if (!jobNo) return;
+              const job = nextJobs.find((j) => j.job_no.toLowerCase() === jobNo.toLowerCase());
+              if (!job) return;
+              jobQuotationNos(job).forEach((qNo) => {
+                nextQuotationsFromJobs = nextQuotationsFromJobs.map((q) => {
+                  if (String(q.quotation_no || "").trim().toLowerCase() !== qNo.toLowerCase()) return q;
+                  return addJobToQuotation(q, job.id, job.job_no);
+                });
+              });
+            });
             setJobs(nextJobs);
+            setQuotations(nextQuotationsFromJobs);
           } else if (module === "ar") {
             nextAr = [...arInvoices];
             valid.forEach((p) => {
@@ -3574,7 +3713,15 @@
             setQuotations(nextQuotations);
           }
 
-          persistErpLists({ clients: nextClients, jobs: nextJobs, quotations: nextQuotations, vendors: nextVendors, sis: nextSis, arInvoices: nextAr, apBills: nextAp });
+          persistErpLists({
+            clients: nextClients,
+            jobs: nextJobs,
+            quotations: module === "job" ? nextQuotationsFromJobs : (module === "quotation" ? nextQuotations : quotations),
+            vendors: nextVendors,
+            sis: nextSis,
+            arInvoices: nextAr,
+            apBills: nextAp
+          });
 
           logAudit(module, "import", fileName, `Imported ${created} new, ${updated} updated, ${preview.length - valid.length} errors`);
           setImportPreview(null);
@@ -3835,7 +3982,7 @@
             const relatedAr = getArByJob(j.job_no);
             const relatedAp = getApByJob(j.job_no);
             const client = clients.find((c) => c.id === j.client_id);
-            const linkedQuotation = findLinkedQuotationForJob(j, quotations);
+            const linkedQuotations = findLinkedQuotationsForJob(j, quotations);
             return (
               <Modal title={t("jobDetail") + " - " + j.job_no} onClose={() => setDetailPanel(null)} wide>
                 <p className="text-xs text-slate-500 mb-4">{t("jobFlowHint")}</p>
@@ -3843,7 +3990,9 @@
                   <div><p className="text-slate-500">Client</p><p className="font-medium">{j.company}</p></div>
                   <div><p className="text-slate-500">{t("type")}</p><p>{j.job_type}</p></div>
                   <div><p className="text-slate-500">Customer PO</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
-                  <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotation ? <LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: linkedQuotation.id })}>{linkedQuotation.quotation_no}</LinkBtn> : (j.quotation_no || "-")}</p></div>
+                  <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotations.length ? linkedQuotations.map((q, i) => (
+                    <span key={q.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>{q.quotation_no}</LinkBtn></span>
+                  )) : (j.quotation_no || "-")}</p></div>
                   <div><p className="text-slate-500">Customer PO Amount</p><p>{j.customer_po_amount ? money(j.customer_po_amount) + " " + (j.currency || "") : "-"}</p></div>
                   <div className="col-span-2">
                     <p className="text-slate-500 mb-2">{t("jobPoLinesTitle")}</p>
@@ -4073,8 +4222,8 @@
               <td className="p-3">{getApByJob(j.job_no).length}</td>
               <td className="p-3">
                 <ActionButtons viewLabel={t("view")} editLabel={t("edit")} deleteLabel={t("delete")} canEdit={can("job", "edit")} canDelete={can("job", "delete")} onDelete={() => deleteJob(j.id)} onView={() => setDetailPanel({ type: "job", id: j.id })} onEdit={() => {
-                  const norm = normalizeJobPoFields(j);
-                  setJobModal({ mode: "edit", id: j.id, data: { ...norm, client_id: String(j.client_id), amount: String(j.amount ?? ""), customer_po_amount: String(norm.customer_po_amount ?? ""), po_lines: (norm.po_lines || []).map((pl) => ({ ...pl, amount: String(pl.amount ?? "") })) } });
+                  const norm = normalizeJobQuotations(normalizeJobPoFields(j));
+                  setJobModal({ mode: "edit", id: j.id, data: { ...norm, client_id: String(j.client_id), amount: String(j.amount ?? ""), customer_po_amount: String(norm.customer_po_amount ?? ""), po_lines: (norm.po_lines || []).map((pl) => ({ ...pl, amount: String(pl.amount ?? "") })), _quotationDraft: "" } });
                 }}
                   extra={isJobCompleted(j.status) && can("ar", "add") ? <button type="button" onClick={(e) => { e.stopPropagation(); openArFromJob(j); }} className="px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700">{t("issueInvoiceToClient")}</button> : null}
                 />
@@ -5397,25 +5546,47 @@
                         {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
                       </Select>
                     </Field>
-                    <Field label={t("quotationNo")}>
-                      <Input
-                        list="erp-accepted-quotations"
-                        value={jobModal.data.quotation_no || ""}
-                        onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, quotation_no: e.target.value } })}
-                        onBlur={(e) => applyQuotationNoToJob(e.target.value)}
-                      />
+                    <div className="md:col-span-2 border rounded-lg p-3 bg-slate-50/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold text-slate-700">{t("jobQuotationLinesTitle")}</p>
+                      </div>
+                      <div className="flex gap-2 mb-2">
+                        <Input
+                          className="flex-1"
+                          list="erp-accepted-quotations"
+                          placeholder={t("quotationNo")}
+                          value={jobModal.data._quotationDraft || ""}
+                          onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, _quotationDraft: e.target.value } })}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addQuotationDraftToJob(); } }}
+                          onBlur={() => { if (jobModal.data._quotationDraft) addQuotationDraftToJob(); }}
+                        />
+                        <button type="button" className="text-xs px-2 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap" onClick={addQuotationDraftToJob}>{t("jobQuotationAdd")}</button>
+                      </div>
                       <datalist id="erp-accepted-quotations">
                         {scopedQuotations.filter((q) => q.status === "Accepted").map((q) => (
                           <option key={q.id} value={q.quotation_no}>{q.company} · {money(q.amount)} {q.currency}{q.job_no ? " · " + q.job_no : ""}</option>
                         ))}
                       </datalist>
-                      <p className="text-[10px] text-slate-400 mt-1">{t("quotationSelectHint")}</p>
-                      {(() => {
-                        const q = findQuotationByNo(jobModal.data.quotation_no, scopedQuotations);
-                        const others = q ? quotationJobNos(q).filter((n) => n !== jobModal.data.job_no) : [];
-                        return others.length ? <p className="text-[10px] text-amber-600 mt-1">{t("quotationMultiJobHint").replace("{jobs}", others.join(", "))}</p> : null;
-                      })()}
-                    </Field>
+                      {jobQuotationNos(jobModal.data).length ? (
+                        <ul className="space-y-1 mb-2">
+                          {jobQuotationNos(jobModal.data).map((qNo) => {
+                            const q = findQuotationByNo(qNo, scopedQuotations);
+                            const others = q ? quotationJobNos(q).filter((n) => n !== jobModal.data.job_no) : [];
+                            return (
+                              <li key={qNo} className="flex items-start justify-between gap-2 text-xs bg-white border rounded px-2 py-1.5">
+                                <div>
+                                  <span className="font-medium text-slate-800">{qNo}</span>
+                                  {q ? <span className="text-slate-500 ml-2">{money(q.amount)} {q.currency}</span> : null}
+                                  {others.length ? <p className="text-[10px] text-amber-600 mt-0.5">{t("quotationMultiJobHint").replace("{jobs}", others.join(", "))}</p> : null}
+                                </div>
+                                <button type="button" className="text-red-500 hover:text-red-700 shrink-0" onClick={() => removeQuotationFromJobModal(qNo)} title={t("delete")}>×</button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
+                      <p className="text-[10px] text-slate-400">{t("jobQuotationInputHint")}</p>
+                    </div>
                     <Field label="Quotation Amount"><Input type="number" step="0.01" value={jobModal.data.amount} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, amount: e.target.value } })} /></Field>
                     <Field label="Customer PO"><Input value={jobModal.data.customer_po} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, customer_po: e.target.value } })} /></Field>
                     <Field label="Customer PO Amount (Total)"><Input type="number" step="0.01" readOnly value={jobModal.data.customer_po_amount || ""} className="bg-slate-50" /></Field>
