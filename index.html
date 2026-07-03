@@ -655,8 +655,9 @@
           auditTitle: "Activity Log", auditHint: "Filter by date, user, module or action — like a report.",
           auditWhen: "When (UTC stored)", auditUser: "User", auditModule: "Module", auditAction: "Action", auditEntity: "Record", auditDetail: "Details",
           auditDateFrom: "From date", auditDateTo: "To date", auditSearch: "Search", auditReset: "Reset filters", auditNoRows: "No log entries match your filters.",
-          actionCreate: "Create", actionUpdate: "Update", actionDelete: "Delete", actionMarkPaid: "Mark Paid", actionUserCreate: "User Created", actionUserUpdate: "User Updated",
-          confirmDelete: "Delete this record?", noPermission: "You do not have permission for this action.", rootOnly: "Root admin only.",
+          actionCreate: "Create", actionUpdate: "Update", actionDelete: "Delete", actionMarkPaid: "Mark Paid", actionUserCreate: "User Created", actionUserUpdate: "User Updated", actionUserDelete: "User Deleted",
+          confirmDelete: "Delete this record?", confirmDeleteUser: "Delete this user account? They will no longer be able to log in.", cannotDeleteSelf: "You cannot delete your own account.", cannotDeleteRoot: "The root account cannot be deleted.",
+          noPermission: "You do not have permission for this action.", rootOnly: "Root admin only.",
           delete: "Delete", allUsers: "All users", allModules: "All modules", allActions: "All actions",
           permExport: "Export", permImport: "Import", exportData: "Export Data", exportExcel: "Export Excel", exportTemplate: "Download Template",
           importExcel: "Import Excel", importPreviewTitle: "Import Preview", importConfirm: "Confirm Import",
@@ -846,8 +847,9 @@
           auditTitle: "操作記錄", auditHint: "可按日期、用戶、模組、動作篩選，如同報表查詢。",
           auditWhen: "時間（UTC 儲存）", auditUser: "用戶", auditModule: "模組", auditAction: "動作", auditEntity: "記錄", auditDetail: "詳情",
           auditDateFrom: "開始日期", auditDateTo: "結束日期", auditSearch: "搜尋", auditReset: "重設篩選", auditNoRows: "沒有符合條件的記錄。",
-          actionCreate: "新增", actionUpdate: "修改", actionDelete: "刪除", actionMarkPaid: "標記已付款", actionUserCreate: "建立用戶", actionUserUpdate: "更新用戶",
-          confirmDelete: "確定刪除此記錄？", noPermission: "你沒有此操作權限。", rootOnly: "僅 Root 管理員可用。",
+          actionCreate: "新增", actionUpdate: "修改", actionDelete: "刪除", actionMarkPaid: "標記已付款", actionUserCreate: "建立用戶", actionUserUpdate: "更新用戶", actionUserDelete: "刪除用戶",
+          confirmDelete: "確定刪除此記錄？", confirmDeleteUser: "確定刪除此用戶帳號？刪除後將無法登入。", cannotDeleteSelf: "不能刪除自己目前登入的帳號。", cannotDeleteRoot: "Root 帳號不能刪除。",
+          noPermission: "你沒有此操作權限。", rootOnly: "僅 Root 管理員可用。",
           delete: "刪除", allUsers: "全部用戶", allModules: "全部模組", allActions: "全部動作",
           permExport: "匯出", permImport: "匯入", exportData: "匯出資料", exportExcel: "匯出 Excel", exportTemplate: "下載範本",
           importExcel: "匯入 Excel", importPreviewTitle: "匯入預覽", importConfirm: "確認匯入",
@@ -3217,6 +3219,7 @@
           const map = {
             create: t("actionCreate"), update: t("actionUpdate"), delete: t("actionDelete"),
             mark_paid: t("actionMarkPaid"), user_create: t("actionUserCreate"), user_update: t("actionUserUpdate"),
+            user_delete: t("actionUserDelete"),
             export: t("actionExport"), import: t("actionImport")
           };
           return map[action] || action;
@@ -4297,6 +4300,19 @@
           setUserModal(null);
         }
 
+        function deleteUser(userId) {
+          if (!isRoot()) { alert(t("rootOnly")); return; }
+          const target = users.find((u) => u.id === userId);
+          if (!target) return;
+          if (target.role === "root") { alert(t("cannotDeleteRoot")); return; }
+          if (target.id === sessionUserId) { alert(t("cannotDeleteSelf")); return; }
+          if (!window.confirm(t("confirmDeleteUser"))) return;
+          setUsers((prev) => prev.filter((u) => u.id !== userId));
+          pushUserDeleteToCloud(userId);
+          logAudit("settings", "user_delete", target.email, `Deleted user ${target.name} (${target.email})`);
+          if (userModal && userModal.id === userId) setUserModal(null);
+        }
+
         function changeMyPassword(e) {
           e.preventDefault();
           const u = getCurrentUser();
@@ -4661,6 +4677,35 @@
                   entity_id: userRecord.id,
                   payload: userRecord,
                   is_deleted: false,
+                  region: null
+                }],
+                updated_by: sessionUserId
+              })
+            });
+          } catch { /* ignore */ }
+        }
+
+        async function pushUserDeleteToCloud(userId) {
+          if (userId == null) return;
+          let key = erpSyncKey.trim();
+          if (!key) {
+            try {
+              const cfgRes = await fetch("/api/sync/client-config");
+              const cfg = cfgRes.ok ? await cfgRes.json() : {};
+              key = cfg.sync_key || "";
+            } catch { return; }
+          }
+          if (!key) return;
+          try {
+            await fetch("/api/sync/push", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "X-ERP-Sync-Key": key },
+              body: JSON.stringify({
+                changes: [{
+                  entity_type: "users",
+                  entity_id: userId,
+                  payload: {},
+                  is_deleted: true,
                   region: null
                 }],
                 updated_by: sessionUserId
@@ -7045,7 +7090,12 @@
                                 <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + (u.role === "root" ? "bg-violet-100 text-violet-800" : "bg-slate-100")}>{u.role === "root" ? t("roleRoot") : t("roleUser")}</span></td>
                                 <td className="p-3">{u.is_active ? t("yes") : t("no")}</td>
                                 <td className="p-3">
-                                  <button type="button" onClick={() => setUserModal({ mode: "edit", id: u.id, data: { name: u.name, email: u.email, password: u.password || "", role: u.role, is_active: u.is_active, permissions: u.permissions || emptyPermissions(), allowed_regions: u.allowed_regions || ["HK"] } })} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">{t("edit")}</button>
+                                  <div className="flex flex-wrap gap-1">
+                                    <button type="button" onClick={() => setUserModal({ mode: "edit", id: u.id, data: { name: u.name, email: u.email, password: u.password || "", role: u.role, is_active: u.is_active, permissions: u.permissions || emptyPermissions(), allowed_regions: u.allowed_regions || ["HK"] } })} className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-800">{t("edit")}</button>
+                                    {u.role !== "root" && u.id !== sessionUserId && (
+                                      <button type="button" onClick={() => deleteUser(u.id)} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800">{t("delete")}</button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -7085,6 +7135,7 @@
                             <option value="mark_paid">{t("actionMarkPaid")}</option>
                             <option value="user_create">{t("actionUserCreate")}</option>
                             <option value="user_update">{t("actionUserUpdate")}</option>
+                            <option value="user_delete">{t("actionUserDelete")}</option>
                             <option value="export">{t("actionExport")}</option>
                             <option value="import">{t("actionImport")}</option>
                           </Select>
@@ -7193,9 +7244,14 @@
                         </div>
                       </div>
                     )}
-                    <div className="flex justify-end gap-2">
-                      <button type="button" onClick={() => setUserModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button>
-                      <button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button>
+                    <div className="flex justify-between gap-2">
+                      {userModal.mode === "edit" && userModal.data.role !== "root" && userModal.id !== sessionUserId ? (
+                        <button type="button" onClick={() => deleteUser(userModal.id)} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">{t("delete")}</button>
+                      ) : <span />}
+                      <div className="flex gap-2 ml-auto">
+                        <button type="button" onClick={() => setUserModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button>
+                        <button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button>
+                      </div>
                     </div>
                   </form>
                 </Modal>
