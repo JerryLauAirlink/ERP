@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="/world-map-data.js"></script>
@@ -587,6 +587,9 @@
           colName: "Name", colBank: "Bank", colSwift: "SWIFT", colContact: "Contact",
           importReading: "Reading file…",
           importPreviewReady: "Import preview ready — please confirm.",
+          importLoading: "Reading Excel file, please wait…",
+          importXlsxMissing: "Excel library failed to load. Please refresh the page or check your network.",
+          importParseFailed: "Could not read this file. Use .xlsx template from Export Template.",
           storageSaveFailed: "Could not save to browser storage. Check privacy settings or disk space.",
           arOutstanding: "AR Outstanding", apOutstanding: "AP Outstanding", netPosition: "Net Position", dueSoon: "Due Soon", overdueCount: "overdue", pendingBills: "bills pending", dueSoonHint: "unpaid, due soon",
           topOverdue: "Top Overdue Invoices", approvalQueue: "Approval Queue", cashFlow: "Cash In vs Cash Out (90 Days)", arAging: "A/R Aging",
@@ -683,7 +686,10 @@
           liveSyncTitle: "Live Multi-User Sync", liveSyncHint: "Each record syncs to Supabase automatically. All users see changes within a few seconds. Requires sync key + SQL migration 002.",
           liveSyncEnable: "Enable live sync (auto push & pull)", liveSyncOk: "Live sync active", liveSyncReadOnly: "Live sync active (read-only)", liveSyncSyncing: "Syncing…", liveSyncError: "Sync error",
           liveSyncLast: "Last sync", liveSyncNeedKey: "Enter cloud sync key first.", liveSyncBootstrapped: "Live sync enabled. Data connected to cloud.",
-          liveSyncAutoHint: "Sync starts automatically when you open the app. View-only users download only; editors upload changes.",
+          liveSyncAutoHint: "Changes upload to Supabase immediately. View-only users download only; editors upload changes.",
+          monthlyClearAll: "Clear all monthly data",
+          monthlyClearAllConfirm: "Delete ALL monthly report lines and AR-expected snapshots (all years)? Demo / old data will be removed from cloud too.",
+          monthlyClearAllDone: "Monthly report data cleared.",
           loginUsername: "Username", loginPassword: "Password", loginRemember: "Remember me", loginBtn: "Login", loginFail: "Invalid username or password.", loginInactive: "This account is disabled.", logout: "Logout",
           myAccountTitle: "My Account", changePassword: "Change Password", currentPassword: "Current password", newPassword: "New password", confirmPassword: "Confirm new password", passwordChanged: "Password updated.", passwordMismatch: "New passwords do not match.", passwordWrong: "Current password is incorrect.", userLoginId: "Username",
           noDatabaseNote: "No server database yet — Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
@@ -779,6 +785,9 @@
           colName: "名稱", colBank: "銀行", colSwift: "SWIFT", colContact: "聯絡人",
           importReading: "正在讀取檔案…",
           importPreviewReady: "匯入預覽已準備好，請確認。",
+          importLoading: "正在讀取 Excel，請稍候…",
+          importXlsxMissing: "Excel 函式庫載入失敗，請重新整理頁面或檢查網絡。",
+          importParseFailed: "無法讀取此檔案，請使用「匯出範本」下載的 .xlsx 格式。",
           storageSaveFailed: "無法儲存到瀏覽器，請檢查私隱設定或儲存空間。",
           arOutstanding: "應收未結", apOutstanding: "應付未結", netPosition: "淨部位", dueSoon: "即將到期", overdueCount: "筆已逾期", pendingBills: "筆待處理", dueSoonHint: "未收款、即將到期",
           topOverdue: "逾期發票排行", approvalQueue: "審批佇列", cashFlow: "現金流入 vs 流出（90 天）", arAging: "應收帳齡",
@@ -875,7 +884,10 @@
           liveSyncTitle: "即時多人同步", liveSyncHint: "每筆資料（客戶、工作、應收應付等）自動寫入 Supabase，其他用戶幾秒內會看到更新。需先執行 SQL migration 002。",
           liveSyncEnable: "啟用即時同步（自動上傳及下載）", liveSyncOk: "即時同步運作中", liveSyncReadOnly: "即時同步運作中（唯讀）", liveSyncSyncing: "同步中…", liveSyncError: "同步錯誤",
           liveSyncLast: "上次同步", liveSyncNeedKey: "請先輸入雲端同步金鑰。", liveSyncBootstrapped: "已啟用即時同步，資料已連接雲端。",
-          liveSyncAutoHint: "開啟網站即自動同步。唯讀用戶只下載；有編輯權限的用戶才會上傳變更。",
+          liveSyncAutoHint: "變更會即時上傳至 Supabase。唯讀用戶只下載；有編輯權限的用戶才會上傳變更。",
+          monthlyClearAll: "清空所有月報資料",
+          monthlyClearAllConfirm: "刪除所有月報明細及預計應收快照（所有年份）？示範／舊資料亦會從雲端移除。",
+          monthlyClearAllDone: "月報資料已清空。",
           loginUsername: "用戶名稱", loginPassword: "密碼", loginRemember: "記住我", loginBtn: "登入", loginFail: "用戶名稱或密碼錯誤。", loginInactive: "此帳號已停用。", logout: "登出",
           myAccountTitle: "我的帳號", changePassword: "更改密碼", currentPassword: "現有密碼", newPassword: "新密碼", confirmPassword: "確認新密碼", passwordChanged: "密碼已更新。", passwordMismatch: "兩次輸入的新密碼不一致。", passwordWrong: "現有密碼不正確。", userLoginId: "用戶名稱",
           noDatabaseNote: "目前尚無伺服器資料庫 — Excel 匯入只會更新瀏覽器資料。上傳後請在預覽視窗按「確認匯入」。"
@@ -2192,42 +2204,13 @@
         );
       }
 
-      const initialClients = [
-        { id: 1, region: "HK", customer_no: "CUST-0001", company: "Pacific Systems", gst_no: "GST-HK-1102", primary_contact: "Ken Wong", company_phone: "852-2333-1122", mobile_phone: "852-9456-3321", email: "ar@pacific.com", address: "18/F Pacific Tower, TST, Hong Kong", postal_code: "999077", account_dept_contact: "May Chan", payment_terms: "30 Days" },
-        { id: 2, region: "HK", customer_no: "CUST-0002", company: "Kingston Trading", gst_no: "GST-HK-2208", primary_contact: "Henry Lee", company_phone: "852-2550-0091", mobile_phone: "852-9877-1234", email: "finance@kingston.com", address: "Rm 1206, Mongkok Centre, Kowloon", postal_code: "999078", account_dept_contact: "Amy Lau", payment_terms: "45 Days" },
-        { id: 3, region: "TW", customer_no: "CUST-TW-001", company: "Taipei Tech Co.", gst_no: "TW-88321", primary_contact: "Lin Mei", company_phone: "886-2-5500-1122", mobile_phone: "886-912-334455", email: "ap@taipei-tech.tw", address: "Taipei Xinyi District", postal_code: "110", account_dept_contact: "Chen Wei", payment_terms: "30 Days" }
-      ];
-
-      const initialJobs = [
-        { id: 1, region: "HK", job_no: "JB-001", client_id: 1, company: "Pacific Systems", job_type: "Project", customer_po: "PO-7781", customer_po_amount: 150000, quotation_no: "QT-2026-001", amount: 150000, currency: "USD", status: "In Progress", description: "ERP rollout phase 1", remarks: "", start_date: "2026-04-01" },
-        { id: 2, region: "HK", job_no: "JB-002", client_id: 2, company: "Kingston Trading", job_type: "Service", customer_po: "PO-8801", customer_po_amount: 88000, quotation_no: "QT-2026-002", amount: 88000, currency: "HKD", status: "Completed", description: "Annual maintenance", remarks: "", start_date: "2026-05-15" },
-        { id: 3, region: "TW", job_no: "JB-TW-001", client_id: 3, company: "Taipei Tech Co.", job_type: "Project", customer_po: "PO-TW-100", customer_po_amount: 3200000, quotation_no: "QT-TW-001", amount: 3200000, currency: "TWD", status: "Open", description: "TW office setup", remarks: "", start_date: "2026-06-01" }
-      ];
-
-      const initialQuotations = [
-        { id: 1, region: "HK", quotation_no: "QT-2026-001", client_id: 1, company: "Pacific Systems", quotation_date: "2026-03-01", valid_until: "2026-03-31", amount: 150000, currency: "USD", status: "Accepted", description: "ERP rollout phase 1", job_no: "JB-001", job_id: 1 },
-        { id: 2, region: "HK", quotation_no: "QT-2026-002", client_id: 2, company: "Kingston Trading", quotation_date: "2026-04-20", valid_until: "2026-05-20", amount: 88000, currency: "HKD", status: "Accepted", description: "Annual maintenance contract", job_no: "JB-002", job_id: 2 },
-        { id: 3, region: "HK", quotation_no: "QT-2026-003", client_id: 1, company: "Pacific Systems", quotation_date: "2026-06-15", valid_until: "2026-07-15", amount: 45000, currency: "USD", status: "Sent", description: "Phase 2 optional modules", job_no: "", job_id: null }
-      ];
-
-      const initialVendors = [
-        { id: 1, region: "HK", vendor_no: "VEND-0001", name: "Delta Tech Vendor", email: "ap@delta.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", charge: "OUR", contact: "Tom Lee", phone: "852-2111-0000", address: "Unit 8, Kwun Tong Industrial Centre, Kowloon" },
-        { id: 2, region: "HK", vendor_no: "VEND-0002", name: "Bright Media", email: "billing@bright.com", bank: "BOC", swift_code: "BKCHCNBJ", charge: "OUR", contact: "Sarah", phone: "852-2888-0000", address: "15/F, Causeway Bay Plaza, Hong Kong" }
-      ];
-
-      const initialSis = [
-        { id: 1, region: "HK", si_no: "SI-0001", name: "Ace Engineering SI", email: "invoice@ace-eng.com", bank: "HSBC", swift_code: "HSBCHKHHHKH", charge: "OUR", contact: "Mr. Cheung", phone: "852-3000-1122", address: "Workshop 3, Tai Po Industrial Estate" }
-      ];
-
-      const initialAr = [
-        { id: 1, region: "HK", job_id: 1, job_no: "JB-001", customer: "Pacific Systems", customer_po: "PO-7781", job_completed: false, invoice_no: "INV-2026-1192", invoice_currency: "USD", invoice_amt: 11000, exchange_rate_locked: 7.8, base_amount_locked: 85800, base_amount: 85800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-05-01", due_date: "2026-06-05", payment_received_date: "", payment_status: "Overdue" },
-        { id: 2, region: "HK", job_id: 2, job_no: "JB-002", customer: "Kingston Trading", customer_po: "PO-8801", job_completed: true, invoice_no: "INV-2026-1204", invoice_currency: "HKD", invoice_amt: 54500, exchange_rate_locked: 1, base_amount_locked: 54500, base_amount: 54500, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", invoice_date: "2026-06-01", due_date: "2026-06-20", payment_received_date: "", payment_status: "Awaiting Payment" }
-      ];
-
-      const initialAp = [
-        { id: 1, region: "HK", job_id: 1, job_no: "JB-001", payee_type: "Vendor", si_id: null, company_name: "Delta Tech Vendor", invoice_no: "BILL-2026-2289", invoice_date: "2026-06-04", invoice_received_date: "2026-06-07", due_date: "2026-07-02", currency: "USD", amount: 6000, exchange_rate_locked: 7.8, base_amount_locked: 46800, base_amount: 46800, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "2026-06-28", remarks: "Hardware for JB-001", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "ap@delta.com" },
-        { id: 2, region: "HK", job_id: 1, job_no: "JB-001", payee_type: "SI", si_id: 1, company_name: "Ace Engineering SI", invoice_no: "SI-INV-2026-001", invoice_date: "2026-06-10", invoice_received_date: "2026-06-12", due_date: "2026-07-10", currency: "HKD", amount: 28000, exchange_rate_locked: 1, base_amount_locked: 28000, base_amount: 28000, lock_timestamp: nowIso(), rate_source: "MANUAL", manual_override: false, override_reason: "", pay_date: "", remarks: "Subcontract install work", bank: "HSBC", charge: "OUR", swift_code: "HSBCHKHHHKH", payment_advice_email: "invoice@ace-eng.com" }
-      ];
+      const initialClients = [];
+      const initialJobs = [];
+      const initialQuotations = [];
+      const initialVendors = [];
+      const initialSis = [];
+      const initialAr = [];
+      const initialAp = [];
 
       const initialApprovals = [
         { id: 1, doc: "PO-2026-4411 / IT Hardware", requester: "Benson", status: "Pending CFO" },
@@ -2353,10 +2336,7 @@
         }
       ];
 
-      const initialAuditLogs = [
-        { id: 1, at: "2026-06-30T08:15:00.000Z", user_id: 1, user_name: "Administrator", user_email: "root", module: "clients", action: "create", entity: "Pacific Systems", detail: "Created client CUST-0001" },
-        { id: 2, at: "2026-06-30T09:42:00.000Z", user_id: 2, user_name: "Finance User", user_email: "finance@erp.local", module: "ar", action: "update", entity: "INV-2026-1192", detail: "Updated AR invoice payment status" }
-      ];
+      const initialAuditLogs = [];
 
       function loadJson(key, fallback) {
         try {
@@ -3061,6 +3041,7 @@
         const livePollRef = useRef(null);
         const [userModal, setUserModal] = useState(null);
         const [importPreview, setImportPreview] = useState(null);
+        const [importLoading, setImportLoading] = useState(false);
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3127,11 +3108,21 @@
           return () => { if (livePollRef.current) clearInterval(livePollRef.current); };
         }, [liveSyncEnabled, liveSyncReady]);
 
-        useEffect(() => {
+        function scheduleLiveSyncPush(immediate) {
           if (!liveSyncEnabled || !liveSyncReady || !canLiveSyncPush() || liveApplyingRemoteRef.current) return;
           if (!erpSyncKey.trim()) return;
           if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current);
-          livePushTimerRef.current = setTimeout(() => { flushLiveSyncPush(); }, 2000);
+          if (immediate) {
+            flushLiveSyncPush();
+            return;
+          }
+          livePushTimerRef.current = setTimeout(() => { flushLiveSyncPush(); }, 400);
+        }
+
+        useEffect(() => {
+          if (!liveSyncEnabled || !liveSyncReady || !canLiveSyncPush() || liveApplyingRemoteRef.current) return;
+          if (!erpSyncKey.trim()) return;
+          scheduleLiveSyncPush(false);
           return () => { if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current); };
         }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
 
@@ -3661,6 +3652,21 @@
         useEffect(() => {
           const today = new Date().toISOString().slice(0, 10);
           const y = Number(monthlyReportYear);
+          if (!scopedArInvoices.length) {
+            setMonthlyArExpectedSnapshots((prev) => {
+              const next = { ...prev };
+              let changed = false;
+              for (let m = 0; m < 12; m++) {
+                const key = arExpectedSnapshotKey(y, m, activeRegion);
+                if (next[key] != null) {
+                  delete next[key];
+                  changed = true;
+                }
+              }
+              return changed ? next : prev;
+            });
+            return;
+          }
           const pending = {};
           for (let m = 0; m < 12; m++) {
             const key = arExpectedSnapshotKey(y, m, activeRegion);
@@ -3951,6 +3957,7 @@
             return next;
           });
           logAudit("monthly_report", "update", "PO Received", `Synced PO received lines for ${monthlyReportYear}`);
+          scheduleLiveSyncPush(true);
           alert(t("monthlySyncSaved"));
         }
 
@@ -3963,6 +3970,7 @@
             return next;
           });
           logAudit("monthly_report", "update", "AR Invoice", `Synced AR invoice lines for ${monthlyReportYear}`);
+          scheduleLiveSyncPush(true);
           alert(t("monthlySyncSaved"));
         }
 
@@ -4003,7 +4011,22 @@
           });
           refreshMonthlyArExpectedSnapshots();
           logAudit("monthly_report", "update", "Report", `Synced full monthly report for ${monthlyReportYear}`);
+          scheduleLiveSyncPush(true);
           alert(t("monthlySyncReportDone"));
+        }
+
+        function clearAllMonthlyReportData() {
+          if (!isRoot()) { alert(t("rootOnly")); return; }
+          if (!window.confirm(t("monthlyClearAllConfirm"))) return;
+          setMonthlyPoLines([]);
+          setMonthlyArLines([]);
+          setMonthlyArExpectedSnapshots({});
+          saveErpStorage("erp_monthly_po_lines", []);
+          saveErpStorage("erp_monthly_ar_lines", []);
+          saveErpStorage("erp_monthly_ar_expected", {});
+          logAudit("monthly_report", "delete", "all", "Cleared all monthly report data");
+          scheduleLiveSyncPush(true);
+          alert(t("monthlyClearAllDone"));
         }
 
         function updateMonthlyPoOtherCurrency(id, value) {
@@ -4534,28 +4557,45 @@
         function handleImportFile(module, file) {
           if (!guardPermission(module, "import")) return;
           if (!file) return;
-          if (typeof XLSX === "undefined") { alert("Excel library not loaded"); return; }
+          if (typeof XLSX === "undefined") {
+            setImportPreview({ module, preview: [], fileName: file.name, parseErrors: [t("importXlsxMissing")] });
+            return;
+          }
           const schema = EXCEL_SCHEMAS[module];
+          if (!schema) {
+            setImportPreview({ module, preview: [], fileName: file.name, parseErrors: ["Unknown import module: " + module] });
+            return;
+          }
+          setImportLoading(true);
           const reader = new FileReader();
-          reader.onerror = () => alert(t("importFileError"));
+          reader.onerror = () => {
+            setImportLoading(false);
+            setImportPreview({ module, preview: [], fileName: file.name, parseErrors: [t("importFileError")] });
+          };
           reader.onload = (e) => {
             try {
               const { rows, errors } = parseExcelRows(e.target.result, schema);
-              if (errors.length) { alert(errors.join("\n")); return; }
-              if (!rows.length) { alert(t("importNoRows")); return; }
-              const preview = buildImportPreview(module, rows);
-              const ok = preview.filter((p) => p.action !== "error").length;
-              if (!ok) {
-                const msg = preview.slice(0, 5).map((p) => "Line " + p.lineNo + ": " + (p.errors || []).join("; ")).join("\n");
-                alert((msg || t("importNoRows")));
+              setImportLoading(false);
+              if (errors.length) {
+                setImportPreview({ module, preview: [], fileName: file.name, parseErrors: errors });
+                return;
               }
-              setImportPreview({ module, preview, fileName: file.name });
-              if (ok) alert(t("importPreviewReady"));
+              if (!rows.length) {
+                setImportPreview({ module, preview: [], fileName: file.name, parseErrors: [t("importNoRows")] });
+                return;
+              }
+              const preview = buildImportPreview(module, rows);
+              setImportPreview({ module, preview, fileName: file.name, parseErrors: [] });
             } catch (err) {
-              alert(t("importFileError") + " " + (err.message || ""));
+              setImportLoading(false);
+              setImportPreview({
+                module,
+                preview: [],
+                fileName: file.name,
+                parseErrors: [t("importParseFailed"), String(err.message || err)]
+              });
             }
           };
-          alert(t("importReading"));
           reader.readAsArrayBuffer(file);
         }
 
@@ -4844,8 +4884,13 @@
             if (ch.is_deleted) { map.delete(ch.entity_id); return; }
             const existing = map.get(ch.entity_id);
             const remoteAt = ch.updated_at || "";
-            const localAt = existing && existing._syncAt ? existing._syncAt : "";
-            if (!existing || remoteAt >= localAt) {
+            if (!existing) {
+              map.set(ch.entity_id, { ...(ch.payload || {}), _syncAt: remoteAt });
+              return;
+            }
+            if (!existing._syncAt) return;
+            const localAt = existing._syncAt || "";
+            if (remoteAt >= localAt) {
               map.set(ch.entity_id, { ...(ch.payload || {}), _syncAt: remoteAt });
             }
           });
@@ -4883,20 +4928,20 @@
 
         function applyFullLiveEntities(body) {
           const e = body.entities || {};
-          liveApplyingRemoteRef.current = true;
-          if (e.clients) setClients(ensureRegionOnRecords(e.clients));
-          if (e.jobs) setJobs(ensureJobsQuotations(ensureRegionOnRecords(e.jobs)));
-          if (e.quotations) setQuotations(ensureRegionOnRecords(e.quotations || []));
-          if (e.vendors) setVendors(ensureVendorNumbers(ensureRegionOnRecords(e.vendors || [])));
-          if (e.sis) setSis(ensureSiNumbers(ensureRegionOnRecords(e.sis || [])));
-          if (e.ar_invoices) setArInvoices(ensureRegionOnRecords(e.ar_invoices || []));
-          if (e.ap_bills) setApBills(ensureRegionOnRecords(e.ap_bills || []));
-          if (e.users) setUsers(e.users || users);
-          if (e.audit_logs) setAuditLogs(e.audit_logs || []);
-          if (e.monthly_po_lines) setMonthlyPoLines(e.monthly_po_lines || []);
-          if (e.monthly_ar_lines) setMonthlyArLines(e.monthly_ar_lines || []);
           const singletons = body.singletons || {};
-          if (singletons.monthly_ar_expected) setMonthlyArExpectedSnapshots(singletons.monthly_ar_expected);
+          liveApplyingRemoteRef.current = true;
+          setClients(ensureRegionOnRecords(e.clients || []));
+          setJobs(ensureJobsQuotations(ensureRegionOnRecords(e.jobs || [])));
+          setQuotations(ensureRegionOnRecords(e.quotations || []));
+          setVendors(ensureVendorNumbers(ensureRegionOnRecords(e.vendors || [])));
+          setSis(ensureSiNumbers(ensureRegionOnRecords(e.sis || [])));
+          setArInvoices(ensureRegionOnRecords(e.ar_invoices || []));
+          setApBills(ensureRegionOnRecords(e.ap_bills || []));
+          if (e.users) setUsers(e.users);
+          setAuditLogs(e.audit_logs || []);
+          setMonthlyPoLines(e.monthly_po_lines || []);
+          setMonthlyArLines(e.monthly_ar_lines || []);
+          setMonthlyArExpectedSnapshots(singletons.monthly_ar_expected || {});
           if (singletons.settings) applySharedSettings(singletons.settings);
           liveServerVersionRef.current = body.server_version || 0;
           setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
@@ -4921,6 +4966,7 @@
 
         async function pollLiveSync() {
           if (!liveSyncEnabled || liveApplyingRemoteRef.current) return;
+          if (collectAllLiveChanges().length > 0) return;
           try {
             const res = await fetch("/api/sync/changes?since=" + liveServerVersionRef.current);
             const body = await res.json().catch(() => ({}));
@@ -4945,10 +4991,11 @@
             if (!statusRes.ok) throw new Error(status.detail || statusRes.statusText);
             liveServerVersionRef.current = status.server_version || 0;
             if ((status.entity_count || 0) === 0) {
-              if (canLiveSyncPush() && erpSyncKey.trim()) {
-                await pushLiveChangesInBatches(buildSeedChanges());
-                markAllSyncedFromState();
-              }
+              applyFullLiveEntities({
+                server_version: status.server_version || 0,
+                entities: {},
+                singletons: {}
+              });
             } else {
               const fullRes = await fetch("/api/sync/full");
               const full = await fullRes.json().catch(() => ({}));
@@ -5228,6 +5275,7 @@
 
           logAudit(module, "import", fileName, `Imported ${created} new, ${updated} updated, ${preview.length - valid.length} errors`);
           setImportPreview(null);
+          scheduleLiveSyncPush(true);
           const regionNote = t("importRegionHint").replace("{region}", activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang));
           alert(t("importSummary") + ": " + created + " " + t("importRowCreate") + ", " + updated + " " + t("importRowUpdate") + "\n" + regionNote);
         }
@@ -6871,6 +6919,9 @@
                         {can("monthly_report", "edit") && (
                           <button type="button" onClick={syncMonthlyReportAll} className="px-3 py-1.5 text-xs rounded-lg bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap font-medium">{t("monthlySyncReport")}</button>
                         )}
+                        {isRoot() && (
+                          <button type="button" onClick={clearAllMonthlyReportData} className="px-3 py-1.5 text-xs rounded-lg border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 whitespace-nowrap font-medium">{t("monthlyClearAll")}</button>
+                        )}
                         {can("monthly_report", "export") && (
                           <ReportExportButtons
                             onExcel={monthlyReportTab === "report" ? () => exportModuleExcel("monthly_report", "data") : monthlyReportTab === "po_received" ? () => exportMonthlyDetailExcel("po") : () => exportMonthlyDetailExcel("ar")}
@@ -7257,42 +7308,65 @@
                 </Modal>
               )}
 
+              {importLoading && (
+                <div className="fixed inset-0 z-[60] bg-black/30 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-xl px-6 py-5 max-w-md text-center">
+                    <p className="text-sm font-medium text-slate-800">{t("importLoading")}</p>
+                    <p className="text-xs text-slate-500 mt-2">{t("importReading")}</p>
+                  </div>
+                </div>
+              )}
+
               {importPreview && (
                 <Modal title={t("importPreviewTitle") + " — " + moduleLabel(importPreview.module, t)} onClose={() => setImportPreview(null)} wide>
                   <p className="text-sm text-slate-500 mb-3">{t("importModeHint")} · {importPreview.fileName}</p>
-                  <div className="erp-list-scroll erp-list-scroll--dash border rounded-lg mb-4">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-slate-500">
-                        <tr>
-                          <th className="p-2 text-left">#</th>
-                          <th className="p-2 text-left">{t("auditAction")}</th>
-                          <th className="p-2 text-left">Key</th>
-                          <th className="p-2 text-left">{t("auditDetail")}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {importPreview.preview.map((p) => (
-                          <tr key={p.lineNo} className={p.action === "error" ? "bg-red-50" : p.action === "create" ? "bg-green-50" : "bg-amber-50"}>
-                            <td className="p-2">{p.lineNo}</td>
-                            <td className="p-2">{p.action === "error" ? t("importRowError") : p.action === "create" ? t("importRowCreate") : t("importRowUpdate")}</td>
-                            <td className="p-2 font-mono text-xs">{p.key || "-"}</td>
-                            <td className="p-2 text-xs">{p.errors.length ? p.errors.join("; ") : (p.data.company || p.data.job_no || "")}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="flex justify-between items-center gap-2 flex-wrap">
-                    <p className="text-sm text-slate-600">
-                      {t("importSummary")}: {importPreview.preview.filter((p) => p.action === "create").length} {t("importRowCreate")},{" "}
-                      {importPreview.preview.filter((p) => p.action === "update").length} {t("importRowUpdate")},{" "}
-                      {importPreview.preview.filter((p) => p.action === "error").length} {t("importRowError")}
-                    </p>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => setImportPreview(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button>
-                      <button type="button" onClick={applyImportPreview} disabled={!importPreview.preview.some((p) => p.action !== "error")} className="px-4 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-40">{t("importConfirm")}</button>
+                  {importPreview.parseErrors && importPreview.parseErrors.length > 0 ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
+                      <p className="text-sm font-semibold text-red-800 mb-2">{t("importRowError")}</p>
+                      <ul className="text-sm text-red-700 list-disc pl-5 space-y-1">
+                        {importPreview.parseErrors.map((msg, i) => <li key={i}>{msg}</li>)}
+                      </ul>
+                      <p className="text-xs text-red-600 mt-3">{t("importParseFailed")}</p>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="erp-list-scroll erp-list-scroll--dash border rounded-lg mb-4">
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50 text-slate-500">
+                            <tr>
+                              <th className="p-2 text-left">#</th>
+                              <th className="p-2 text-left">{t("auditAction")}</th>
+                              <th className="p-2 text-left">Key</th>
+                              <th className="p-2 text-left">{t("auditDetail")}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {importPreview.preview.map((p) => (
+                              <tr key={p.lineNo} className={p.action === "error" ? "bg-red-50" : p.action === "create" ? "bg-green-50" : "bg-amber-50"}>
+                                <td className="p-2">{p.lineNo}</td>
+                                <td className="p-2">{p.action === "error" ? t("importRowError") : p.action === "create" ? t("importRowCreate") : t("importRowUpdate")}</td>
+                                <td className="p-2 font-mono text-xs">{p.key || "-"}</td>
+                                <td className="p-2 text-xs">{p.errors.length ? p.errors.join("; ") : (p.data.company || p.data.job_no || "")}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="flex justify-between items-center gap-2 flex-wrap">
+                        <p className="text-sm text-slate-600">
+                          {t("importSummary")}: {importPreview.preview.filter((p) => p.action === "create").length} {t("importRowCreate")},{" "}
+                          {importPreview.preview.filter((p) => p.action === "update").length} {t("importRowUpdate")},{" "}
+                          {importPreview.preview.filter((p) => p.action === "error").length} {t("importRowError")}
+                        </p>
+                        <button type="button" onClick={applyImportPreview} disabled={!importPreview.preview.some((p) => p.action !== "error")} className="px-4 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-40">{t("importConfirm")}</button>
+                      </div>
+                    </>
+                  )}
+                  {importPreview.parseErrors && importPreview.parseErrors.length > 0 && (
+                    <div className="flex justify-end mt-4">
+                      <button type="button" onClick={() => setImportPreview(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button>
+                    </div>
+                  )}
                 </Modal>
               )}
 
