@@ -38,7 +38,7 @@
       };
 
       const REGION_COUNTRY_IDS = { HK: "156", TW: "158", MY: "458", ID: "360" };
-      const REGION_FLAGS = { HK: "ðŸ‡­ðŸ‡°", TW: "ðŸ‡¹ðŸ‡¼", SG: "ðŸ‡¸ðŸ‡¬", MY: "ðŸ‡²ðŸ‡¾", ID: "ðŸ‡®ðŸ‡©" };
+      const REGION_FLAGS = { HK: "🇭🇰", TW: "🇹🇼", SG: "🇸🇬", MY: "🇲🇾", ID: "🇮🇩" };
 
       function worldMapView() {
         return (window.ERP_WORLD_MAP && window.ERP_WORLD_MAP.view) || { lonMin: -170, lonMax: 170, latMin: -50, latMax: 72, width: 960, height: 420 };
@@ -1747,7 +1747,7 @@
           <button type="button" onClick={() => onSelect && onSelect(row.company)} className="w-full flex items-center gap-2 py-2.5 px-1 hover:bg-slate-50 rounded-lg text-left group">
             <span className="w-[32%] min-w-0 text-sm font-medium text-slate-800 truncate">
               {row.company}
-              <span className="ml-1 text-slate-400 group-hover:text-blue-600 transition-colors">âž”</span>
+              <span className="ml-1 text-slate-400 group-hover:text-blue-600 transition-colors">→</span>
               <span className="ml-1.5 text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{REGION_FLAGS[row.region] || ""} {row.region}</span>
             </span>
             <span className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden min-w-[3rem]">
@@ -2054,7 +2054,7 @@
             <div className={"w-full rounded-xl bg-white border border-slate-200 shadow-xl " + (wide ? "max-w-5xl" : "max-w-4xl")} onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
               <div className="px-5 py-4 border-b flex justify-between items-center">
                 <h3 className="font-semibold">{title}</h3>
-                <button onClick={onClose} className="text-slate-500 hover:text-slate-900">âœ•</button>
+                <button onClick={onClose} className="text-slate-500 hover:text-slate-900">×</button>
               </div>
               <div className="p-5 max-h-[78vh] overflow-y-auto">{children}</div>
             </div>
@@ -2692,7 +2692,7 @@
               <div className="relative min-h-0">
                 <div className="absolute top-1 right-1 z-10 flex flex-wrap gap-0.5 justify-end">
                   <button type="button" onClick={zoomIn} title={t("dashMapZoomIn")} className="w-6 h-6 rounded bg-white/90 border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 shadow-sm">+</button>
-                  <button type="button" onClick={zoomOut} title={t("dashMapZoomOut")} className="w-6 h-6 rounded bg-white/90 border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 shadow-sm">âˆ’</button>
+                  <button type="button" onClick={zoomOut} title={t("dashMapZoomOut")} className="w-6 h-6 rounded bg-white/90 border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 shadow-sm">−</button>
                   <button type="button" onClick={focusAsia} title={t("dashMapZoomAsia")} className="h-6 px-1.5 rounded bg-white/90 border border-slate-200 text-[10px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm">{t("dashMapZoomAsia")}</button>
                   <button type="button" onClick={resetZoom} title={t("dashMapZoomReset")} className="h-6 px-1.5 rounded bg-white/90 border border-slate-200 text-[10px] font-medium text-slate-600 hover:bg-slate-50 shadow-sm">{t("dashMapZoomReset")}</button>
                 </div>
@@ -2770,7 +2770,7 @@
                         onMouseEnter={() => enterHover(stat.regionId)}
                         onClick={() => selectRegion(stat.regionId)}
                       >
-                        <span className={"text-slate-400 shrink-0 transition-transform " + (expanded ? "rotate-90" : "")} aria-hidden="true">â–¸</span>
+                        <span className={"text-slate-400 shrink-0 transition-transform " + (expanded ? "rotate-90" : "")} aria-hidden="true">▸</span>
                         <span className="text-lg leading-none w-6 text-center shrink-0">{REGION_FLAGS[stat.regionId]}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-slate-700 truncate">{regionLabel(stat.regionId, lang)}</p>
@@ -3029,7 +3029,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-09d";
+        const ERP_BUILD_ID = "airlink-2026-07-09e";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -5510,7 +5510,7 @@
         function SortableTh({ module, field, label, className = "p-3", align = "left" }) {
           const cur = tableSort[module] || LIST_DEFAULT_SORT[module] || { field: null, dir: "asc" };
           const active = cur.field === field;
-          const arrow = active ? (cur.dir === "asc" ? " â–²" : " â–¼") : "";
+          const arrow = active ? (cur.dir === "asc" ? " ▲" : " ▼") : "";
           return (
             <th
               className={className + " " + (align === "right" ? "text-right" : "text-left") + (active ? " text-blue-700 font-semibold" : "")}
@@ -6157,7 +6157,7 @@
                       {isImportStatusSticky(importStatus) && liveSyncEnabled && canLiveSyncPush() && erpSyncKey.trim() && (
                         <button type="button" onClick={() => { flushLiveSyncPush().catch(() => {}); }} className="text-xs font-semibold px-2 py-1 rounded border border-amber-400 bg-white hover:bg-amber-100">{t("importSyncRetry")}</button>
                       )}
-                      <button type="button" onClick={() => setImportStatus("")} className="text-lg leading-none px-1 text-slate-500 hover:text-slate-800" title={t("importStatusDismiss")} aria-label={t("importStatusDismiss")}>Ã—</button>
+                      <button type="button" onClick={() => setImportStatus("")} className="text-lg leading-none px-1 text-slate-500 hover:text-slate-800" title={t("importStatusDismiss")} aria-label={t("importStatusDismiss")}>×</button>
                     </div>
                   </div>
                   {importLoading && (
@@ -6571,7 +6571,7 @@
                                     </div>
                                     {cashAlert && (
                                       <p className="mt-3 text-xs font-medium text-red-700 flex items-start gap-1">
-                                        <span>âš ï¸</span> {t("mgmtDryRunAlert")}
+                                        <span>⚠️</span> {t("mgmtDryRunAlert")}
                                       </p>
                                     )}
                                   </>
@@ -7739,7 +7739,7 @@
                                   {q ? <span className="text-slate-500 ml-2">{money(q.amount)} {q.currency}</span> : null}
                                   {others.length ? <p className="text-[10px] text-amber-600 mt-0.5">{t("quotationMultiJobHint").replace("{jobs}", others.join(", "))}</p> : null}
                                 </div>
-                                <button type="button" className="text-red-500 hover:text-red-700 shrink-0" onClick={() => removeQuotationFromJobModal(qNo)} title={t("delete")}>Ã—</button>
+                                <button type="button" className="text-red-500 hover:text-red-700 shrink-0" onClick={() => removeQuotationFromJobModal(qNo)} title={t("delete")}>×</button>
                               </li>
                             );
                           })}
@@ -7794,7 +7794,7 @@
                                   const po_lines = (jobModal.data.po_lines || []).filter((_, i) => i !== idx);
                                   const total = po_lines.reduce((s, l) => s + Number(l.amount || 0), 0);
                                   setJobModal({ ...jobModal, data: { ...jobModal.data, po_lines, customer_po: po_lines.map((l) => l.po_no).filter(Boolean).join(", "), customer_po_amount: total } });
-                                }}>Ã—</button></td>
+                                }}>×</button></td>
                               </tr>
                             ))}
                           </tbody>
