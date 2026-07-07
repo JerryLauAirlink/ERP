@@ -275,8 +275,8 @@
           filePrefix: "clients",
           keyField: "customer_no",
           columns: [
-            { header: "Customer No", field: "customer_no", required: true, hint: "Required, unique key" },
-            { header: "COMPANY", field: "company", required: true, hint: "Required" },
+            { header: "Customer No", field: "customer_no", required: true, hint: "Required, unique key", aliases: ["Client No", "Customer #"] },
+            { header: "Company Name", field: "company", required: true, hint: "Required", aliases: ["COMPANY", "Company", "Client Company", "公司名稱", "公司"] },
             { header: "GST#", field: "gst_no", hint: "" },
             { header: "Primary Contact", field: "primary_contact", hint: "" },
             { header: "Company Phone #", field: "company_phone", hint: "" },
@@ -429,6 +429,28 @@
         return String(v).trim();
       }
 
+      function normalizeImportHeader(h) {
+        return String(h).trim().toLowerCase().replace(/[\s_#./\-]+/g, "");
+      }
+
+      function importHeaderMatches(header, col) {
+        const a = normalizeImportHeader(header);
+        if (!a) return false;
+        const names = [col.header, col.field, ...(col.aliases || [])].map((x) => normalizeImportHeader(x));
+        if (names.includes(a)) return true;
+        if (col.field === "company" && (a === "companyname" || a === "clientcompany" || a === "公司名稱" || a === "公司" || a === "客户名称")) return true;
+        if (col.field === "company_name" && (a === "companyname" || a === "vendorname" || a === "payee")) return true;
+        if (col.field === "company_phone" && (a.includes("companyphone") || a === "officephone")) return true;
+        if (col.field === "mobile_phone" && (a.includes("mobilephone") || a === "mobile")) return true;
+        if (col.field === "customer_no" && (a === "clientno" || a === "customerno")) return true;
+        if (col.field === "vendor_no" && a === "vendorno") return true;
+        if (col.field === "si_no" && a === "sino") return true;
+        if (col.field === "job_no" && a === "jobno") return true;
+        if (col.field === "invoice_no" && a === "invoiceno") return true;
+        if (col.field === "quotation_no" && a === "quotationno") return true;
+        return false;
+      }
+
       function parseExcelRows(arrayBuffer, schema) {
         const wb = XLSX.read(arrayBuffer, { type: "array" });
         const sheet = wb.Sheets[schema.sheetName] || wb.Sheets[wb.SheetNames[0]];
@@ -438,14 +460,13 @@
 
         function mapHeaders(headers) {
           const fieldByCol = {};
+          const usedCols = new Set();
           schema.columns.forEach((col) => {
-            const idx = headers.findIndex((h) => {
-              const a = String(h).trim().toLowerCase().replace(/[\s_#]+/g, "");
-              const b = col.header.toLowerCase().replace(/[\s_#]+/g, "");
-              const field = col.field.toLowerCase();
-              return a === b || a === field || a.includes(b) || b.includes(a);
-            });
-            if (idx >= 0) fieldByCol[idx] = col.field;
+            const idx = headers.findIndex((h, i) => !usedCols.has(i) && importHeaderMatches(h, col));
+            if (idx >= 0) {
+              fieldByCol[idx] = col.field;
+              usedCols.add(idx);
+            }
           });
           return fieldByCol;
         }
@@ -470,7 +491,7 @@
             rows: [],
             errors: [
               "Missing columns: " + missing.map((c) => c.header).join(", "),
-              "Tip: use Export Template (.xlsx) — sheet \"" + schema.sheetName + "\""
+              "Tip: use Export Template (.xlsx) — sheet \"" + schema.sheetName + "\". Keep row 1 headers unchanged."
             ]
           };
         }
@@ -622,6 +643,7 @@
           importPreviewReady: "Import preview ready — please confirm.",
           importLoading: "Reading Excel file, please wait…",
           importPickFile: "Select an Excel file (.xlsx)…",
+          sortClickHint: "Click to sort",
           importXlsxMissing: "Excel library failed to load. Please refresh the page or check your network.",
           importParseFailed: "Could not read this file. Use .xlsx template from Export Template.",
           storageSaveFailed: "Could not save to browser storage. Check privacy settings or disk space.",
@@ -821,6 +843,7 @@
           importPreviewReady: "匯入預覽已準備好，請確認。",
           importLoading: "正在讀取 Excel，請稍候…",
           importPickFile: "請選擇 Excel 檔案（.xlsx）…",
+          sortClickHint: "點擊欄位標題排序",
           importXlsxMissing: "Excel 函式庫載入失敗，請重新整理頁面或檢查網絡。",
           importParseFailed: "無法讀取此檔案，請使用「匯出範本」下載的 .xlsx 格式。",
           storageSaveFailed: "無法儲存到瀏覽器，請檢查私隱設定或儲存空間。",
@@ -2108,6 +2131,33 @@
         });
       }
 
+      const LIST_DEFAULT_SORT = {
+        clients: { field: "customer_no", dir: "asc" },
+        quotation: { field: "quotation_no", dir: "asc" },
+        job: { field: "job_no", dir: "asc" },
+        vendors: { field: "vendor_no", dir: "asc" },
+        si: { field: "si_no", dir: "asc" },
+        ar: { field: "invoice_no", dir: "asc" },
+        ap: { field: "invoice_no", dir: "asc" },
+      };
+
+      function sortRecords(list, field, dir) {
+        const mult = dir === "desc" ? -1 : 1;
+        return [...list].sort((a, b) => {
+          const sa = a[field] == null ? "" : String(a[field]).trim();
+          const sb = b[field] == null ? "" : String(b[field]).trim();
+          if (!sa && !sb) return 0;
+          if (!sa) return 1 * mult;
+          if (!sb) return -1 * mult;
+          const na = Number(sa.replace(/,/g, ""));
+          const nb = Number(sb.replace(/,/g, ""));
+          if (!Number.isNaN(na) && !Number.isNaN(nb) && /^-?[\d,]+(\.\d+)?$/.test(sa) && /^-?[\d,]+(\.\d+)?$/.test(sb)) {
+            return mult * (na - nb);
+          }
+          return mult * sa.localeCompare(sb, undefined, { numeric: true, sensitivity: "base" });
+        });
+      }
+
       function emptyApForm() {
         return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", payment_status: "Awaiting Payment", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
       }
@@ -3097,7 +3147,8 @@
         const [importPreview, setImportPreview] = useState(null);
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
-        const ERP_BUILD_ID = "airlink-2026-07-07f";
+        const [tableSort, setTableSort] = useState({});
+        const ERP_BUILD_ID = "airlink-2026-07-08a";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3194,6 +3245,13 @@
           }
         }, [liveSyncEnabled]);
 
+        useEffect(() => {
+          if (!liveSyncEnabled) return;
+          setLiveSyncReady(false);
+          liveSyncedSnapshotRef.current = {};
+          bootstrapLiveSync();
+        }, [sessionUserId]);
+
         function getCurrentUser() {
           return users.find((u) => u.id === sessionUserId && u.is_active) || null;
         }
@@ -3237,6 +3295,24 @@
           if (!q.trim()) return true;
           const s = q.toLowerCase();
           return keys.some((k) => String(row[k] || "").toLowerCase().includes(s));
+        }
+
+        function applyTableSort(list, module) {
+          const def = LIST_DEFAULT_SORT[module];
+          if (!def) return list;
+          const cur = tableSort[module] || def;
+          return sortRecords(list, cur.field, cur.dir);
+        }
+
+        function toggleListSort(module, field) {
+          setTableSort((prev) => {
+            const def = LIST_DEFAULT_SORT[module] || { field, dir: "asc" };
+            const cur = prev[module] || def;
+            if (cur.field === field) {
+              return { ...prev, [module]: { field, dir: cur.dir === "asc" ? "desc" : "asc" } };
+            }
+            return { ...prev, [module]: { field, dir: "asc" } };
+          });
         }
 
         useEffect(() => {
@@ -3609,32 +3685,32 @@
           if (jobClientFilter !== "all") list = list.filter((j) => j.company === jobClientFilter);
           if (jobStatusFilter !== "all") list = list.filter((j) => j.status === jobStatusFilter);
           if (jobSearch.trim()) list = list.filter((j) => matchesSearch(j, jobSearch, ["job_no", "company", "description", "customer_po", "quotation_no", "job_type", "status", "remarks", "currency"]));
-          return list;
-        }, [scopedJobs, jobClientFilter, jobStatusFilter, jobSearch]);
+          return applyTableSort(list, "job");
+        }, [scopedJobs, jobClientFilter, jobStatusFilter, jobSearch, tableSort]);
 
         const filteredClients = useMemo(() => {
           let list = scopedClients;
           if (clientsSearch.trim()) list = list.filter((c) => matchesSearch(c, clientsSearch, ["customer_no", "company", "gst_no", "primary_contact", "company_phone", "mobile_phone", "email", "address", "postal_code", "account_dept_contact", "payment_terms"]));
-          return list;
-        }, [scopedClients, clientsSearch]);
+          return applyTableSort(list, "clients");
+        }, [scopedClients, clientsSearch, tableSort]);
 
         const filteredQuotations = useMemo(() => {
           let list = scopedQuotations;
           if (quotationSearch.trim()) list = list.filter((q) => matchesSearch(q, quotationSearch, ["quotation_no", "company", "description", "job_no", "status", "currency", "quotation_date", "valid_until"]));
-          return list;
-        }, [scopedQuotations, quotationSearch]);
+          return applyTableSort(list, "quotation");
+        }, [scopedQuotations, quotationSearch, tableSort]);
 
         const filteredVendors = useMemo(() => {
           let list = scopedVendors;
           if (vendorsSearch.trim()) list = list.filter((v) => matchesSearch(v, vendorsSearch, ["vendor_no", "name", "email", "bank", "swift_code", "charge", "contact", "phone", "address"]));
-          return list;
-        }, [scopedVendors, vendorsSearch]);
+          return applyTableSort(list, "vendors");
+        }, [scopedVendors, vendorsSearch, tableSort]);
 
         const filteredSis = useMemo(() => {
           let list = scopedSis;
           if (siSearch.trim()) list = list.filter((s) => matchesSearch(s, siSearch, ["si_no", "name", "email", "bank", "swift_code", "charge", "contact", "phone", "address"]));
-          return list;
-        }, [scopedSis, siSearch]);
+          return applyTableSort(list, "si");
+        }, [scopedSis, siSearch, tableSort]);
 
         const ongoingJobsList = useMemo(() => scopedJobs
           .filter((j) => !isJobCompleted(j.status))
@@ -3750,8 +3826,8 @@
           let list = arDisplay;
           if (arClientFilter !== "all") list = list.filter((r) => r.customer === arClientFilter);
           if (arSearch.trim()) list = list.filter((r) => matchesSearch(r, arSearch, ["invoice_no", "customer", "customer_po", "job_no"]));
-          return list;
-        }, [arDisplay, arClientFilter, arSearch]);
+          return applyTableSort(list, "ar");
+        }, [arDisplay, arClientFilter, arSearch, tableSort]);
         const filteredAp = useMemo(() => {
           let list = apDisplay;
           if (apClientFilter !== "all") {
@@ -3764,8 +3840,8 @@
             list = list.filter((b) => String(b.job_id) === apJobFilter || scopedJobs.find((j) => j.id === Number(apJobFilter))?.job_no === b.job_no);
           }
           if (apSearch.trim()) list = list.filter((b) => matchesSearch(b, apSearch, ["invoice_no", "company_name", "job_no", "remarks", "customer_po"]));
-          return list;
-        }, [apDisplay, apClientFilter, apJobFilter, apSearch, scopedJobs]);
+          return applyTableSort(list, "ap");
+        }, [apDisplay, apClientFilter, apJobFilter, apSearch, scopedJobs, tableSort]);
 
         function getJobForAr(r) {
           if (r.job_id) return jobs.find((j) => j.id === r.job_id) || null;
@@ -5054,12 +5130,16 @@
           } catch (err) {
             setLiveSyncStatus("error");
             console.warn("Live sync push failed", err);
+            if (String(err.message || "").includes("401") || String(err.message || "").includes("403")) {
+              setImportStatus(t("liveSyncNeedKey"));
+            }
           }
         }
 
         async function pollLiveSync() {
           if (!liveSyncEnabled || liveApplyingRemoteRef.current) return;
-          if (collectAllLiveChanges().length > 0) return;
+          const unpushed = collectAllLiveChanges().length > 0;
+          if (unpushed && canLiveSyncPush() && erpSyncKey.trim()) return;
           try {
             const res = await fetch("/api/sync/changes?since=" + liveServerVersionRef.current);
             const body = await res.json().catch(() => ({}));
@@ -5448,6 +5528,22 @@
                 <button type="button" onClick={() => openImportPicker(module)} className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer" title={t("importModeHint")}>{t("importExcel")}</button>
               )}
             </div>
+          );
+        }
+
+        function SortableTh({ module, field, label, className = "p-3", align = "left" }) {
+          const cur = tableSort[module] || LIST_DEFAULT_SORT[module] || { field: null, dir: "asc" };
+          const active = cur.field === field;
+          const arrow = active ? (cur.dir === "asc" ? " ▲" : " ▼") : "";
+          return (
+            <th
+              className={className + " " + (align === "right" ? "text-right" : "text-left") + (active ? " text-blue-700 font-semibold" : "")}
+              onClick={() => toggleListSort(module, field)}
+              title={t("sortClickHint")}
+              style={{ cursor: "pointer", userSelect: "none" }}
+            >
+              {label}{arrow}
+            </th>
           );
         }
 
@@ -6644,7 +6740,9 @@
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
                         <tr>
-                          <th className="p-3 text-left">{t("colCustomerNo")}</th><th className="p-3 text-left">{t("colCompany")}</th><th className="p-3 text-left">{t("colGstNo")}</th>
+                          <SortableTh module="clients" field="customer_no" label={t("colCustomerNo")} />
+                          <SortableTh module="clients" field="company" label={t("colCompany")} />
+                          <th className="p-3 text-left">{t("colGstNo")}</th>
                           <th className="p-3 text-left">{t("colPrimaryContact")}</th><th className="p-3 text-left">{t("colCompanyPhone")}</th><th className="p-3 text-left">{t("colMobilePhone")}</th>
                           <th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colPostalCode")}</th>
                           <th className="p-3 text-left">{t("colAccountDeptContact")}</th><th className="p-3 text-left">{t("colPaymentTerms")}</th>
@@ -6679,7 +6777,9 @@
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
                         <tr>
-                          <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("quotationDate")}</th>
+                          <SortableTh module="quotation" field="quotation_no" label={t("quotationNo")} />
+                          <SortableTh module="quotation" field="company" label={t("clientGroup")} />
+                          <th className="p-3 text-left">{t("quotationDate")}</th>
                           <th className="p-3 text-left">{t("validUntil")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
                           <th className="p-3 text-left">{t("quotationStatus")}</th><th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("description")}</th>
                         </tr>
@@ -6725,7 +6825,9 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
+                                <SortableTh module="job" field="job_no" label={t("colJobNo")} />
+                                <SortableTh module="job" field="company" label={t("clientGroup")} />
+                                <th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
                                 <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
                                 <th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-right">{t("colCustomerPoAmount")}</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">{t("colStartDate")}</th>
                                 <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th>
@@ -6739,7 +6841,9 @@
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
-                                <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("clientGroup")}</th><th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
+                                <SortableTh module="job" field="job_no" label={t("colJobNo")} />
+                                <SortableTh module="job" field="company" label={t("clientGroup")} />
+                                <th className="p-3 text-left">{t("description")}</th><th className="p-3 text-left">{t("type")}</th>
                                 <th className="p-3 text-left">{t("quotationNo")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-left">{t("currency")}</th>
                                 <th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-right">{t("colCustomerPoAmount")}</th><th className="p-3 text-left">{t("status")}</th><th className="p-3 text-left">{t("colStartDate")}</th>
                                 <th className="p-3 text-left">{t("invoices")}</th><th className="p-3 text-left">{t("apBills")}</th>
@@ -6907,7 +7011,7 @@
                   <div className="erp-list-scroll erp-list-scroll--compact">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><th className="p-3 text-left">{t("vendorNo")}</th><th className="p-3 text-left">{t("colName")}</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th></tr>
+                        <tr><SortableTh module="vendors" field="vendor_no" label={t("vendorNo")} /><SortableTh module="vendors" field="name" label={t("colName")} /><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
                         {filteredVendors.map((v) => (
@@ -6935,7 +7039,7 @@
                   <div className="erp-list-scroll erp-list-scroll--compact">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><th className="p-3 text-left">{t("siNo")}</th><th className="p-3 text-left">{t("colName")}</th><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th><th className="p-3 text-left">{t("apBills")}</th></tr>
+                        <tr><SortableTh module="si" field="si_no" label={t("siNo")} /><SortableTh module="si" field="name" label={t("colName")} /><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th><th className="p-3 text-left">{t("apBills")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
                         {filteredSis.map((s) => (
@@ -6969,7 +7073,7 @@
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
                                 <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("colCustomer")}</th><th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-left">{t("jobStatus")}</th>
-                                <th className="p-3 text-left">{t("colInvoiceNo")}</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceCurrency")}</th><th className="p-3 text-right">{t("colInvoiceAmt")}</th>
+                                <SortableTh module="ar" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceCurrency")}</th><th className="p-3 text-right">{t("colInvoiceAmt")}</th>
                                 <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colDueDate")}</th>
                                 <th className="p-3 text-right">{t("colOverdueDays")}</th><th className="p-3 text-right">{t("colDays")}</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th>
                               </tr>
@@ -6983,7 +7087,7 @@
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
                             <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("colCustomer")}</th><th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-left">{t("jobStatus")}</th>
-                            <th className="p-3 text-left">{t("colInvoiceNo")}</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceCurrency")}</th><th className="p-3 text-right">{t("colInvoiceAmt")}</th>
+                            <SortableTh module="ar" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceCurrency")}</th><th className="p-3 text-right">{t("colInvoiceAmt")}</th>
                             <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colDueDate")}</th>
                             <th className="p-3 text-right">{t("colOverdueDays")}</th><th className="p-3 text-right">{t("colDays")}</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th>
                           </tr>
@@ -7013,7 +7117,7 @@
                           <table className="w-full text-sm">
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
-                                <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><th className="p-3 text-left">{t("colInvoiceNo")}</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
+                                <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><SortableTh module="ap" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
                                 <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-right">{amtInLabel}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">{t("colPayDate")}</th><th className="p-3 text-left">{t("colRemarks")}</th>
                               </tr>
@@ -7026,7 +7130,7 @@
                       <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
-                            <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><th className="p-3 text-left">{t("colInvoiceNo")}</th><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
+                            <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><SortableTh module="ap" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
                             <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-right">{amtInLabel}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">{t("colPayDate")}</th><th className="p-3 text-left">{t("colRemarks")}</th>
                           </tr>
