@@ -277,11 +277,11 @@
           columns: [
             { header: "Customer No", field: "customer_no", required: true, hint: "Required, unique key", aliases: ["Client No", "Customer #"] },
             { header: "Company Name", field: "company", required: true, hint: "Required", aliases: ["COMPANY", "Company", "Client Company", "公司名稱", "公司"] },
-            { header: "GST#", field: "gst_no", hint: "" },
-            { header: "Primary Contact", field: "primary_contact", hint: "" },
-            { header: "Company Phone #", field: "company_phone", hint: "" },
-            { header: "Mobile Phone #", field: "mobile_phone", hint: "" },
-            { header: "E-mail", field: "email", hint: "" },
+            { header: "GST#", field: "gst_no", hint: "", aliases: ["GST", "Tax ID", "統一編號"] },
+            { header: "Primary Contact", field: "primary_contact", hint: "", aliases: ["Contact", "Main Contact", "聯絡人"] },
+            { header: "Company Phone #", field: "company_phone", hint: "", aliases: ["Company Phone", "Office Phone", "公司電話"] },
+            { header: "Mobile Phone #", field: "mobile_phone", hint: "", aliases: ["Mobile", "Mobile Phone", "手機"] },
+            { header: "E-mail", field: "email", hint: "", aliases: ["Email", "E mail"] },
             { header: "Address", field: "address", hint: "" },
             { header: "Postal Code", field: "postal_code", hint: "" },
             { header: "Account Dept Contact", field: "account_dept_contact", hint: "" },
@@ -293,16 +293,16 @@
           filePrefix: "jobs",
           keyField: "job_no",
           columns: [
-            { header: "Job No", field: "job_no", required: true, hint: "Required, unique key" },
-            { header: "Client Company", field: "company", required: true, hint: "Must match existing client" },
-            { header: "Type", field: "job_type", required: true, hint: "Project / Service / Maintenance / Trading(Buy) / Trading(Sell)" },
-            { header: "Quotation No", field: "quotation_no", hint: "" },
+            { header: "Job No", field: "job_no", required: true, hint: "Required, unique key", aliases: ["Job #", "JOB NO"] },
+            { header: "Client Company", field: "company", required: true, hint: "Must match existing client", aliases: ["Company", "Company Name", "COMPANY", "Customer", "公司名稱", "客户"] },
+            { header: "Type", field: "job_type", required: true, hint: "Project / Service / Maintenance / Trading(Buy) / Trading(Sell)", aliases: ["Job Type", "類型"] },
+            { header: "Quotation No", field: "quotation_no", hint: "", aliases: ["Quotation #", "Quote No"] },
             { header: "Amount", field: "amount", hint: "Numeric" },
             { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / RMB / AUD" },
-            { header: "Customer PO", field: "customer_po", hint: "" },
-            { header: "Customer PO Amount", field: "customer_po_amount", hint: "Numeric" },
+            { header: "Customer PO", field: "customer_po", hint: "", aliases: ["PO", "Customer PO #", "PO No"] },
+            { header: "Customer PO Amount", field: "customer_po_amount", hint: "Numeric", aliases: ["PO Amount"] },
             { header: "Status", field: "status", hint: "Open / In Progress / Completed / On Hold" },
-            { header: "Start Date", field: "start_date", hint: "YYYY-MM-DD" },
+            { header: "Start Date", field: "start_date", hint: "YYYY-MM-DD", aliases: ["Start"] },
             { header: "Description", field: "description", hint: "Project name" },
             { header: "Remarks", field: "remarks", hint: "" }
           ]
@@ -312,17 +312,17 @@
           filePrefix: "ar",
           keyField: "invoice_no",
           columns: [
-            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key" },
-            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
-            { header: "Customer", field: "customer", hint: "Optional if job exists" },
-            { header: "Customer PO", field: "customer_po", hint: "" },
-            { header: "Invoice Currency", field: "invoice_currency", hint: "USD / HKD / SGD / AUD" },
-            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
-            { header: "Invoice Amt", field: "invoice_amt", required: true, hint: "Numeric" },
+            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key", aliases: ["Invoice #", "INV NO"] },
+            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job", aliases: ["Job #"] },
+            { header: "Customer", field: "customer", hint: "Optional if job exists", aliases: ["Client", "Company", "Customer Name", "公司名稱"] },
+            { header: "Customer PO", field: "customer_po", hint: "", aliases: ["PO", "Customer PO #"] },
+            { header: "Invoice Currency", field: "invoice_currency", hint: "USD / HKD / SGD / AUD", aliases: ["Currency", "CCY"] },
+            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final", aliases: ["Stage"] },
+            { header: "Invoice Amt", field: "invoice_amt", required: true, hint: "Numeric", aliases: ["Invoice Amount", "Amount", "Amt"] },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
-            { header: "Payment Received Date", field: "payment_received_date", hint: "YYYY-MM-DD" },
-            { header: "Payment Status", field: "payment_status", hint: "Awaiting Payment / Overdue / Paid / Cancel" }
+            { header: "Payment Received Date", field: "payment_received_date", hint: "YYYY-MM-DD", aliases: ["Paid Date", "Received Date"] },
+            { header: "Payment Status", field: "payment_status", hint: "Awaiting Payment / Overdue / Paid / Cancel", aliases: ["Status"] }
           ]
         },
         ap: {
@@ -330,16 +330,16 @@
           filePrefix: "ap",
           keyField: "invoice_no",
           columns: [
-            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key" },
-            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
-            { header: "Payee Type", field: "payee_type", hint: "Vendor / SI" },
-            { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name" },
+            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key", aliases: ["Invoice #", "INV NO"] },
+            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job", aliases: ["Job #"] },
+            { header: "Payee Type", field: "payee_type", hint: "Vendor / SI", aliases: ["Type", "Payee"] },
+            { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name", aliases: ["COMPANY", "Company", "Vendor", "Payee Name", "名稱", "供应商"] },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / AUD" },
-            { header: "Amount", field: "amount", required: true, hint: "Numeric" },
-            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
-            { header: "Pay Date", field: "pay_date", hint: "YYYY-MM-DD" },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / AUD", aliases: ["CCY"] },
+            { header: "Amount", field: "amount", required: true, hint: "Numeric", aliases: ["Invoice Amt", "Invoice Amount", "Amt"] },
+            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final", aliases: ["Stage"] },
+            { header: "Pay Date", field: "pay_date", hint: "YYYY-MM-DD", aliases: ["Payment Date", "Paid Date"] },
             { header: "Remarks", field: "remarks", hint: "" }
           ]
         },
@@ -348,15 +348,15 @@
           filePrefix: "vendors",
           keyField: "vendor_no",
           columns: [
-            { header: "Vendor No", field: "vendor_no", required: true, hint: "Required, unique key" },
-            { header: "Name", field: "name", required: true, hint: "Required" },
-            { header: "Email", field: "email", hint: "" },
-            { header: "Phone", field: "phone", hint: "" },
-            { header: "Address", field: "address", hint: "" },
-            { header: "Bank", field: "bank", hint: "" },
-            { header: "SWIFT", field: "swift_code", hint: "" },
+            { header: "Vendor No", field: "vendor_no", required: true, hint: "Required, unique key", aliases: ["Vendor #", "VENDOR NO", "SV NO"] },
+            { header: "Name", field: "name", required: true, hint: "Required", aliases: ["Vendor Name", "Company Name", "名稱", "供应商名称"] },
+            { header: "Email", field: "email", hint: "", aliases: ["E-mail", "E mail"] },
+            { header: "Phone", field: "phone", hint: "", aliases: ["Tel", "Telephone", "電話"] },
+            { header: "Address", field: "address", hint: "", aliases: ["地址"] },
+            { header: "Bank", field: "bank", hint: "", aliases: ["Bank Name", "銀行"] },
+            { header: "SWIFT", field: "swift_code", hint: "", aliases: ["SWIFT Code", "Swift", "BIC"] },
             { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
-            { header: "Contact", field: "contact", hint: "" }
+            { header: "Contact", field: "contact", hint: "", aliases: ["Contact Person", "聯絡人"] }
           ]
         },
         si: {
@@ -364,12 +364,12 @@
           filePrefix: "si",
           keyField: "si_no",
           columns: [
-            { header: "SI No", field: "si_no", required: true, hint: "Required, unique key" },
-            { header: "Name", field: "name", required: true, hint: "Required" },
-            { header: "Email", field: "email", hint: "Payment advice email" },
+            { header: "SI No", field: "si_no", required: true, hint: "Required, unique key", aliases: ["SI #", "Subcontractor No"] },
+            { header: "Name", field: "name", required: true, hint: "Required", aliases: ["SI Name", "Company Name", "名稱", "分包商"] },
+            { header: "Email", field: "email", hint: "Payment advice email", aliases: ["E-mail"] },
             { header: "Address", field: "address", hint: "" },
             { header: "Bank", field: "bank", hint: "" },
-            { header: "SWIFT", field: "swift_code", hint: "" },
+            { header: "SWIFT", field: "swift_code", hint: "", aliases: ["SWIFT Code", "Swift"] },
             { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
           ]
         },
@@ -378,14 +378,14 @@
           filePrefix: "quotations",
           keyField: "quotation_no",
           columns: [
-            { header: "Quotation No", field: "quotation_no", required: true, hint: "Required, unique key" },
-            { header: "Client Company", field: "company", required: true, hint: "Must match existing client" },
-            { header: "Quotation Date", field: "quotation_date", hint: "YYYY-MM-DD" },
-            { header: "Valid Until", field: "valid_until", hint: "YYYY-MM-DD" },
-            { header: "Amount", field: "amount", required: true, hint: "Numeric" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / AUD" },
+            { header: "Quotation No", field: "quotation_no", required: true, hint: "Required, unique key", aliases: ["Quotation #", "Quote No", "QTN NO"] },
+            { header: "Client Company", field: "company", required: true, hint: "Must match existing client", aliases: ["Company", "Company Name", "COMPANY", "Customer", "公司名稱"] },
+            { header: "Quotation Date", field: "quotation_date", hint: "YYYY-MM-DD", aliases: ["Quote Date", "Date"] },
+            { header: "Valid Until", field: "valid_until", hint: "YYYY-MM-DD", aliases: ["Expiry Date", "Valid To"] },
+            { header: "Amount", field: "amount", required: true, hint: "Numeric", aliases: ["Quotation Amount", "Amt"] },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / AUD", aliases: ["CCY"] },
             { header: "Status", field: "status", hint: "Draft / Sent / Accepted / Rejected / Expired" },
-            { header: "Job No", field: "job_no", hint: "Optional linked job" },
+            { header: "Job No", field: "job_no", hint: "Optional linked job", aliases: ["Job #"] },
             { header: "Description", field: "description", hint: "" }
           ]
         }
@@ -3148,7 +3148,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-08a";
+        const ERP_BUILD_ID = "airlink-2026-07-08b";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
