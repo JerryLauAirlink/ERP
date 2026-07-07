@@ -1,6 +1,7 @@
 """Per-entity live sync for multi-user ERP (Option D)."""
 from datetime import datetime
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models import ErpEntityRecord, ErpSyncMeta
@@ -65,11 +66,18 @@ def upsert_entity_changes(
     if not changes:
         return get_sync_status(db, tenant_id)["server_version"]
 
-    now = datetime.utcnow()
+    # Last change wins — avoids UniqueViolation when one batch repeats the same key
+    keyed: dict[tuple[str, int], dict] = {}
     for ch in changes:
         entity_type = str(ch.get("entity_type") or "").strip()
         if entity_type not in VALID_ENTITY_TYPES:
             continue
+        entity_id = int(ch.get("entity_id") or 0)
+        keyed[(entity_type, entity_id)] = ch
+
+    now = datetime.utcnow()
+    for ch in keyed.values():
+        entity_type = str(ch.get("entity_type") or "").strip()
         entity_id = int(ch.get("entity_id") or 0)
         is_deleted = bool(ch.get("is_deleted"))
         payload = ch.get("payload") if isinstance(ch.get("payload"), dict) else {}
@@ -91,18 +99,37 @@ def upsert_entity_changes(
             row.updated_at = now
             row.updated_by = updated_by
         else:
-            db.add(
-                ErpEntityRecord(
-                    tenant_id=tenant_id,
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    region=region,
-                    payload=payload,
-                    is_deleted=is_deleted,
-                    updated_at=now,
-                    updated_by=updated_by,
+            try:
+                with db.begin_nested():
+                    db.add(
+                        ErpEntityRecord(
+                            tenant_id=tenant_id,
+                            entity_type=entity_type,
+                            entity_id=entity_id,
+                            region=region,
+                            payload=payload,
+                            is_deleted=is_deleted,
+                            updated_at=now,
+                            updated_by=updated_by,
+                        )
+                    )
+                    db.flush()
+            except IntegrityError:
+                row = (
+                    db.query(ErpEntityRecord)
+                    .filter(
+                        ErpEntityRecord.tenant_id == tenant_id,
+                        ErpEntityRecord.entity_type == entity_type,
+                        ErpEntityRecord.entity_id == entity_id,
+                    )
+                    .first()
                 )
-            )
+                if row:
+                    row.payload = payload
+                    row.is_deleted = is_deleted
+                    row.region = region
+                    row.updated_at = now
+                    row.updated_by = updated_by
 
     db.commit()
     return bump_version(db, tenant_id)
