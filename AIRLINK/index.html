@@ -3067,11 +3067,13 @@
         const liveApplyingRemoteRef = useRef(false);
         const livePushTimerRef = useRef(null);
         const livePollRef = useRef(null);
+        const importModuleRef = useRef(null);
+        const importFileInputRef = useRef(null);
         const [userModal, setUserModal] = useState(null);
         const [importPreview, setImportPreview] = useState(null);
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
-        const ERP_BUILD_ID = "airlink-2026-07-07c";
+        const ERP_BUILD_ID = "airlink-2026-07-07d";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -4590,14 +4592,23 @@
         }
 
         function openImportPicker(module) {
-          const inputId = "erp-import-" + module;
+          importModuleRef.current = module;
+          const el = importFileInputRef.current;
+          if (!el) {
+            setImportStatus(t("importFileError"));
+            return;
+          }
+          el.value = "";
+          el.click();
           setImportPreview(null);
           setImportStatus(t("importPickFile"));
-          window.setTimeout(() => {
-            const el = document.getElementById(inputId);
-            if (el) el.click();
-            else setImportStatus(t("importFileError"));
-          }, 0);
+        }
+
+        function onImportFileSelected(e) {
+          const f = e.target.files && e.target.files[0];
+          const module = importModuleRef.current;
+          e.target.value = "";
+          if (f && module) handleImportFile(module, f);
         }
 
         function handleImportFile(module, file) {
@@ -5401,7 +5412,6 @@
           const showExport = can(module, "export");
           const showImport = can(module, "import") && !!EXCEL_SCHEMAS[module];
           if (!showExport && !showImport) return null;
-          const inputId = "erp-import-" + module;
           return (
             <div className="flex items-center gap-2">
               {showExport && (
@@ -5411,10 +5421,7 @@
                 </>
               )}
               {showImport && (
-                <>
-                  <input id={inputId} type="file" accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) handleImportFile(module, f); e.target.value = ""; }} />
-                  <button type="button" onClick={() => openImportPicker(module)} className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer" title={t("importModeHint")}>{t("importExcel")}</button>
-                </>
+                <button type="button" onClick={() => openImportPicker(module)} className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer" title={t("importModeHint")}>{t("importExcel")}</button>
               )}
             </div>
           );
@@ -5905,6 +5912,15 @@
 
         return (
           <div className="erp-app-shell flex min-h-screen w-full">
+            <input
+              ref={importFileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+              className="hidden"
+              tabIndex={-1}
+              aria-hidden="true"
+              onChange={onImportFileSelected}
+            />
             <aside className={(sidebarCollapsed ? "w-16" : "w-52") + " shrink-0 bg-slate-900 text-slate-100 py-3 transition-all duration-300 ease-in-out overflow-hidden flex flex-col min-h-screen " + (sidebarCollapsed ? "px-2" : "px-3")}>
               <div className={"mb-4 shrink-0 " + (sidebarCollapsed ? "flex flex-col items-center gap-2" : "px-0.5")}>
                 <div className={"flex items-center w-full gap-2 " + (sidebarCollapsed ? "justify-center" : "")}>
