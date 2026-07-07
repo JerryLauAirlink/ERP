@@ -614,6 +614,7 @@
           importReading: "Reading file…",
           importPreviewReady: "Import preview ready — please confirm.",
           importLoading: "Reading Excel file, please wait…",
+          importPickFile: "Select an Excel file (.xlsx)…",
           importXlsxMissing: "Excel library failed to load. Please refresh the page or check your network.",
           importParseFailed: "Could not read this file. Use .xlsx template from Export Template.",
           storageSaveFailed: "Could not save to browser storage. Check privacy settings or disk space.",
@@ -812,6 +813,7 @@
           importReading: "正在讀取檔案…",
           importPreviewReady: "匯入預覽已準備好，請確認。",
           importLoading: "正在讀取 Excel，請稍候…",
+          importPickFile: "請選擇 Excel 檔案（.xlsx）…",
           importXlsxMissing: "Excel 函式庫載入失敗，請重新整理頁面或檢查網絡。",
           importParseFailed: "無法讀取此檔案，請使用「匯出範本」下載的 .xlsx 格式。",
           storageSaveFailed: "無法儲存到瀏覽器，請檢查私隱設定或儲存空間。",
@@ -3069,7 +3071,7 @@
         const [importPreview, setImportPreview] = useState(null);
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
-        const ERP_BUILD_ID = "airlink-2026-07-07b";
+        const ERP_BUILD_ID = "airlink-2026-07-07c";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -4587,6 +4589,17 @@
           return preview;
         }
 
+        function openImportPicker(module) {
+          const inputId = "erp-import-" + module;
+          setImportPreview(null);
+          setImportStatus(t("importPickFile"));
+          window.setTimeout(() => {
+            const el = document.getElementById(inputId);
+            if (el) el.click();
+            else setImportStatus(t("importFileError"));
+          }, 0);
+        }
+
         function handleImportFile(module, file) {
           if (!file) return;
           setImportStatus(t("importLoading") + " (" + file.name + ")");
@@ -5399,8 +5412,8 @@
               )}
               {showImport && (
                 <>
-                  <input id={inputId} type="file" accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="sr-only" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) handleImportFile(module, f); e.target.value = ""; }} />
-                  <label htmlFor={inputId} className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer inline-block" title={t("importModeHint")}>{t("importExcel")}</label>
+                  <input id={inputId} type="file" accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) handleImportFile(module, f); e.target.value = ""; }} />
+                  <button type="button" onClick={() => openImportPicker(module)} className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer" title={t("importModeHint")}>{t("importExcel")}</button>
                 </>
               )}
             </div>
@@ -5982,7 +5995,12 @@
             <main className="flex-1 min-w-0 p-5 space-y-5">
               {importStatus && (
                 <div className={"rounded-lg border px-4 py-2 text-sm " + (importPreview && importPreview.parseErrors && importPreview.parseErrors.length ? "border-amber-300 bg-amber-50 text-amber-900" : "border-blue-300 bg-blue-50 text-blue-900")}>
-                  {importStatus}
+                  <p>{importStatus}</p>
+                  {importLoading && (
+                    <div className="mt-2 h-1.5 rounded-full bg-blue-200 overflow-hidden">
+                      <div className="h-full w-full bg-blue-600 rounded-full animate-pulse" />
+                    </div>
+                  )}
                 </div>
               )}
               <header className="flex flex-wrap justify-between items-start gap-3">
