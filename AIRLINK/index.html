@@ -428,21 +428,47 @@
         if (!sheet) return { rows: [], errors: ["No worksheet found"] };
         const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
         if (!raw.length) return { rows: [], errors: ["Empty file"] };
-        const headers = raw[0].map((h) => String(h).trim());
-        const fieldByCol = {};
-        schema.columns.forEach((col) => {
-          const idx = headers.findIndex((h) => {
-            const a = String(h).trim().toLowerCase().replace(/[\s_#]+/g, "");
-            const b = col.header.toLowerCase().replace(/[\s_#]+/g, "");
-            const field = col.field.toLowerCase();
-            return a === b || a === field || a.includes(b) || b.includes(a);
+
+        function mapHeaders(headers) {
+          const fieldByCol = {};
+          schema.columns.forEach((col) => {
+            const idx = headers.findIndex((h) => {
+              const a = String(h).trim().toLowerCase().replace(/[\s_#]+/g, "");
+              const b = col.header.toLowerCase().replace(/[\s_#]+/g, "");
+              const field = col.field.toLowerCase();
+              return a === b || a === field || a.includes(b) || b.includes(a);
+            });
+            if (idx >= 0) fieldByCol[idx] = col.field;
           });
-          if (idx >= 0) fieldByCol[idx] = col.field;
-        });
-        const missing = schema.columns.filter((c) => c.required && !Object.values(fieldByCol).includes(c.field));
-        if (missing.length) return { rows: [], errors: ["Missing columns: " + missing.map((c) => c.header).join(", ")] };
+          return fieldByCol;
+        }
+
+        let headerRowIndex = 0;
+        let fieldByCol = mapHeaders(raw[0].map((h) => String(h).trim()));
+        let missing = schema.columns.filter((c) => c.required && !Object.values(fieldByCol).includes(c.field));
+        if (missing.length) {
+          for (let tryRow = 1; tryRow < Math.min(6, raw.length); tryRow++) {
+            const candidate = mapHeaders((raw[tryRow] || []).map((h) => String(h).trim()));
+            const miss = schema.columns.filter((c) => c.required && !Object.values(candidate).includes(c.field));
+            if (miss.length < missing.length) {
+              headerRowIndex = tryRow;
+              fieldByCol = candidate;
+              missing = miss;
+              if (!missing.length) break;
+            }
+          }
+        }
+        if (missing.length) {
+          return {
+            rows: [],
+            errors: [
+              "Missing columns: " + missing.map((c) => c.header).join(", "),
+              "Tip: use Export Template (.xlsx) — sheet \"" + schema.sheetName + "\""
+            ]
+          };
+        }
         const rows = [];
-        for (let i = 1; i < raw.length; i++) {
+        for (let i = headerRowIndex + 1; i < raw.length; i++) {
           const line = raw[i];
           if (!line || line.every((cell) => excelCellToString(cell) === "")) continue;
           const first = excelCellToString(line[0]);
@@ -4555,8 +4581,11 @@
         }
 
         function handleImportFile(module, file) {
-          if (!guardPermission(module, "import")) return;
           if (!file) return;
+          if (!can(module, "import")) {
+            setImportPreview({ module, preview: [], fileName: file.name, parseErrors: [t("noPermission")] });
+            return;
+          }
           if (typeof XLSX === "undefined") {
             setImportPreview({ module, preview: [], fileName: file.name, parseErrors: [t("importXlsxMissing")] });
             return;
@@ -5352,8 +5381,8 @@
               )}
               {showImport && (
                 <>
-                  <input id={inputId} type="file" accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={(e) => { handleImportFile(module, e.target.files && e.target.files[0]); e.target.value = ""; }} />
-                  <button type="button" onClick={() => { const el = document.getElementById(inputId); if (el) el.click(); }} className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100">{t("importExcel")}</button>
+                  <input id={inputId} type="file" accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" className="hidden" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) handleImportFile(module, f); e.target.value = ""; }} />
+                  <button type="button" onClick={() => { const el = document.getElementById(inputId); if (el) el.click(); }} className="px-2.5 py-1.5 text-xs rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100" title={t("importModeHint")}>{t("importExcel")}</button>
                 </>
               )}
             </div>
@@ -7358,7 +7387,10 @@
                           {importPreview.preview.filter((p) => p.action === "update").length} {t("importRowUpdate")},{" "}
                           {importPreview.preview.filter((p) => p.action === "error").length} {t("importRowError")}
                         </p>
-                        <button type="button" onClick={applyImportPreview} disabled={!importPreview.preview.some((p) => p.action !== "error")} className="px-4 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-40">{t("importConfirm")}</button>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setImportPreview(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button>
+                          <button type="button" onClick={applyImportPreview} disabled={!importPreview.preview.some((p) => p.action !== "error")} className="px-4 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-40">{t("importConfirm")}</button>
+                        </div>
                       </div>
                     </>
                   )}
