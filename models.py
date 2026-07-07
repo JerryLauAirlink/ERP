@@ -110,7 +110,7 @@ class ErpEntityRecord(Base):
     payload = Column(JsonType, nullable=False, default=dict)
     is_deleted = Column(Boolean, default=False)
     updated_at = Column(DateTime, default=datetime.utcnow)
-    updated_by = Column(Integer)
+    updated_by = Column(BigInteger)
 
 
 class ErpSyncMeta(Base):

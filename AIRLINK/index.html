@@ -1214,6 +1214,29 @@
         return { from, to, key };
       }
 
+      let _erpIdSeq = 0;
+
+      function resetErpIdAllocator() {
+        _erpIdSeq = 0;
+      }
+
+      function erpScanMaxId(...sources) {
+        let max = 0;
+        sources.forEach((src) => {
+          (Array.isArray(src) ? src : []).forEach((r) => {
+            const id = Number(r?.id);
+            if (Number.isFinite(id) && id > max) max = id;
+          });
+        });
+        return max;
+      }
+
+      function nextErpRecordId(...sources) {
+        if (_erpIdSeq === 0) _erpIdSeq = erpScanMaxId(...sources);
+        _erpIdSeq += 1;
+        return _erpIdSeq;
+      }
+
       function nextMonthRange(year, monthIndex) {
         if (monthIndex >= 11) return monthRangeFor(year + 1, 0);
         return monthRangeFor(year, monthIndex + 1);
@@ -1326,7 +1349,7 @@
               if (idx >= 0) {
                 next[idx] = { ...next[idx], ...patch, other_currency: next[idx].other_currency || patch.other_currency };
               } else {
-                next.push({ id: Date.now() + Math.floor(Math.random() * 100000), ...patch });
+                next.push({ id: nextErpRecordId(next), ...patch });
               }
             });
           }
@@ -1364,7 +1387,7 @@
                 other_currency: next[idx].other_currency || patch.other_currency
               };
             } else {
-              next.push({ id: Date.now() + Math.floor(Math.random() * 100000), ...patch });
+              next.push({ id: nextErpRecordId(next), ...patch });
             }
           });
         }
@@ -1446,7 +1469,7 @@
       }
 
       function emptyPoLine() {
-        return { id: Date.now() + Math.floor(Math.random() * 1000), po_no: "", amount: "", received_date: "", remarks: "" };
+        return { id: 0, po_no: "", amount: "", received_date: "", remarks: "" };
       }
 
       function normalizeJobPoFields(job) {
@@ -3150,7 +3173,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-08c";
+        const ERP_BUILD_ID = "airlink-2026-07-08d";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3357,7 +3380,7 @@
         function logAudit(module, action, entity, detail) {
           const u = getCurrentUser();
           const entry = {
-            id: Date.now() + Math.floor(Math.random() * 1000),
+            id: nextErpRecordId(auditLogs),
             at: new Date().toISOString(),
             user_id: u ? u.id : null,
             user_name: u ? u.name : "-",
@@ -3914,7 +3937,7 @@
           const data = clientModal.data;
           if (clientModal.mode === "add") {
             if (!guardPermission("clients", "add")) return;
-            setClients([{ id: Date.now(), region: regionForNewRecord(), ...data }, ...clients]);
+            setClients([{ id: nextErpRecordId(clients), region: regionForNewRecord(), ...data }, ...clients]);
             logAudit("clients", "create", data.company, `Created client ${data.customer_no} · ${data.company}`);
           } else {
             if (!guardPermission("clients", "edit")) return;
@@ -3938,7 +3961,7 @@
           e.preventDefault();
           const po_lines = (jobModal.data.po_lines || []).map((l) => ({
             ...l,
-            id: l.id || Date.now() + Math.floor(Math.random() * 1000),
+            id: l.id || nextErpRecordId(jobModal.data.po_lines, jobs),
             amount: Number(l.amount || 0)
           }));
           const data = { ...jobModal.data, po_lines, client_id: Number(jobModal.data.client_id), amount: Number(jobModal.data.amount || 0), customer_po_amount: Number(jobModal.data.customer_po_amount || 0) };
@@ -3962,7 +3985,7 @@
               alert(t("duplicateJobNo").replace("{no}", payload.job_no));
               return;
             }
-            const newId = Date.now();
+            const newId = nextErpRecordId(jobs, quotations);
             setJobs([{ id: newId, region: regionForNewRecord(), ...payload }, ...jobs]);
             syncQuotationsForJob(newId, payload.job_no, newQuotationNos, []);
             logAudit("job", "create", payload.job_no, `Created job ${payload.job_no} for ${payload.company}`);
@@ -4245,7 +4268,7 @@
           }
           if (quotationModal.mode === "add") {
             if (!guardPermission("quotation", "add")) return;
-            const newId = Date.now();
+            const newId = nextErpRecordId(jobs, quotations);
             let qRec = { id: newId, region: regionForNewRecord(), ...payload };
             if (payload.job_id && payload.job_no) qRec = addJobToQuotation(qRec, payload.job_id, payload.job_no);
             setQuotations([qRec, ...quotations]);
@@ -4281,7 +4304,7 @@
           const data = vendorModal.data;
           if (vendorModal.mode === "add") {
             if (!guardPermission("vendors", "add")) return;
-            setVendors([{ id: Date.now(), region: regionForNewRecord(), ...data }, ...vendors]);
+            setVendors([{ id: nextErpRecordId(vendors), region: regionForNewRecord(), ...data }, ...vendors]);
             logAudit("vendors", "create", data.vendor_no, `Created vendor ${data.vendor_no} · ${data.name}`);
           } else {
             if (!guardPermission("vendors", "edit")) return;
@@ -4308,7 +4331,7 @@
           const data = siModal.data;
           if (siModal.mode === "add") {
             if (!guardPermission("si", "add")) return;
-            setSis([{ id: Date.now(), region: regionForNewRecord(), ...data }, ...sis]);
+            setSis([{ id: nextErpRecordId(sis), region: regionForNewRecord(), ...data }, ...sis]);
             logAudit("si", "create", data.si_no, `Created SI ${data.si_no} · ${data.name}`);
           } else {
             if (!guardPermission("si", "edit")) return;
@@ -4362,7 +4385,7 @@
           }
           if (arModal.mode === "add") {
             if (!guardPermission("ar", "add")) return;
-            setArInvoices([{ id: Date.now(), region: regionForNewRecord(), ...rec }, ...arInvoices]);
+            setArInvoices([{ id: nextErpRecordId(arInvoices), region: regionForNewRecord(), ...rec }, ...arInvoices]);
             logAudit("ar", "create", rec.invoice_no, `Created AR ${rec.invoice_no} for ${rec.customer}`);
           } else {
             if (!guardPermission("ar", "edit")) return;
@@ -4410,7 +4433,7 @@
           }
           if (apModal.mode === "add") {
             if (!guardPermission("ap", "add")) return;
-            setApBills([{ id: Date.now(), region: regionForNewRecord(), ...rec }, ...apBills]);
+            setApBills([{ id: nextErpRecordId(apBills), region: regionForNewRecord(), ...rec }, ...apBills]);
             logAudit("ap", "create", rec.invoice_no, `Created AP ${rec.invoice_no} for ${rec.company_name}`);
           } else {
             if (!guardPermission("ap", "edit")) return;
@@ -4449,7 +4472,7 @@
           data.email = String(data.email || "").trim();
           if (userModal.mode === "add") {
             if (users.some((u) => String(u.email || "").trim().toLowerCase() === loginId)) { alert("Username already exists"); return; }
-            const created = { id: Date.now(), ...data };
+            const created = { id: nextErpRecordId(users), ...data };
             setUsers([...users, created]);
             pushUserRecordToCloud(created);
             logAudit("settings", "user_create", data.email, `Created user ${data.name} (${data.email})`);
@@ -5279,6 +5302,9 @@
           const valid = preview.filter((p) => p.action !== "error");
           if (!valid.length) { alert(t("importNoRows")); return; }
 
+          resetErpIdAllocator();
+          const idSources = () => [clients, jobs, quotations, vendors, sis, arInvoices, apBills, auditLogs, monthlyPoLines, monthlyArLines];
+
           let created = 0;
           let updated = 0;
           let nextClients = clients;
@@ -5300,7 +5326,7 @@
                 if (oldCompany !== payload.company) syncCompanyName(oldCompany, payload.company);
                 updated++;
               } else {
-                nextClients = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextClients];
+                nextClients = [{ id: nextErpRecordId(nextClients, ...idSources()), region: regionForNewRecord(), ...payload }, ...nextClients];
                 created++;
               }
             });
@@ -5338,7 +5364,7 @@
                 syncArWithJobStatus(existing.id, payload.job_no, payload.status);
                 updated++;
               } else {
-                const newId = Date.now() + Math.floor(Math.random() * 10000);
+                const newId = nextErpRecordId(nextJobs, ...idSources());
                 nextJobs = [{ id: newId, region: regionForNewRecord(), ...normalizedPayload }, ...nextJobs];
                 created++;
               }
@@ -5395,7 +5421,7 @@
                 nextAr = nextAr.map((r) => (r.id === existing.id ? { ...r, ...payload } : r));
                 updated++;
               } else {
-                nextAr = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: job?.region || regionForNewRecord(), ...payload }, ...nextAr];
+                nextAr = [{ id: nextErpRecordId(nextAr, ...idSources()), region: job?.region || regionForNewRecord(), ...payload }, ...nextAr];
                 created++;
               }
             });
@@ -5440,7 +5466,7 @@
                 nextAp = nextAp.map((b) => (b.id === existing.id ? { ...b, ...payload } : b));
                 updated++;
               } else {
-                nextAp = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: job?.region || regionForNewRecord(), ...payload }, ...nextAp];
+                nextAp = [{ id: nextErpRecordId(nextAp, ...idSources()), region: job?.region || regionForNewRecord(), ...payload }, ...nextAp];
                 created++;
               }
             });
@@ -5451,7 +5477,7 @@
               const payload = { vendor_no: p.data.vendor_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", charge: p.data.charge || "OUR", contact: p.data.contact || "" };
               const existing = nextVendors.find((v) => v.vendor_no.toLowerCase() === p.key.toLowerCase());
               if (existing) { nextVendors = nextVendors.map((v) => (v.id === existing.id ? { ...v, ...payload } : v)); updated++; }
-              else { nextVendors = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextVendors]; created++; }
+              else { nextVendors = [{ id: nextErpRecordId(nextVendors, ...idSources()), region: regionForNewRecord(), ...payload }, ...nextVendors]; created++; }
             });
             setVendors(nextVendors);
           } else if (module === "si") {
@@ -5460,7 +5486,7 @@
               const payload = { si_no: p.data.si_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", charge: p.data.charge || "OUR", contact: p.data.contact || "" };
               const existing = nextSis.find((s) => s.si_no.toLowerCase() === p.key.toLowerCase());
               if (existing) { nextSis = nextSis.map((s) => (s.id === existing.id ? { ...s, ...payload } : s)); updated++; }
-              else { nextSis = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextSis]; created++; }
+              else { nextSis = [{ id: nextErpRecordId(nextSis, ...idSources()), region: regionForNewRecord(), ...payload }, ...nextSis]; created++; }
             });
             setSis(nextSis);
           } else if (module === "quotation") {
@@ -5483,7 +5509,7 @@
               };
               const existing = nextQuotations.find((q) => q.quotation_no.toLowerCase() === p.key.toLowerCase());
               if (existing) { nextQuotations = nextQuotations.map((q) => (q.id === existing.id ? { ...q, ...payload } : q)); updated++; }
-              else { nextQuotations = [{ id: Date.now() + Math.floor(Math.random() * 10000), region: regionForNewRecord(), ...payload }, ...nextQuotations]; created++; }
+              else { nextQuotations = [{ id: nextErpRecordId(nextQuotations, ...idSources()), region: regionForNewRecord(), ...payload }, ...nextQuotations]; created++; }
             });
             setQuotations(nextQuotations);
           }
