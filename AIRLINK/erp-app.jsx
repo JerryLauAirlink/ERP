@@ -20,21 +20,21 @@
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
       const PAYMENT_STAGES = ["", "Deposit", "Progress", "Balance", "Retention", "Final"];
       const ERP_REGIONS = [
-        { id: "HK", labelEn: "HK", labelZh: "é¦™æ¸¯" },
-        { id: "TW", labelEn: "TW", labelZh: "å°ç£" },
-        { id: "SG", labelEn: "SG", labelZh: "æ–°åŠ å¡" },
-        { id: "MY", labelEn: "MY", labelZh: "é¦¬ä¾†è¥¿äºž" },
-        { id: "ID", labelEn: "ID", labelZh: "å°å°¼" },
-        { id: "ALL", labelEn: "ALL", labelZh: "å…¨éƒ¨" }
+        { id: "HK", labelEn: "HK", labelZh: "香港" },
+        { id: "TW", labelEn: "TW", labelZh: "台灣" },
+        { id: "SG", labelEn: "SG", labelZh: "新加坡" },
+        { id: "MY", labelEn: "MY", labelZh: "馬來西亞" },
+        { id: "ID", labelEn: "ID", labelZh: "印尼" },
+        { id: "ALL", labelEn: "ALL", labelZh: "全部" }
       ];
       const DATA_REGION_IDS = ["HK", "TW", "SG", "MY", "ID"];
 
       const REGION_MAP_PINS = {
-        HK: { lon: 114.17, lat: 22.32, labelEn: "Hong Kong", labelZh: "é¦™æ¸¯" },
-        TW: { lon: 121.0, lat: 25.0, labelEn: "Taiwan", labelZh: "å°ç£" },
-        SG: { lon: 103.82, lat: 1.35, labelEn: "Singapore", labelZh: "æ–°åŠ å¡" },
-        MY: { lon: 101.7, lat: 3.1, labelEn: "Malaysia", labelZh: "é¦¬ä¾†è¥¿äºž" },
-        ID: { lon: 106.85, lat: -6.2, labelEn: "Indonesia", labelZh: "å°å°¼" }
+        HK: { lon: 114.17, lat: 22.32, labelEn: "Hong Kong", labelZh: "香港" },
+        TW: { lon: 121.0, lat: 25.0, labelEn: "Taiwan", labelZh: "台灣" },
+        SG: { lon: 103.82, lat: 1.35, labelEn: "Singapore", labelZh: "新加坡" },
+        MY: { lon: 101.7, lat: 3.1, labelEn: "Malaysia", labelZh: "馬來西亞" },
+        ID: { lon: 106.85, lat: -6.2, labelEn: "Indonesia", labelZh: "印尼" }
       };
 
       const REGION_COUNTRY_IDS = { HK: "156", TW: "158", MY: "458", ID: "360" };
@@ -75,13 +75,13 @@
         return (arr || []).map((x) => ({ ...x, region: x.region || fallback }));
       }
       const WORLD_TIMEZONES = [
-        { id: "UTC", labelEn: "UTC (World Standard)", labelZh: "UTCï¼ˆä¸–ç•Œæ¨™æº–æ™‚é–“ï¼‰" },
-        { id: "Asia/Hong_Kong", labelEn: "Hong Kong", labelZh: "é¦™æ¸¯" },
-        { id: "Asia/Taipei", labelEn: "Taipei", labelZh: "å°åŒ—" },
-        { id: "Asia/Singapore", labelEn: "Singapore", labelZh: "æ–°åŠ å¡" },
-        { id: "Asia/Tokyo", labelEn: "Tokyo", labelZh: "æ±äº¬" },
-        { id: "Europe/London", labelEn: "London", labelZh: "å€«æ•¦" },
-        { id: "America/New_York", labelEn: "New York", labelZh: "ç´ç´„" }
+        { id: "UTC", labelEn: "UTC (World Standard)", labelZh: "UTC（世界標準時間）" },
+        { id: "Asia/Hong_Kong", labelEn: "Hong Kong", labelZh: "香港" },
+        { id: "Asia/Taipei", labelEn: "Taipei", labelZh: "台北" },
+        { id: "Asia/Singapore", labelEn: "Singapore", labelZh: "新加坡" },
+        { id: "Asia/Tokyo", labelEn: "Tokyo", labelZh: "東京" },
+        { id: "Europe/London", labelEn: "London", labelZh: "倫敦" },
+        { id: "America/New_York", labelEn: "New York", labelZh: "紐約" }
       ];
 
       function timezoneLabel(id, lang) {
@@ -117,13 +117,13 @@
           filePrefix: "clients",
           keyField: "customer_no",
           columns: [
-            { header: "Customer No", field: "customer_no", required: true, hint: "Required, unique key", aliases: ["Client No", "Customer #"] },
-            { header: "Company Name", field: "company", required: true, hint: "Required", aliases: ["COMPANY", "Company", "Client Company", "å…¬å¸åç¨±", "å…¬å¸"] },
-            { header: "GST#", field: "gst_no", hint: "", aliases: ["GST", "Tax ID", "çµ±ä¸€ç·¨è™Ÿ"] },
-            { header: "Primary Contact", field: "primary_contact", hint: "", aliases: ["Contact", "Main Contact", "è¯çµ¡äºº"] },
-            { header: "Company Phone #", field: "company_phone", hint: "", aliases: ["Company Phone", "Office Phone", "å…¬å¸é›»è©±"] },
-            { header: "Mobile Phone #", field: "mobile_phone", hint: "", aliases: ["Mobile", "Mobile Phone", "æ‰‹æ©Ÿ"] },
-            { header: "E-mail", field: "email", hint: "", aliases: ["Email", "E mail"] },
+            { header: "Customer No", field: "customer_no", required: true, hint: "Required, unique key" },
+            { header: "COMPANY", field: "company", required: true, hint: "Required" },
+            { header: "GST#", field: "gst_no", hint: "" },
+            { header: "Primary Contact", field: "primary_contact", hint: "" },
+            { header: "Company Phone #", field: "company_phone", hint: "" },
+            { header: "Mobile Phone #", field: "mobile_phone", hint: "" },
+            { header: "E-mail", field: "email", hint: "" },
             { header: "Address", field: "address", hint: "" },
             { header: "Postal Code", field: "postal_code", hint: "" },
             { header: "Account Dept Contact", field: "account_dept_contact", hint: "" },
@@ -135,16 +135,16 @@
           filePrefix: "jobs",
           keyField: "job_no",
           columns: [
-            { header: "Job No", field: "job_no", required: true, hint: "Required, unique key", aliases: ["Job #", "JOB NO"] },
-            { header: "Client Company", field: "company", required: true, hint: "Must match existing client", aliases: ["Company", "Company Name", "COMPANY", "Customer", "å…¬å¸åç¨±", "å®¢æˆ·"] },
-            { header: "Type", field: "job_type", required: true, hint: "Project / Service / Maintenance / Trading(Buy) / Trading(Sell)", aliases: ["Job Type", "é¡žåž‹"] },
-            { header: "Quotation No", field: "quotation_no", hint: "", aliases: ["Quotation #", "Quote No"] },
+            { header: "Job No", field: "job_no", required: true, hint: "Required, unique key" },
+            { header: "Client Company", field: "company", required: true, hint: "Must match existing client" },
+            { header: "Type", field: "job_type", required: true, hint: "Project / Service / Maintenance / Trading(Buy) / Trading(Sell)" },
+            { header: "Quotation No", field: "quotation_no", hint: "" },
             { header: "Amount", field: "amount", hint: "Numeric" },
             { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / RMB / AUD" },
-            { header: "Customer PO", field: "customer_po", hint: "", aliases: ["PO", "Customer PO #", "PO No"] },
-            { header: "Customer PO Amount", field: "customer_po_amount", hint: "Numeric", aliases: ["PO Amount"] },
+            { header: "Customer PO", field: "customer_po", hint: "" },
+            { header: "Customer PO Amount", field: "customer_po_amount", hint: "Numeric" },
             { header: "Status", field: "status", hint: "Open / In Progress / Completed / On Hold" },
-            { header: "Start Date", field: "start_date", hint: "YYYY-MM-DD", aliases: ["Start"] },
+            { header: "Start Date", field: "start_date", hint: "YYYY-MM-DD" },
             { header: "Description", field: "description", hint: "Project name" },
             { header: "Remarks", field: "remarks", hint: "" }
           ]
@@ -154,17 +154,17 @@
           filePrefix: "ar",
           keyField: "invoice_no",
           columns: [
-            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key", aliases: ["Invoice #", "INV NO"] },
-            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job", aliases: ["Job #"] },
-            { header: "Customer", field: "customer", hint: "Optional if job exists", aliases: ["Client", "Company", "Customer Name", "å…¬å¸åç¨±"] },
-            { header: "Customer PO", field: "customer_po", hint: "", aliases: ["PO", "Customer PO #"] },
-            { header: "Invoice Currency", field: "invoice_currency", hint: "USD / HKD / SGD / AUD", aliases: ["Currency", "CCY"] },
-            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final", aliases: ["Stage"] },
-            { header: "Invoice Amt", field: "invoice_amt", required: true, hint: "Numeric", aliases: ["Invoice Amount", "Amount", "Amt"] },
+            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key" },
+            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
+            { header: "Customer", field: "customer", hint: "Optional if job exists" },
+            { header: "Customer PO", field: "customer_po", hint: "" },
+            { header: "Invoice Currency", field: "invoice_currency", hint: "USD / HKD / SGD / AUD" },
+            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
+            { header: "Invoice Amt", field: "invoice_amt", required: true, hint: "Numeric" },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
-            { header: "Payment Received Date", field: "payment_received_date", hint: "YYYY-MM-DD", aliases: ["Paid Date", "Received Date"] },
-            { header: "Payment Status", field: "payment_status", hint: "Awaiting Payment / Overdue / Paid / Cancel", aliases: ["Status"] }
+            { header: "Payment Received Date", field: "payment_received_date", hint: "YYYY-MM-DD" },
+            { header: "Payment Status", field: "payment_status", hint: "Awaiting Payment / Overdue / Paid / Cancel" }
           ]
         },
         ap: {
@@ -172,16 +172,16 @@
           filePrefix: "ap",
           keyField: "invoice_no",
           columns: [
-            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key", aliases: ["Invoice #", "INV NO"] },
-            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job", aliases: ["Job #"] },
-            { header: "Payee Type", field: "payee_type", hint: "Vendor / SI", aliases: ["Type", "Payee"] },
-            { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name", aliases: ["COMPANY", "Company", "Vendor", "Payee Name", "åç¨±", "ä¾›åº”å•†"] },
+            { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key" },
+            { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
+            { header: "Payee Type", field: "payee_type", hint: "Vendor / SI" },
+            { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name" },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / AUD", aliases: ["CCY"] },
-            { header: "Amount", field: "amount", required: true, hint: "Numeric", aliases: ["Invoice Amt", "Invoice Amount", "Amt"] },
-            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final", aliases: ["Stage"] },
-            { header: "Pay Date", field: "pay_date", hint: "YYYY-MM-DD", aliases: ["Payment Date", "Paid Date"] },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / AUD" },
+            { header: "Amount", field: "amount", required: true, hint: "Numeric" },
+            { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
+            { header: "Pay Date", field: "pay_date", hint: "YYYY-MM-DD" },
             { header: "Remarks", field: "remarks", hint: "" }
           ]
         },
@@ -190,15 +190,15 @@
           filePrefix: "vendors",
           keyField: "vendor_no",
           columns: [
-            { header: "Vendor No", field: "vendor_no", required: true, hint: "Required, unique key", aliases: ["Vendor #", "VENDOR NO", "SV NO"] },
-            { header: "Name", field: "name", required: true, hint: "Required", aliases: ["Vendor Name", "Company Name", "åç¨±", "ä¾›åº”å•†åç§°"] },
-            { header: "Email", field: "email", hint: "", aliases: ["E-mail", "E mail"] },
-            { header: "Phone", field: "phone", hint: "", aliases: ["Tel", "Telephone", "é›»è©±"] },
-            { header: "Address", field: "address", hint: "", aliases: ["åœ°å€"] },
-            { header: "Bank", field: "bank", hint: "", aliases: ["Bank Name", "éŠ€è¡Œ"] },
-            { header: "SWIFT", field: "swift_code", hint: "", aliases: ["SWIFT Code", "Swift", "BIC"] },
+            { header: "Vendor No", field: "vendor_no", required: true, hint: "Required, unique key" },
+            { header: "Name", field: "name", required: true, hint: "Required" },
+            { header: "Email", field: "email", hint: "" },
+            { header: "Phone", field: "phone", hint: "" },
+            { header: "Address", field: "address", hint: "" },
+            { header: "Bank", field: "bank", hint: "" },
+            { header: "SWIFT", field: "swift_code", hint: "" },
             { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
-            { header: "Contact", field: "contact", hint: "", aliases: ["Contact Person", "è¯çµ¡äºº"] }
+            { header: "Contact", field: "contact", hint: "" }
           ]
         },
         si: {
@@ -206,12 +206,12 @@
           filePrefix: "si",
           keyField: "si_no",
           columns: [
-            { header: "SI No", field: "si_no", required: true, hint: "Required, unique key", aliases: ["SI #", "Subcontractor No"] },
-            { header: "Name", field: "name", required: true, hint: "Required", aliases: ["SI Name", "Company Name", "åç¨±", "åˆ†åŒ…å•†"] },
-            { header: "Email", field: "email", hint: "Payment advice email", aliases: ["E-mail"] },
+            { header: "SI No", field: "si_no", required: true, hint: "Required, unique key" },
+            { header: "Name", field: "name", required: true, hint: "Required" },
+            { header: "Email", field: "email", hint: "Payment advice email" },
             { header: "Address", field: "address", hint: "" },
             { header: "Bank", field: "bank", hint: "" },
-            { header: "SWIFT", field: "swift_code", hint: "", aliases: ["SWIFT Code", "Swift"] },
+            { header: "SWIFT", field: "swift_code", hint: "" },
             { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
           ]
         },
@@ -220,14 +220,14 @@
           filePrefix: "quotations",
           keyField: "quotation_no",
           columns: [
-            { header: "Quotation No", field: "quotation_no", required: true, hint: "Required, unique key", aliases: ["Quotation #", "Quote No", "QTN NO"] },
-            { header: "Client Company", field: "company", required: true, hint: "Must match existing client", aliases: ["Company", "Company Name", "COMPANY", "Customer", "å…¬å¸åç¨±"] },
-            { header: "Quotation Date", field: "quotation_date", hint: "YYYY-MM-DD", aliases: ["Quote Date", "Date"] },
-            { header: "Valid Until", field: "valid_until", hint: "YYYY-MM-DD", aliases: ["Expiry Date", "Valid To"] },
-            { header: "Amount", field: "amount", required: true, hint: "Numeric", aliases: ["Quotation Amount", "Amt"] },
-            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / AUD", aliases: ["CCY"] },
+            { header: "Quotation No", field: "quotation_no", required: true, hint: "Required, unique key" },
+            { header: "Client Company", field: "company", required: true, hint: "Must match existing client" },
+            { header: "Quotation Date", field: "quotation_date", hint: "YYYY-MM-DD" },
+            { header: "Valid Until", field: "valid_until", hint: "YYYY-MM-DD" },
+            { header: "Amount", field: "amount", required: true, hint: "Numeric" },
+            { header: "Currency", field: "currency", hint: "USD / HKD / SGD / TWD / AUD" },
             { header: "Status", field: "status", hint: "Draft / Sent / Accepted / Rejected / Expired" },
-            { header: "Job No", field: "job_no", hint: "Optional linked job", aliases: ["Job #"] },
+            { header: "Job No", field: "job_no", hint: "Optional linked job" },
             { header: "Description", field: "description", hint: "" }
           ]
         }
@@ -280,7 +280,7 @@
         if (!a) return false;
         const names = [col.header, col.field, ...(col.aliases || [])].map((x) => normalizeImportHeader(x));
         if (names.includes(a)) return true;
-        if (col.field === "company" && (a === "companyname" || a === "clientcompany" || a === "å…¬å¸åç¨±" || a === "å…¬å¸" || a === "å®¢æˆ·åç§°")) return true;
+        if (col.field === "company" && (a === "companyname" || a === "clientcompany" || a === "公司名稱" || a === "公司" || a === "客戶名稱")) return true;
         if (col.field === "company_name" && (a === "companyname" || a === "vendorname" || a === "payee")) return true;
         if (col.field === "company_phone" && (a.includes("companyphone") || a === "officephone")) return true;
         if (col.field === "mobile_phone" && (a.includes("mobilephone") || a === "mobile")) return true;
@@ -497,8 +497,8 @@
           mgmtGrossRevenue: "Gross Revenue", mgmtTotalCogs: "Total COGS", mgmtNetProfit: "Net Profit", mgmtGrossMargin: "Gross Margin",
           mgmtRevenueHint: "AR from Completed jobs / Accepted quotations", mgmtCogsHint: "Vendor & SI AP on qualifying jobs",
           mgmtClientProfitShare: "This client accounts for {pct}% of company profit",
-          mgmtAggregatedRegions: "Aggregated across {n} regions Â· FX to {currency}",
-          mgmtTopClientsTitle: "Top Clients by Profit", mgmtTopClientsHint: "Bar length = net profit Â· click to drill down Â· margin % on the right",
+          mgmtAggregatedRegions: "Aggregated across {n} regions · FX to {currency}",
+          mgmtTopClientsTitle: "Top Clients by Profit", mgmtTopClientsHint: "Bar length = net profit · click to drill down · margin % on the right",
           mgmtJobTypeTitle: "Profit by Job Type", mgmtJobTypeHint: "Share of net profit by Maintenance / Service / Project / Trade",
           mgmtCashForecastTitle: "3-Month Cash Flow Forecast", mgmtCashForecastHint: "Unpaid AR due dates vs unpaid AP due dates",
           mgmtCashIn: "Cash In", mgmtCashOut: "Cash Out", mgmtNetCashFlow: "Net Cash Flow",
@@ -511,7 +511,7 @@
           mgmtClearClient: "Back to all clients", mgmtShowingClient: "Drill-down: {name}",
           dashCashIn: "Cash In (AR)", dashCashOut: "Cash Out (AP)", dashCashInHint: "Unpaid client invoices", dashCashOutHint: "Unpaid vendor / SI bills", dashNetHint: "Receivables minus payables",
           dashActiveJobs: "Active Jobs", dashActiveJobsHint: "Open or in progress",
-          dashIncomeOut: "Expected Income vs Out", dashIncomeOutHint: "Grouped by due date Â· full calendar year Â· unpaid only",
+          dashIncomeOut: "Expected Income vs Out", dashIncomeOutHint: "Grouped by due date · full calendar year · unpaid only",
           dashIncomeOutH1: "Jan â€“ Jun", dashIncomeOutH2: "Jul â€“ Dec",
           dashCashInLegend: "Income (AR due)", dashCashOutLegend: "Out (AP due)",
           dashAllPaidHint: "Records exist but all AR/AP are marked paid for this region.",
@@ -522,7 +522,7 @@
           dashNoDueSoon: "Nothing due in the next 14 days", dashNoOverdue: "No overdue items",
           dashAgingCurrent: "Not yet due", dashAging1_30: "1â€“30 days overdue", dashAging31_60: "31â€“60 days overdue", dashAging61_90: "61â€“90 days overdue", dashAging90plus: "90+ days overdue",
           dashThisMonthIn: "AR due this month", dashThisMonthOut: "AP due this month", dashViewAll: "View all", dashDueDate: "Due",
-          dashGlobalMap: "Global Financial Map", dashGlobalMapHint: "World map Â· regional AR share below",
+          dashGlobalMap: "Global Financial Map", dashGlobalMapHint: "World map · regional AR share below",
           dashMapArTotal: "AR Outstanding", dashMapActiveJobs: "Active Jobs", dashMapOverdueAlert: "Overdue AR â€” action needed",
           dashMapApTotal: "AP Outstanding", dashMapNetRegion: "Net (AR âˆ’ AP)",
           dashMapZoomIn: "Zoom in", dashMapZoomOut: "Zoom out", dashMapZoomReset: "Reset", dashMapZoomAsia: "Asia-Pacific",
@@ -535,12 +535,12 @@
           yes: "Yes", no: "No", goToAr: "Go to AR", goToJob: "Go to Job", goToAp: "Go to AP",
           paymentReceived: "Payment Received Date", autoPaidHint: "Entering payment date will set status to Paid",
           arDueAutoHint: "Due date is calculated from Invoice Date + client Payment Terms (editable).",
-          overviewTitle: "AR / AP Overview", overviewHint: "Filter by invoice date range Â· amounts in base currency",
+          overviewTitle: "AR / AP Overview", overviewHint: "Filter by invoice date range · amounts in base currency",
           overviewStartDate: "Start Date", overviewEndDate: "End Date", overviewApply: "Apply",
           overviewInTotal: "Cash In (AR)", overviewOutTotal: "Cash Out (AP)", overviewNet: "Net",
           overviewNoData: "No AR/AP invoices in this date range", overviewByInvoiceDate: "Invoice date within range",
           overviewArCount: "AR invoices", overviewApCount: "AP bills", phoneNo: "Phone", address: "Address",
-          overviewPaidTitle: "Collected vs Paid â€” Full Year", overviewPaidHint: "Grouped by payment date Â· current calendar year",
+          overviewPaidTitle: "Collected vs Paid â€” Full Year", overviewPaidHint: "Grouped by payment date · current calendar year",
           overviewArCollected: "AR Collected", overviewApPaid: "AP Paid", overviewArCollectedTotal: "Total AR Collected", overviewApPaidTotal: "Total AP Paid",
           amtInCurrency: "Amt in {ccy}",
           amountManualOverride: "editable", settingsLangHint: "The interface language updates immediately when you switch.",
@@ -597,208 +597,202 @@
           noDatabaseNote: "No server database yet â€” Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
         },
         zh_TW: {
-          appTitle: "AIRLINK ERP", companyLogoSlot: "å…¬å¸æ¨™èªŒ", companyNameSlot: "å…¬å¸åç¨±", nav_dashboard: "å„€è¡¨æ¿", nav_management_report: "ç®¡ç†å±¤å ±è¡¨", nav_overview: "ç¸½è¦½", nav_clients: "å®¢æˆ¶", nav_quotation: "å ±åƒ¹å–®", nav_job: "å·¥ä½œæ¸…å–®", nav_ongoing: "é€²è¡Œä¸­æ¸…å–®", nav_ar: "æ‡‰æ”¶æ¸…å–®", nav_ap: "æ‡‰ä»˜æ¸…å–®", nav_monthly_report: "æœˆå ±è¡¨", nav_vendors: "ä¾›æ‡‰å•†", nav_si: "åˆ†åŒ…å•†æ¸…å–®", nav_settings: "è¨­å®š",
-          baseCurrency: "æœ¬ä½å¹£", hintClickRow: "é»žæ“Šåˆ—æˆ–æŒ‰ã€ŒæŸ¥çœ‹ï¼ä¿®æ”¹ã€ç®¡ç†è³‡æ–™", newTransaction: "+ æ–°å¢žäº¤æ˜“",
-          view: "æŸ¥çœ‹", edit: "ä¿®æ”¹", save: "å„²å­˜", cancel: "å–æ¶ˆ", all: "å…¨éƒ¨", groupByClient: "æŒ‰å®¢æˆ¶åˆ†çµ„", groupByVendor: "æŒ‰ä¾›æ‡‰å•†åˆ†çµ„", displayMode: "é¡¯ç¤ºæ–¹å¼", listView: "åˆ—è¡¨ï¼ˆå…¨éƒ¨ï¼‰", groupHint: "ç¯©é¸å®¢æˆ¶åªé¡¯ç¤ºè©²å®¢æˆ¶ï¼›åˆ†çµ„æ¨¡å¼æœƒåŠ æ¨™é¡Œåˆ†å€ä½†ä»å¯é¡¯ç¤ºå…¨éƒ¨ã€‚", jobStatus: "å·¥ä½œç‹€æ…‹",
-          filterClient: "ç¯©é¸å®¢æˆ¶", filterJob: "ç¯©é¸å·¥ä½œ", filterClientHint: "åªé¡¯ç¤ºæ‰€é¸å®¢æˆ¶çš„è³‡æ–™", filterJobHint: "åªé¡¯ç¤ºæ‰€é¸å·¥ä½œçš„æ‡‰ä»˜å–®",
-          jobFlowHint: "å®¢æˆ¶ â†’ å·¥ä½œï¼ˆå ±åƒ¹ï¼‰â†’ å®¢æˆ¶ PO â†’ å• Vendorï¼SI å ±åƒ¹ â†’ å‡º PO â†’ æ”¶è²¨åŠ Invoice â†’ ä»˜ Vendorï¼SIï¼ˆæ‡‰ä»˜ï¼‰â†’ å·¥ä½œå®Œæˆ â†’ å‘å®¢é–‹ Invoiceï¼ˆæ‡‰æ”¶ï¼‰",
-          payeeType: "ä»˜æ¬¾å°è±¡", payeeVendor: "ä¾›æ‡‰å•†", payeeSi: "åˆ†åŒ…å•† (SI)", apBills: "æ‡‰ä»˜å–®æ•¸",
-          apPayeeAutoHint: "é¸æ“‡ä¾›æ‡‰å•†ï¼SI å¾Œæœƒè‡ªå‹•å¸¶å…¥ä¸»æª”è³‡æ–™ï¼Œä»å¯ç‚ºæ­¤å–®ä¿®æ”¹ã€‚",
-          markApPaid: "æ¨™è¨˜å·²ä»˜æ¬¾", apPaid: "å·²ä»˜æ¬¾", apUnpaid: "å¾…ä»˜æ¬¾", issueInvoiceToClient: "å‘å®¢é–‹ç«‹ç™¼ç¥¨",
-          jobCompletedBanner: "å·¥ä½œå·²å®Œæˆ â€” å¯å‘å®¢æˆ¶é–‹ç«‹ç™¼ç¥¨æ”¶æ¬¾ã€‚", autoApPaidHint: "è¼¸å…¥ä»˜æ¬¾æ—¥æœŸæœƒæ¨™è¨˜ç‚ºå·²ä»˜æ¬¾ï¼ˆç¶ è‰²é¡¯ç¤ºï¼‰ã€‚",
-          settingsTitle: "è¨­å®š", language: "ä»‹é¢èªžè¨€", langEn: "è‹±æ–‡", langZhTw: "ç¹é«”ä¸­æ–‡ï¼ˆå°ç£ï¼‰", settingsSaved: "è¨­å®šå·²å„²å­˜",
-          clientDetail: "å®¢æˆ¶è©³æƒ…", jobDetail: "å·¥ä½œè©³æƒ…", vendorDetail: "ä¾›æ‡‰å•†è©³æƒ…", siDetail: "åˆ†åŒ…å•†è©³æƒ…", arDetail: "æ‡‰æ”¶è©³æƒ…", apDetail: "æ‡‰ä»˜è©³æƒ…",
-          relatedJobs: "ç›¸é—œå·¥ä½œ", relatedInvoices: "æ‡‰æ”¶ç™¼ç¥¨ï¼ˆå‘å®¢æˆ¶ï¼‰", relatedPo: "ç›¸é—œæŽ¡è³¼å–®", relatedAp: "æ‡‰ä»˜å–®ï¼ˆä¾›æ‡‰å•†ï¼åˆ†åŒ…å•†æˆæœ¬ï¼‰", noJobs: "æš«ç„¡å·¥ä½œ", noInvoices: "æš«ç„¡ç™¼ç¥¨", noPo: "æš«ç„¡ PO", noAp: "æš«ç„¡æ‡‰ä»˜å–®",
-          ownedClient: "æ‰€å±¬å®¢æˆ¶", linkedJob: "é—œè¯å·¥ä½œ", markPaid: "æ¨™è¨˜å·²æ”¶æ¬¾", paymentStatus: "ä»˜æ¬¾ç‹€æ…‹", paid: "å·²æ”¶æ¬¾", awaitingPayment: "å¾…æ”¶æ¬¾", overdue: "é€¾æœŸ",
-          addClient: "+ æ–°å¢žå®¢æˆ¶", addJob: "+ æ–°å¢žå·¥ä½œ", addVendor: "+ æ–°å¢žä¾›æ‡‰å•†", addSi: "+ æ–°å¢žåˆ†åŒ…å•†", createAr: "+ æ–°å¢žæ‡‰æ”¶ç™¼ç¥¨", createAp: "+ æ–°å¢žæ‡‰ä»˜å–®",
-          vendorNo: "ä¾›æ‡‰å•†ç·¨è™Ÿ", siNo: "åˆ†åŒ…å•†ç·¨è™Ÿ",
-          actions: "æ“ä½œ", invoices: "ç™¼ç¥¨æ•¸", clientGroup: "å®¢æˆ¶ï¼ˆåˆ†çµ„ï¼‰", type: "é¡žåž‹", status: "ç‹€æ…‹",
-          quotationNo: "å ±åƒ¹å–®è™Ÿ", amount: "é‡‘é¡", currency: "å¹£åˆ¥", description: "èªªæ˜Ž",
-          addQuotation: "+ æ–°å¢žå ±åƒ¹", addQuotationTitle: "æ–°å¢žå ±åƒ¹å–®", editQuotation: "ä¿®æ”¹å ±åƒ¹å–®", quotationDetail: "å ±åƒ¹è©³æƒ…",
-          quotationDate: "å ±åƒ¹æ—¥æœŸ", validUntil: "æœ‰æ•ˆæœŸè‡³", quotationStatus: "ç‹€æ…‹",
-          ongoingHint: "å¹£åˆ¥èˆ‡ PO é‡‘é¡ä¾†è‡ªæ‡‰æ”¶ç™¼ç¥¨ï¼ˆåŒä¸€å·¥ä½œæœƒåŠ ç¸½ï¼‰ã€‚é»žæ“Šã€Œä¿®æ”¹ã€å¯è®Šæ›´å·²é–‹ç¥¨é‡‘é¡æˆ–å‚™è¨»ï¼Œå„²å­˜å¾ŒéŽ–å®šã€‚",
-          ongoingListTitle: "é€²è¡Œä¸­é …ç›®æ¸…å–®",
-          ongoingColJobNo: "å·¥ä½œç·¨è™Ÿ", ongoingColNature: "å·¥ä½œæ€§è³ª", ongoingColCustomer: "å®¢æˆ¶",
-          ongoingColProject: "å°ˆæ¡ˆåç¨±", ongoingColPo: "å®¢æˆ¶ PO", ongoingColStart: "é–‹å§‹æ—¥æœŸ",
-          ongoingColCurrency: "å¹£åˆ¥", ongoingColPoAmt: "PO é‡‘é¡", ongoingColBilled: "å·²é–‹ç¥¨é‡‘é¡",
-          ongoingColBalance: "PO é¤˜é¡", ongoingColBalanceUsd: "é¤˜é¡ï¼ˆUSDï¼‰", ongoingColRemarks: "å‚™è¨»",
-          ongoingNatureHint: "ï¼ˆç¶­è­·ï¼æœå‹™ï¼å°ˆæ¡ˆï¼è²¿æ˜“ï¼‰",
-          ongoingTotalPoUsd: "PO ç¸½é¡ï¼ˆUSDï¼‰", ongoingTotalMaintUsd: "ç¶­è­·é¡žç¸½é¡ï¼ˆUSDï¼‰",
-          ongoingTotalServiceUsd: "æœå‹™é¡žç¸½é¡ï¼ˆUSDï¼‰", ongoingTotalProjectUsd: "å°ˆæ¡ˆé¡žç¸½é¡ï¼ˆUSDï¼‰",
-          ongoingTotalTradeUsd: "è²¿æ˜“é¡žç¸½é¡ï¼ˆUSDï¼‰", exportPdf: "åŒ¯å‡º PDF",
-          quotationSelectHint: "è¼¸å…¥ç‹€æ…‹ç‚º Accepted çš„å ±åƒ¹å–®è™Ÿï¼Œé›¢é–‹æ¬„ä½æˆ–æŒ‰æ–°å¢žã€‚ä¸€å€‹å·¥ä½œå¯é€£çµå¤šå¼µå ±åƒ¹å–®ã€‚",
-          quotationNotAccepted: "æ‰¾ä¸åˆ°å ±åƒ¹å–®ï¼Œæˆ–ç‹€æ…‹ä¸æ˜¯ Acceptedã€‚",
-          quotationNotFound: "æ­¤å€åŸŸæ²’æœ‰é€™å¼µå ±åƒ¹å–®ã€‚",
-          quotationAlreadyLinked: "é€™å¼µå ±åƒ¹å–®å·²é€£çµè‡³å·¥ä½œ {job}ã€‚",
-          quotationMultiJobHint: "äº¦å·²é€£çµå·¥ä½œï¼š{jobs}",
-          jobQuotationLinesTitle: "å·²é€£çµå ±åƒ¹å–®",
-          jobQuotationAdd: "+ æ–°å¢žå ±åƒ¹å–®",
-          jobQuotationInputHint: "è¼¸å…¥ Accepted å ±åƒ¹å–®è™Ÿï¼Œå†é›¢é–‹æ¬„ä½æˆ–æŒ‰æ–°å¢žã€‚",
-          quotationAmountTotal: "å ±åƒ¹é‡‘é¡ï¼ˆç¸½è¨ˆï¼‰",
-          invoiceAmountTotal: "ç™¼ç¥¨é‡‘é¡ï¼ˆç¸½è¨ˆï¼‰",
-          customerPoAmountTotal: "å®¢æˆ¶ PO é‡‘é¡ï¼ˆç¸½è¨ˆï¼‰",
-          jobCompleteCol: "å·¥ä½œå®Œæˆ",
-          arPaymentStatusAutoHint: "ç‹€æ…‹è‡ªå‹•æ›´æ–°ï¼šæœ‰æ”¶æ¬¾æ—¥æœŸ = å·²æ”¶æ¬¾ï¼›éŽ due date = é€¾æœŸï¼›å¦å‰‡ = å¾…æ”¶æ¬¾ã€‚",
-          apPaymentStatusAutoHint: "ç‹€æ…‹è‡ªå‹•æ›´æ–°ï¼šæœ‰ä»˜æ¬¾æ—¥æœŸ = å·²ä»˜æ¬¾ï¼›éŽ due date = é€¾æœŸï¼›å¦å‰‡ = å¾…ä»˜æ¬¾ã€‚",
-          jobPoLinesTitle: "å®¢æˆ¶ PO æ˜Žç´°",
-          jobPoAddLine: "+ æ–°å¢ž PO",
-          jobPoColNo: "PO ç·¨è™Ÿ",
-          jobPoColAmount: "é‡‘é¡",
-          jobPoColDate: "æ”¶å–®æ—¥æœŸ",
-          jobPoColRemarks: "å‚™è¨»",
-          paymentStage: "ä»˜æ¬¾éšŽæ®µ",
-          paymentStageHint: "Deposit / Progress / Balance â€” åŒä¸€ Job å¯é–‹å¤šå¼µ AR æˆ– AP åˆ†æœŸå–®ã€‚",
-          duplicateInvoiceNo: "Invoice ç·¨è™Ÿ {no} å·²å­˜åœ¨æ–¼ {module}ã€‚",
-          duplicateQuotationNo: "å ±åƒ¹å–®è™Ÿ {no} å·²å­˜åœ¨ã€‚",
-          duplicateJobNo: "å·¥ä½œç·¨è™Ÿ {no} å·²å­˜åœ¨ã€‚",
-          jobAlreadyHasQuotation: "é€™å€‹å·¥ä½œå·²é€£çµå ±åƒ¹å–® {quotation}ã€‚",
-          quotationLinkedOk: "å·²å°æ‡‰ Accepted å ±åƒ¹å–®ã€‚",
-          monthlyReportTitle: "æœˆå ±è¡¨",
-          monthlyReportHint: "å…¨å¹´å„æœˆ PO æ”¶å–®ã€é–‹ç¥¨åŠé è¨ˆæ‡‰æ”¶ï¼ˆAR Expected = ä¸‹æœˆåˆ°æœŸæ—¥ï¼‰ã€‚",
-          monthlyReportYear: "å ±è¡¨å¹´ä»½",
-          monthlyPoReceived: "æœ¬æœˆ PO æ”¶å–®",
-          monthlyInvoiceIssued: "æœ¬æœˆé–‹ç«‹ç™¼ç¥¨",
-          monthlyArExpected: "é è¨ˆæ‡‰æ”¶",
-          monthlyArExpectedHint: "é è¨ˆä¸‹æœˆæ‡‰æ”¶ï¼ˆä¾‹å¦‚ 7 æœˆæ¬„é¡¯ç¤º 8 æœˆåˆ°æœŸæ—¥ï¼‰ã€‚æœªæ”¶çš„é€¾æœŸé …ç›®æœƒè¨ˆå…¥ï¼›å·²æ”¶æ¬¾ï¼å·²å–æ¶ˆä¸è¨ˆã€‚æœˆä»½çµæŸå¾Œå‡çµï¼Œä¹‹å¾Œæ”¶æ¬¾ä¸æœƒæ”¹è®Šæ­·å²æœˆä»½ã€‚",
-          monthlyReportChartTitle: "{region} æœˆå ±è¡¨ {year}",
-          monthlyChartPo: "PO æ”¶å–®", monthlyChartInvoice: "é–‹ç«‹ç™¼ç¥¨", monthlyChartArExpected: "é è¨ˆæ‡‰æ”¶",
-          monthlyTabReport: "å ±è¡¨", monthlyTabPoReceived: "PO æ”¶å–®", monthlyTabArInvoice: "AR ç™¼ç¥¨",
-          monthlyColJobNo: "å·¥ä½œç·¨è™Ÿ", monthlyColOtherCurrency: "å¹£åˆ¥", monthlyColSourceAmount: "åŽŸå¹£é‡‘é¡", monthlyTotal: "åˆè¨ˆ",
-          monthlySyncFromJobs: "å¾žå·¥ä½œåŒæ­¥", monthlySyncFromAr: "å¾žæ‡‰æ”¶åŒæ­¥",
-          monthlySyncReport: "åŒæ­¥æœˆå ±",
-          monthlySyncReportDone: "å·²å¾žå·¥ä½œåŠæ‡‰æ”¶åŒæ­¥æœˆå ±ï¼ŒPOï¼ç™¼ç¥¨åˆ—å·²æ›´æ–°ã€‚å·²çµæŸæœˆä»½çš„é è¨ˆæ‡‰æ”¶ç¶­æŒå‡çµã€‚",
-          monthlyReportSyncHint: "å ±è¡¨ä¸æœƒè‡ªå‹•æ›´æ–°ã€‚ä¿®æ”¹å·¥ä½œæˆ–æ‡‰æ”¶å¾Œï¼Œè«‹é»žæ“Šã€ŒåŒæ­¥æœˆå ±ã€ï¼ˆæˆ–åœ¨ PO æ”¶å–®ï¼AR ç™¼ç¥¨é ç±¤åˆ†åˆ¥åŒæ­¥ï¼‰ã€‚",
-          monthlyPoDetailHint: "æŒ‰æœˆ PO â€” å·¥ä½œç·¨è™Ÿã€å¹£åˆ¥ã€åŽŸå¹£ PO é‡‘é¡ï¼ˆå®¢æˆ¶ PO é‡‘é¡ï¼‰ã€æ›ç®—æˆ {currency}ã€‚ä¿®æ”¹å·¥ä½œå¾Œè«‹é»žæ“Šã€Œå¾žå·¥ä½œåŒæ­¥ã€ã€‚å ±è¡¨é ä½¿ç”¨ {currency} åˆè¨ˆã€‚",
-          monthlyArDetailHint: "æŒ‰æœˆ AR â€” å·¥ä½œç·¨è™Ÿã€å¹£åˆ¥ã€åŽŸå¹£ç™¼ç¥¨é‡‘é¡ã€æ›ç®—æˆ {currency}ã€‚å ±è¡¨é ä½¿ç”¨ {currency} åˆè¨ˆã€‚",
-          monthlySyncSaved: "å·²åŒæ­¥ä¸¦å„²å­˜è‡³æœ¬æ©Ÿç€è¦½å™¨ï¼Œé‡æ–°æ•´ç†ï¼ˆF5ï¼‰å¾Œä»æœƒä¿ç•™ã€‚",
-          monthlyStorageHint: "è³‡æ–™å„²å­˜åœ¨ç€è¦½å™¨ï¼ˆlocalStorageï¼‰ï¼Œä¸¦éžä¼ºæœå™¨è³‡æ–™åº«ã€‚è«‹è‡³ã€Œè¨­å®š â†’ å‚™ä»½ã€ä¸‹è¼‰å‚™ä»½ã€‚åŒ¯å…¥æœƒå¥—ç”¨ç›®å‰å³ä¸Šè§’æ‰€é¸åœ°å€ã€‚",
-          monthlyExportPdf: "åŒ¯å‡º PDF",
-          allRegions: "å…¨éƒ¨åœ°å€",
-          paymentCancel: "å·²å–æ¶ˆ",
-          colJobNo: "å·¥ä½œç·¨è™Ÿ", colCustomer: "å®¢æˆ¶", colCustomerPo: "å®¢æˆ¶ PO", colCustomerPoAmount: "å®¢æˆ¶ PO é‡‘é¡",
-          colInvoiceNo: "ç™¼ç¥¨ç·¨è™Ÿ", colInvoiceDate: "ç™¼ç¥¨æ—¥æœŸ", colInvoiceReceivedDate: "ç™¼ç¥¨æ”¶åˆ°æ—¥æœŸ",
-          colInvoiceCurrency: "ç™¼ç¥¨å¹£åˆ¥", colInvoiceAmt: "ç™¼ç¥¨é‡‘é¡", colDueDate: "åˆ°æœŸæ—¥", colPayDate: "ä»˜æ¬¾æ—¥æœŸ",
-          colCompanyName: "å…¬å¸åç¨±", colPaymentTerms: "ä»˜æ¬¾æ¢ä»¶", colStartDate: "é–‹å§‹æ—¥æœŸ", colProjectName: "å°ˆæ¡ˆåç¨±",
-          colPayee: "ä»˜æ¬¾å°è±¡", colRemarks: "å‚™è¨»", colOverdueDays: "é€¾æœŸå¤©æ•¸", colDays: "å¤©æ•¸", colAmt: "é‡‘é¡", colDate: "æ—¥æœŸ",
-          colAccountDeptContact: "æœƒè¨ˆè¯çµ¡äºº", colBankCharge: "éŠ€è¡Œæ‰‹çºŒè²»", colSwiftCode: "SWIFT ä»£ç¢¼",
-          colPaymentAdviceEmail: "ä»˜æ¬¾é€šçŸ¥é›»éƒµ", colCustomerNo: "å®¢æˆ¶ç·¨è™Ÿ",
-          colCompany: "å…¬å¸åç¨±", colGstNo: "GSTï¼çµ±ä¸€ç·¨è™Ÿ", colPrimaryContact: "ä¸»è¦è¯çµ¡äºº",
-          colCompanyPhone: "å…¬å¸é›»è©±", colMobilePhone: "æ‰‹æ©Ÿ", colEmail: "é›»å­éƒµä»¶", colPostalCode: "éƒµéžå€è™Ÿ",
-          colName: "åç¨±", colBank: "éŠ€è¡Œ", colSwift: "SWIFT", colContact: "è¯çµ¡äºº",
-          importReading: "æ­£åœ¨è®€å–æª”æ¡ˆâ€¦",
-          importPreviewReady: "åŒ¯å…¥é è¦½å·²æº–å‚™å¥½ï¼Œè«‹ç¢ºèªã€‚",
-          importLoading: "æ­£åœ¨è®€å– Excelï¼Œè«‹ç¨å€™â€¦",
-          importPickFile: "è«‹é¸æ“‡ Excel æª”æ¡ˆï¼ˆ.xlsxï¼‰â€¦",
-          sortClickHint: "é»žæ“Šæ¬„ä½æ¨™é¡ŒæŽ’åº",
-          importXlsxMissing: "Excel å‡½å¼åº«è¼‰å…¥å¤±æ•—ï¼Œè«‹é‡æ–°æ•´ç†é é¢æˆ–æª¢æŸ¥ç¶²çµ¡ã€‚",
-          importParseFailed: "ç„¡æ³•è®€å–æ­¤æª”æ¡ˆï¼Œè«‹ä½¿ç”¨ã€ŒåŒ¯å‡ºç¯„æœ¬ã€ä¸‹è¼‰çš„ .xlsx æ ¼å¼ã€‚",
-          storageSaveFailed: "ç„¡æ³•å„²å­˜åˆ°ç€è¦½å™¨ï¼Œè«‹æª¢æŸ¥ç§éš±è¨­å®šæˆ–å„²å­˜ç©ºé–“ã€‚",
-          arOutstanding: "æ‡‰æ”¶æœªçµ", apOutstanding: "æ‡‰ä»˜æœªçµ", netPosition: "æ·¨éƒ¨ä½", dueSoon: "å³å°‡åˆ°æœŸ", overdueCount: "ç­†å·²é€¾æœŸ", pendingBills: "ç­†å¾…è™•ç†", dueSoonHint: "æœªæ”¶æ¬¾ã€å³å°‡åˆ°æœŸ",
-          topOverdue: "é€¾æœŸç™¼ç¥¨æŽ’è¡Œ", approvalQueue: "å¯©æ‰¹ä½‡åˆ—", cashFlow: "ç¾é‡‘æµå…¥ vs æµå‡ºï¼ˆ90 å¤©ï¼‰", arAging: "æ‡‰æ”¶å¸³é½¡",
-          dashSubtitle: "ç®¡ç†å±¤ç¸½è¦½ â€” ç¾é‡‘ç‹€æ³åŠéœ€è¦è·Ÿé€²çš„é …ç›®",
-          mgmtSubtitle: "è€é—† BI â€” æ¯›åˆ©ã€å®¢æˆ¶æŽ’è¡Œã€å·¥ä½œé¡žåž‹åˆ©æ½¤èˆ‡ 3 å€‹æœˆç¾é‡‘æµé æ¸¬",
-          mgmtFilterClient: "å®¢æˆ¶", mgmtAllClients: "å…¨éƒ¨å®¢æˆ¶", mgmtGroupCurrency: "é›†åœ˜æœ¬ä½å¹£", mgmtCompareCurrency: "å°ç…§è²¨å¹£",
-          mgmtGrossRevenue: "ç¸½æ”¶å…¥", mgmtTotalCogs: "é …ç›®ç¸½æˆæœ¬", mgmtNetProfit: "æ·¨åˆ©æ½¤", mgmtGrossMargin: "æ¯›åˆ©çŽ‡",
-          mgmtRevenueHint: "å·²å®Œæˆå·¥ä½œï¼Accepted å ±åƒ¹ç›¸é—œæ‡‰æ”¶", mgmtCogsHint: "ç›¸é—œå·¥ä½œçš„ä¾›æ‡‰å•†ï¼åˆ†åŒ…å•†æ‡‰ä»˜",
-          mgmtClientProfitShare: "æ­¤å®¢æˆ¶ä½”å…¬å¸åˆ©æ½¤ {pct}%",
-          mgmtAggregatedRegions: "å·²åŒ¯ç¸½ {n} å€‹åœ°å€ Â· æŠ˜ç®—ç‚º {currency}",
-          mgmtTopClientsTitle: "å®¢æˆ¶åˆ©æ½¤æŽ’è¡Œæ¦œ", mgmtTopClientsHint: "æ¢å½¢é•·åº¦ = ç´”åˆ©æ½¤ Â· é»žæ“Šç©¿é€åˆ†æž Â· å³å´æ‹¬è™Ÿç‚ºæ¯›åˆ©çŽ‡",
-          mgmtJobTypeTitle: "æŒ‰å·¥ä½œé¡žåž‹åˆ†é¡žåˆ©æ½¤", mgmtJobTypeHint: "ç¶­è­·ï¼æœå‹™ï¼å°ˆæ¡ˆï¼è²¿æ˜“å„ä½”æ·¨åˆ©æ½¤æ¯”ä¾‹",
-          mgmtCashForecastTitle: "3 å€‹æœˆç¾é‡‘æµé æ¸¬", mgmtCashForecastHint: "æœªæ”¶æ‡‰æ”¶åˆ°æœŸæ—¥ vs æœªä»˜æ‡‰ä»˜åˆ°æœŸæ—¥",
-          mgmtCashIn: "é è¨ˆæµå…¥", mgmtCashOut: "é è¨ˆæµå‡º", mgmtNetCashFlow: "æ·¨ç¾é‡‘æµ",
-          mgmtDryRunAlert: "æµå‡ºå¤§æ–¼æµå…¥ â€” æœ¬æœˆéœ€æº–å‚™è³‡é‡‘ï¼Œé¿å…è³‡é‡‘æ–·è£‚",
-          mgmtClientRiskTitle: "å®¢æˆ¶æ”¶æ¬¾é¢¨éšª", mgmtClientRiskHint: "æ­¤å®¢æˆ¶æœªä¾† 3 å€‹æœˆé è¨ˆæ¬ æ¬¾èˆ‡é€¾æœŸæ‡‰æ”¶",
-          mgmtOverdueAr: "é€¾æœŸæ‡‰æ”¶", mgmtExpectedInMonth: "ç•¶æœˆé è¨ˆæ”¶æ¬¾",
-          mgmtRegionBreakdownTitle: "åœ°å€èˆ‡å®¢æˆ¶åˆ©æ½¤æ˜Žç´°", mgmtLocalAmount: "ç•¶åœ°å¹£", mgmtConvertedAmount: "æŠ˜ç®—",
-          mgmtMarginPct: "æ¯›åˆ©çŽ‡", mgmtNatureProject: "å°ˆæ¡ˆ", mgmtNatureService: "æœå‹™", mgmtNatureMaintenance: "ç¶­è­·", mgmtNatureTrade: "è²¿æ˜“",
-          mgmtNoQualifyingData: "æ­¤ç¯©é¸ç¯„åœå…§æ²’æœ‰å·²å®Œæˆï¼Accepted çš„å·¥ä½œè³‡æ–™ã€‚",
-          mgmtClearClient: "è¿”å›žå…¨éƒ¨å®¢æˆ¶", mgmtShowingClient: "ç©¿é€åˆ†æžï¼š{name}",
-          dashCashIn: "ç¾é‡‘æµå…¥ï¼ˆæ‡‰æ”¶ï¼‰", dashCashOut: "ç¾é‡‘æµå‡ºï¼ˆæ‡‰ä»˜ï¼‰", dashCashInHint: "å®¢æˆ¶æœªæ”¶æ¬¾ç™¼ç¥¨", dashCashOutHint: "ä¾›æ‡‰å•†ï¼åˆ†åŒ…å•†æœªä»˜æ¬¾", dashNetHint: "æ‡‰æ”¶æ¸›æ‡‰ä»˜",
-          dashActiveJobs: "é€²è¡Œä¸­å·¥ä½œ", dashActiveJobsHint: "é–‹å•Ÿæˆ–é€²è¡Œä¸­",
-          dashIncomeOut: "é æœŸæ”¶å…¥ vs æ”¯å‡º", dashIncomeOutHint: "æŒ‰åˆ°æœŸæ—¥ Â· å…¨å¹´ï¼ˆ1â€“12æœˆï¼‰Â· åªè¨ˆæœªçµæ¸…",
-          dashIncomeOutH1: "1 â€“ 6 æœˆ", dashIncomeOutH2: "7 â€“ 12 æœˆ",
-          dashCashInLegend: "æ”¶å…¥ï¼ˆæ‡‰æ”¶åˆ°æœŸï¼‰", dashCashOutLegend: "æ”¯å‡ºï¼ˆæ‡‰ä»˜åˆ°æœŸï¼‰",
-          dashAllPaidHint: "æ­¤å€åŸŸæœ‰è¨˜éŒ„ï¼Œä½†æ‡‰æ”¶ï¼æ‡‰ä»˜å·²å…¨éƒ¨æ¨™è¨˜ç‚ºå·²ä»˜æ¬¾ã€‚",
-          dashRegionHint: "æ‡‰æ”¶ï¼æ‡‰ä»˜è³‡æ–™åœ¨å…¶ä»–å€åŸŸã€‚è«‹å°‡ã€Œå€åŸŸã€æ”¹ç‚º ALL æˆ–å°æ‡‰å€åŸŸã€‚",
-          dashArDueSoon: "14 æ—¥å…§æ‡‰æ”¶åˆ°æœŸ", dashApDueSoon: "14 æ—¥å…§æ‡‰ä»˜åˆ°æœŸ",
-          dashOverdueAr: "é€¾æœŸæ‡‰æ”¶ â€” å‚¬æ”¶", dashOverdueAp: "é€¾æœŸæ‡‰ä»˜ â€” ä»˜æ¬¾",
-          dashDueToday: "ä»Šæ—¥åˆ°æœŸ", dashDueInDays: "{n} æ—¥å¾Œåˆ°æœŸ", dashDaysOverdue: "é€¾æœŸ {n} æ—¥",
-          dashNoDueSoon: "14 æ—¥å…§ç„¡åˆ°æœŸé …ç›®", dashNoOverdue: "ç„¡é€¾æœŸé …ç›®",
-          dashAgingCurrent: "æœªåˆ°æœŸ", dashAging1_30: "é€¾æœŸ 1â€“30 æ—¥", dashAging31_60: "é€¾æœŸ 31â€“60 æ—¥", dashAging61_90: "é€¾æœŸ 61â€“90 æ—¥", dashAging90plus: "é€¾æœŸ 90 æ—¥ä»¥ä¸Š",
-          dashThisMonthIn: "æœ¬æœˆæ‡‰æ”¶åˆ°æœŸ", dashThisMonthOut: "æœ¬æœˆæ‡‰ä»˜åˆ°æœŸ", dashViewAll: "æŸ¥çœ‹å…¨éƒ¨", dashDueDate: "åˆ°æœŸ",
-          dashGlobalMap: "è·¨åœ°å€è²¡å‹™ä¸–ç•Œåœ°åœ–", dashGlobalMapHint: "å…¨çƒåœ°åœ– Â· ä¸‹æ–¹ç‚ºå„åœ°å€æ‡‰æ”¶ä½”æ¯”",
-          dashMapArTotal: "æ‡‰æ”¶æœªçµ", dashMapActiveJobs: "é€²è¡Œä¸­å·¥ä½œ", dashMapOverdueAlert: "é€¾æœŸæ‡‰æ”¶ â€” éœ€è·Ÿé€²",
-          dashMapApTotal: "æ‡‰ä»˜æœªçµ", dashMapNetRegion: "æ·¨é¡ï¼ˆæ‡‰æ”¶ âˆ’ æ‡‰ä»˜ï¼‰",
-          dashMapZoomIn: "æ”¾å¤§", dashMapZoomOut: "ç¸®å°", dashMapZoomReset: "é‡è¨­", dashMapZoomAsia: "äºžå¤ª",
-          dashMapExpandHint: "é»žæ“Šåˆ—å±•é–‹è©³æƒ…",
-          dashMapLegendHealthy: "å¥åº·", dashMapLegendCaution: "æ‡‰ä»˜ > æ‡‰æ”¶", dashMapLegendAlert: "é€¾æœŸæ‡‰æ”¶", dashMapLegendEmpty: "ç„¡æ´»å‹•",
-          dashMapGoRegion: "åˆ‡æ›è‡³æ­¤åœ°å€",
-          editClient: "ä¿®æ”¹å®¢æˆ¶", addClientTitle: "æ–°å¢žå®¢æˆ¶", editJob: "ä¿®æ”¹å·¥ä½œ", addJobTitle: "æ–°å¢žå·¥ä½œ", editVendor: "ä¿®æ”¹ä¾›æ‡‰å•†", addVendorTitle: "æ–°å¢žä¾›æ‡‰å•†", editSi: "ä¿®æ”¹åˆ†åŒ…å•†", addSiTitle: "æ–°å¢žåˆ†åŒ…å•†",
-          editAr: "ä¿®æ”¹æ‡‰æ”¶ç™¼ç¥¨", createArTitle: "æ–°å¢žæ‡‰æ”¶ç™¼ç¥¨", editAp: "ä¿®æ”¹æ‡‰ä»˜å–®", createApTitle: "æ–°å¢žæ‡‰ä»˜å–®", newTxTitle: "æ–°å¢žäº¤æ˜“",
-          createArDesc: "å»ºç«‹æ‡‰æ”¶ç™¼ç¥¨", createApDesc: "å»ºç«‹æ‡‰ä»˜å–®",
-          yes: "æ˜¯", no: "å¦", goToAr: "å‰å¾€æ‡‰æ”¶", goToJob: "å‰å¾€å·¥ä½œ", goToAp: "å‰å¾€æ‡‰ä»˜",
-          paymentReceived: "æ”¶æ¬¾æ—¥æœŸ", autoPaidHint: "è¼¸å…¥æ”¶æ¬¾æ—¥æœŸæœƒè‡ªå‹•è¨­ç‚ºå·²æ”¶æ¬¾",
-          arDueAutoHint: "åˆ°æœŸæ—¥ä¾ç™¼ç¥¨æ—¥æœŸ + å®¢æˆ¶ä»˜æ¬¾æ¢æ¬¾è‡ªå‹•è¨ˆç®—ï¼ˆå¯æ‰‹å‹•ä¿®æ”¹ï¼‰ã€‚",
-          overviewTitle: "æ‡‰æ”¶ï¼æ‡‰ä»˜ç¸½è¦½", overviewHint: "æŒ‰ç™¼ç¥¨æ—¥æœŸç¯©é¸ Â· é‡‘é¡ä»¥æœ¬ä½å¹£é¡¯ç¤º",
-          overviewStartDate: "é–‹å§‹æ—¥æœŸ", overviewEndDate: "çµæŸæ—¥æœŸ", overviewApply: "å¥—ç”¨",
-          overviewInTotal: "æµå…¥ï¼ˆæ‡‰æ”¶ï¼‰", overviewOutTotal: "æµå‡ºï¼ˆæ‡‰ä»˜ï¼‰", overviewNet: "æ·¨é¡",
-          overviewNoData: "æ­¤æ—¥æœŸç¯„åœå…§æ²’æœ‰æ‡‰æ”¶ï¼æ‡‰ä»˜ç™¼ç¥¨", overviewByInvoiceDate: "ç™¼ç¥¨æ—¥æœŸåœ¨ç¯„åœå…§",
-          overviewArCount: "æ‡‰æ”¶ç™¼ç¥¨", overviewApCount: "æ‡‰ä»˜å¸³å–®", phoneNo: "é›»è©±", address: "åœ°å€",
-          overviewPaidTitle: "å…¨å¹´å·²æ”¶ï¼å·²ä»˜", overviewPaidHint: "æŒ‰æ”¶æ¬¾ï¼ä»˜æ¬¾æ—¥æœŸ Â· æœ¬å¹´åº¦å„æœˆ",
-          overviewArCollected: "æ‡‰æ”¶å·²æ”¶", overviewApPaid: "æ‡‰ä»˜å·²ä»˜", overviewArCollectedTotal: "å…¨å¹´æ‡‰æ”¶å·²æ”¶", overviewApPaidTotal: "å…¨å¹´æ‡‰ä»˜å·²ä»˜",
-          amtInCurrency: "æŠ˜åˆ {ccy}",
-          amountManualOverride: "å¯æ‰‹æ”¹", settingsLangHint: "åˆ‡æ›å¾Œä»‹é¢æœƒå³æ™‚æ›´æ–°ç‚ºç¹é«”ä¸­æ–‡ï¼ˆå°ç£ï¼‰ã€‚",
-          invoiceAmountOrig: "é‡‘é¡ï¼ˆç™¼ç¥¨åŽŸå¹£ï¼‰",           invoiceAmountHint: "ä¾›æ‡‰å•†ï¼å®¢æˆ¶ç™¼ç¥¨ä¸Šçš„åŽŸå¹£é‡‘é¡ï¼Œå¯ä»¥ä¿®æ”¹ï¼›ä¿®æ”¹å¾ŒæœƒæŒ‰åŒ¯çŽ‡é‡ç®—æœ¬ä½å¹£ã€‚",
-          baseAmountHint: "ä¸€èˆ¬ = é‡‘é¡ Ã— åŒ¯çŽ‡ã€‚è‹¥éŠ€è¡Œå¯¦æ”¶ã€å››æ¨äº”å…¥ä¸åŒï¼Œå¯åœ¨æ­¤æ‰‹å‹•ä¿®æ”¹ã€‚",
-          siPageHint: "åˆ†åŒ…å•† (SI) å®Œæˆå·¥ä½œå¾Œå‘ä½ é–‹ç«‹ POï¼ç™¼ç¥¨ï¼Œä½ åœ¨æ‡‰ä»˜æ¸…å–®ä»˜æ¬¾çµ¦å°æ–¹ã€‚",
-          settingsGeneral: "ä¸€èˆ¬", settingsManagement: "ç”¨æˆ¶ç®¡ç†", settingsAudit: "æ“ä½œè¨˜éŒ„",
-          worldTime: "ä¸–ç•Œæ™‚é–“", worldTimeHint: "ä¾æ‰€é¸æ™‚å€é¡¯ç¤ºï¼ˆä¸è·Ÿé›»è…¦æœ¬æ©Ÿæ™‚é–“ï¼‰ã€‚",
-          timezone: "æ™‚å€", currentUser: "ç›®å‰ç™»å…¥", switchUser: "åˆ‡æ›ç”¨æˆ¶ï¼ˆç¤ºç¯„ï¼‰",
-          mgmtTitle: "ç”¨æˆ¶èˆ‡æ¬Šé™ç®¡ç†", mgmtHint: "Root ç®¡ç†å“¡å¯æ–°å¢žç”¨æˆ¶ï¼Œä¸¦æŒ‰æ¨¡çµ„è¨­å®šæª¢è¦–ï¼æ–°å¢žï¼ä¿®æ”¹ï¼åˆªé™¤æ¬Šé™ã€‚",
-          addUser: "+ æ–°å¢žç”¨æˆ¶", editUser: "ä¿®æ”¹ç”¨æˆ¶", userName: "é¡¯ç¤ºåç¨±", userEmail: "é›»éƒµ", userPassword: "å¯†ç¢¼", userRole: "è§’è‰²", roleRoot: "Rootï¼ˆæœ€é«˜æ¬Šé™ï¼‰", roleUser: "ä¸€èˆ¬ç”¨æˆ¶",
-          userActive: "å•Ÿç”¨", accessRights: "å­˜å–æ¬Šé™", permView: "æª¢è¦–", permAdd: "æ–°å¢ž", permEdit: "ä¿®æ”¹", permDelete: "åˆªé™¤",
-          auditTitle: "æ“ä½œè¨˜éŒ„", auditHint: "å¯æŒ‰æ—¥æœŸã€ç”¨æˆ¶ã€æ¨¡çµ„ã€å‹•ä½œç¯©é¸ï¼Œå¦‚åŒå ±è¡¨æŸ¥è©¢ã€‚",
-          auditWhen: "æ™‚é–“ï¼ˆUTC å„²å­˜ï¼‰", auditUser: "ç”¨æˆ¶", auditModule: "æ¨¡çµ„", auditAction: "å‹•ä½œ", auditEntity: "è¨˜éŒ„", auditDetail: "è©³æƒ…",
-          auditDateFrom: "é–‹å§‹æ—¥æœŸ", auditDateTo: "çµæŸæ—¥æœŸ", auditSearch: "æœå°‹", auditReset: "é‡è¨­ç¯©é¸", auditNoRows: "æ²’æœ‰ç¬¦åˆæ¢ä»¶çš„è¨˜éŒ„ã€‚",
-          actionCreate: "æ–°å¢ž", actionUpdate: "ä¿®æ”¹", actionDelete: "åˆªé™¤", actionMarkPaid: "æ¨™è¨˜å·²ä»˜æ¬¾", actionUserCreate: "å»ºç«‹ç”¨æˆ¶", actionUserUpdate: "æ›´æ–°ç”¨æˆ¶", actionUserDelete: "åˆªé™¤ç”¨æˆ¶",
-          confirmDelete: "ç¢ºå®šåˆªé™¤æ­¤è¨˜éŒ„ï¼Ÿ", confirmDeleteUser: "ç¢ºå®šåˆªé™¤æ­¤ç”¨æˆ¶å¸³è™Ÿï¼Ÿåˆªé™¤å¾Œå°‡ç„¡æ³•ç™»å…¥ã€‚", cannotDeleteSelf: "ä¸èƒ½åˆªé™¤è‡ªå·±ç›®å‰ç™»å…¥çš„å¸³è™Ÿã€‚", cannotDeleteRoot: "Root å¸³è™Ÿä¸èƒ½åˆªé™¤ã€‚",
-          noPermission: "ä½ æ²’æœ‰æ­¤æ“ä½œæ¬Šé™ã€‚", rootOnly: "åƒ… Root ç®¡ç†å“¡å¯ç”¨ã€‚",
-          delete: "åˆªé™¤", allUsers: "å…¨éƒ¨ç”¨æˆ¶", allModules: "å…¨éƒ¨æ¨¡çµ„", allActions: "å…¨éƒ¨å‹•ä½œ",
-          permExport: "åŒ¯å‡º", permImport: "åŒ¯å…¥", exportData: "åŒ¯å‡ºè³‡æ–™", exportExcel: "åŒ¯å‡º Excel", exportTemplate: "ä¸‹è¼‰ç¯„æœ¬",
-          importExcel: "åŒ¯å…¥ Excel", importPreviewTitle: "åŒ¯å…¥é è¦½", importConfirm: "ç¢ºèªåŒ¯å…¥",
-          importRowCreate: "æ–°å¢ž", importRowUpdate: "æ›´æ–°", importRowError: "éŒ¯èª¤", importSummary: "æ‘˜è¦",
-          importSyncOk: "å·²åŒæ­¥è‡³é›²ç«¯ï¼Œå…¶ä»–ç”¨æˆ¶ç¨å¾Œæœƒçœ‹åˆ°ã€‚", importSyncFail: "åŒ¯å…¥å·²å„²å­˜æ–¼æœ¬æ©Ÿï¼Œä½†é›²ç«¯åŒæ­¥å¤±æ•—ã€‚è«‹å‹¿é‡æ–°æ•´ç†ï¼Œå…ˆç¢ºèªåŒæ­¥é‡‘é‘°åŠç‹€æ…‹åˆ—ã€‚",
-          importStatusDismiss: "é—œé–‰", importSyncRetry: "é‡è©¦åŒæ­¥",
-          importNoRows: "æ‰¾ä¸åˆ°æœ‰æ•ˆè³‡æ–™åˆ—ã€‚", importFileError: "ç„¡æ³•è®€å–æª”æ¡ˆã€‚",
-          actionExport: "åŒ¯å‡º", actionImport: "åŒ¯å…¥",           importModeHint: "å·²å­˜åœ¨çš„ä¸»éµæœƒæ›´æ–°ï¼›æ–°ä¸»éµæœƒæ–°å¢žã€‚",
-          filterStatus: "ç¯©é¸ç‹€æ…‹", searchPlaceholder: "æœå°‹...", searchHint: "å¯æœç™¼ç¥¨è™Ÿã€å®¢æˆ¶ã€å·¥ä½œç·¨è™Ÿã€PO ç­‰ã€‚",
-          searchHintClients: "å¯æœå®¢æˆ¶ç·¨è™Ÿã€å…¬å¸åç¨±ã€è¯çµ¡äººã€é›»éƒµã€é›»è©±ã€åœ°å€ç­‰ã€‚",
-          searchHintQuotation: "å¯æœå ±åƒ¹å–®è™Ÿã€å®¢æˆ¶ã€å·¥ä½œç·¨è™Ÿã€èªªæ˜Žã€ç‹€æ…‹ç­‰ã€‚",
-          searchHintJob: "å¯æœå·¥ä½œç·¨è™Ÿã€å®¢æˆ¶ã€POã€å ±åƒ¹å–®è™Ÿã€èªªæ˜Žã€ç‹€æ…‹ç­‰ã€‚",
-          searchHintVendors: "å¯æœä¾›æ‡‰å•†ç·¨è™Ÿã€åç¨±ã€é›»éƒµã€éŠ€è¡Œã€SWIFTã€è¯çµ¡äººç­‰ã€‚",
-          searchHintSi: "å¯æœåˆ†åŒ…å•†ç·¨è™Ÿã€åç¨±ã€é›»éƒµã€éŠ€è¡Œã€SWIFTã€è¯çµ¡äººç­‰ã€‚",
-          region: "åœ°å€", regionAccess: "åœ°å€æ¬Šé™",           regionScopeHint: "æ‚¨æ–°å¢žçš„è³‡æ–™æœƒæ¨™è¨˜ç‚ºç›®å‰åœ°å€ï¼›ALL é¡¯ç¤ºæ‚¨æœ‰æ¬Šé™çš„æ‰€æœ‰åœ°å€ã€‚",
-          regionDataHint: "æ–°å¢žè³‡æ–™æœƒå„²å­˜æ–¼ç›®å‰æ‰€é¸åœ°å€ï¼ˆé¸ ALL æ™‚ä½¿ç”¨æ‚¨æœ‰æ¬Šé™çš„ç¬¬ä¸€å€‹åœ°å€ï¼‰ã€‚",
-          importRegionHint: "å·²åŒ¯å…¥è‡³åœ°å€ï¼š{region}ã€‚è«‹ç¢ºèªå³ä¸Šè§’ã€Œåœ°å€ã€è¨­ç‚º ALL æˆ–æ­£ç¢ºåœ°å€å¾Œæ‰æœƒçœ‹åˆ°è³‡æ–™ã€‚",
-          settingsBackup: "å‚™ä»½èˆ‡é‚„åŽŸ", backupTitle: "å‚™ä»½èˆ‡é‚„åŽŸ", backupHint: "æ‰€æœ‰ LIST è³‡æ–™åªå„²å­˜åœ¨æ­¤ç€è¦½å™¨ã€‚ä¸‹è¼‰å‚™ä»½æª”å¯æ¬åˆ°å¦ä¸€éƒ¨é›»è…¦ï¼ç€è¦½å™¨ã€‚é‚„åŽŸæœƒè¦†è“‹ç›®å‰æ‰€æœ‰è³‡æ–™ã€‚",
-          backupDownload: "ä¸‹è¼‰å‚™ä»½", restoreUpload: "é‚„åŽŸå‚™ä»½", restoreConfirm: "é‚„åŽŸæœƒè¦†è“‹æ­¤ç€è¦½å™¨å…§æ‰€æœ‰ ERP è³‡æ–™ï¼Œç¢ºå®šç¹¼çºŒï¼Ÿ",
-          restoreDone: "é‚„åŽŸå®Œæˆï¼Œé é¢å°‡é‡æ–°è¼‰å…¥ã€‚", restoreInvalid: "å‚™ä»½æª”æ¡ˆç„¡æ•ˆã€‚", backupDone: "å·²ä¸‹è¼‰å‚™ä»½æª”ã€‚",
-          cloudSyncTitle: "é›²ç«¯è³‡æ–™åº«ï¼ˆSupabaseï¼‰", cloudSyncHint: "ä¸Šå‚³ï¼ä¸‹è¼‰ç¶“ç”± API é€£æŽ¥ Supabaseã€‚åŒæ­¥é‡‘é‘°é ˆèˆ‡ Vercel ç’°å¢ƒè®Šæ•¸ ERP_SYNC_SECRET ç›¸åŒã€‚",
-          cloudSyncKey: "é›²ç«¯åŒæ­¥é‡‘é‘°", cloudSyncKeyPlaceholder: "èˆ‡ä¼ºæœå™¨ ERP_SYNC_SECRET ç›¸åŒ",
-          cloudPush: "ä¸Šå‚³è‡³é›²ç«¯", cloudPull: "å¾žé›²ç«¯ä¸‹è¼‰", cloudPushDone: "å·²ä¸Šå‚³è‡³ Supabaseã€‚", cloudPullDone: "å·²å¾žé›²ç«¯ä¸‹è¼‰ï¼Œæ­£åœ¨é‡æ–°è¼‰å…¥â€¦",
-          cloudSyncFail: "é›²ç«¯åŒæ­¥å¤±æ•—", cloudNoBackup: "è³‡æ–™åº«å…§æ²’æœ‰å‚™ä»½ã€‚", cloudNotConfigured: "ä¼ºæœå™¨å°šæœªè¨­å®šé›²ç«¯åŒæ­¥ã€‚",
-          liveSyncTitle: "å³æ™‚å¤šäººåŒæ­¥", liveSyncHint: "æ¯ç­†è³‡æ–™ï¼ˆå®¢æˆ¶ã€å·¥ä½œã€æ‡‰æ”¶æ‡‰ä»˜ç­‰ï¼‰è‡ªå‹•å¯«å…¥ Supabaseï¼Œå…¶ä»–ç”¨æˆ¶å¹¾ç§’å…§æœƒçœ‹åˆ°æ›´æ–°ã€‚éœ€å…ˆåŸ·è¡Œ SQL migration 002ã€‚",
-          liveSyncEnable: "å•Ÿç”¨å³æ™‚åŒæ­¥ï¼ˆè‡ªå‹•ä¸Šå‚³åŠä¸‹è¼‰ï¼‰", liveSyncOk: "å³æ™‚åŒæ­¥é‹ä½œä¸­", liveSyncReadOnly: "å³æ™‚åŒæ­¥é‹ä½œä¸­ï¼ˆå”¯è®€ï¼‰", liveSyncSyncing: "åŒæ­¥ä¸­â€¦", liveSyncError: "åŒæ­¥éŒ¯èª¤",
-          liveSyncLast: "ä¸Šæ¬¡åŒæ­¥", liveSyncNeedKey: "è«‹å…ˆè¼¸å…¥é›²ç«¯åŒæ­¥é‡‘é‘°ã€‚", liveSyncBootstrapped: "å·²å•Ÿç”¨å³æ™‚åŒæ­¥ï¼Œè³‡æ–™å·²é€£æŽ¥é›²ç«¯ã€‚",
-          liveSyncAutoHint: "è®Šæ›´æœƒå³æ™‚ä¸Šå‚³è‡³ Supabaseã€‚å”¯è®€ç”¨æˆ¶åªä¸‹è¼‰ï¼›æœ‰ç·¨è¼¯æ¬Šé™çš„ç”¨æˆ¶æ‰æœƒä¸Šå‚³è®Šæ›´ã€‚",
-          cloudOnlyMode: "雲端資料庫模式", cloudOnlyHint: "業務資料只儲存在 Supabase（唔用瀏覽器快取）。所有電腦登入後會見到相同資料。",
           cloudOnlyLoading: "正在從 Supabase 載入資料…",
-          monthlyClearAll: "æ¸…ç©ºæ‰€æœ‰æœˆå ±è³‡æ–™",
-          monthlyClearAllConfirm: "åˆªé™¤æ‰€æœ‰æœˆå ±æ˜Žç´°åŠé è¨ˆæ‡‰æ”¶å¿«ç…§ï¼ˆæ‰€æœ‰å¹´ä»½ï¼‰ï¼Ÿç¤ºç¯„ï¼èˆŠè³‡æ–™äº¦æœƒå¾žé›²ç«¯ç§»é™¤ã€‚",
-          monthlyClearAllDone: "æœˆå ±è³‡æ–™å·²æ¸…ç©ºã€‚",
-          loginUsername: "ç”¨æˆ¶åç¨±", loginPassword: "å¯†ç¢¼", loginRemember: "è¨˜ä½æˆ‘", loginBtn: "ç™»å…¥", loginFail: "ç”¨æˆ¶åç¨±æˆ–å¯†ç¢¼éŒ¯èª¤ã€‚", loginInactive: "æ­¤å¸³è™Ÿå·²åœç”¨ã€‚", logout: "ç™»å‡º",
-          myAccountTitle: "æˆ‘çš„å¸³è™Ÿ", changePassword: "æ›´æ”¹å¯†ç¢¼", currentPassword: "ç¾æœ‰å¯†ç¢¼", newPassword: "æ–°å¯†ç¢¼", confirmPassword: "ç¢ºèªæ–°å¯†ç¢¼", passwordChanged: "å¯†ç¢¼å·²æ›´æ–°ã€‚", passwordMismatch: "å…©æ¬¡è¼¸å…¥çš„æ–°å¯†ç¢¼ä¸ä¸€è‡´ã€‚", passwordWrong: "ç¾æœ‰å¯†ç¢¼ä¸æ­£ç¢ºã€‚", userLoginId: "ç”¨æˆ¶åç¨±",
-          noDatabaseNote: "ç›®å‰å°šç„¡ä¼ºæœå™¨è³‡æ–™åº« â€” Excel åŒ¯å…¥åªæœƒæ›´æ–°ç€è¦½å™¨è³‡æ–™ã€‚ä¸Šå‚³å¾Œè«‹åœ¨é è¦½è¦–çª—æŒ‰ã€Œç¢ºèªåŒ¯å…¥ã€ã€‚"
+          cloudOnlyHint: "業務資料只儲存在 Supabase（唔用瀏覽器快取）。所有電腦登入後會見到相同資料。",
+          cloudOnlyMode: "雲端資料庫模式",
+          importSyncRetry: "重試同步",
+          importStatusDismiss: "關閉",
+          importSyncFail: "匯入已儲存於本機，但雲端同步失敗。請勿重新整理，先確認同步金鑰及狀態列。",
+          importSyncOk: "已同步至雲端，其他用戶稍後會看到。",
+          appTitle: "AIRLINK ERP", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_management_report: "管理層報表", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
+          baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
+          view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
+          filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
+          jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 問 Vendor／SI 報價 → 出 PO → 收貨及 Invoice → 付 Vendor／SI（應付）→ 工作完成 → 向客開 Invoice（應收）",
+          payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "分包商 (SI)", apBills: "應付單數",
+          apPayeeAutoHint: "選擇供應商／SI 後會自動帶入主檔資料，仍可為此單修改。",
+          markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "待付款", issueInvoiceToClient: "向客開立發票",
+          jobCompletedBanner: "工作已完成 — 可向客戶開立發票收款。", autoApPaidHint: "輸入付款日期會標記為已付款（綠色顯示）。",
+          settingsTitle: "設定", language: "介面語言", langEn: "英文", langZhTw: "繁體中文（台灣）", settingsSaved: "設定已儲存",
+          clientDetail: "客戶詳情", jobDetail: "工作詳情", vendorDetail: "供應商詳情", siDetail: "分包商詳情", arDetail: "應收詳情", apDetail: "應付詳情",
+          relatedJobs: "相關工作", relatedInvoices: "應收發票（向客戶）", relatedPo: "相關採購單", relatedAp: "應付單（供應商／分包商成本）", noJobs: "暫無工作", noInvoices: "暫無發票", noPo: "暫無 PO", noAp: "暫無應付單",
+          ownedClient: "所屬客戶", linkedJob: "關聯工作", markPaid: "標記已收款", paymentStatus: "付款狀態", paid: "已收款", awaitingPayment: "待收款", overdue: "逾期",
+          addClient: "+ 新增客戶", addJob: "+ 新增工作", addVendor: "+ 新增供應商", addSi: "+ 新增分包商", createAr: "+ 新增應收發票", createAp: "+ 新增應付單",
+          vendorNo: "供應商編號", siNo: "分包商編號",
+          actions: "操作", invoices: "發票數", clientGroup: "客戶（分組）", type: "類型", status: "狀態",
+          quotationNo: "報價單號", amount: "金額", currency: "幣別", description: "說明",
+          addQuotation: "+ 新增報價", addQuotationTitle: "新增報價單", editQuotation: "修改報價單", quotationDetail: "報價詳情",
+          quotationDate: "報價日期", validUntil: "有效期至", quotationStatus: "狀態",
+          ongoingHint: "幣別與 PO 金額來自應收發票（同一工作會加總）。點擊「修改」可變更已開票金額或備註，儲存後鎖定。",
+          ongoingListTitle: "進行中項目清單",
+          ongoingColJobNo: "工作編號", ongoingColNature: "工作性質", ongoingColCustomer: "客戶",
+          ongoingColProject: "專案名稱", ongoingColPo: "客戶 PO", ongoingColStart: "開始日期",
+          ongoingColCurrency: "幣別", ongoingColPoAmt: "PO 金額", ongoingColBilled: "已開票金額",
+          ongoingColBalance: "PO 餘額", ongoingColBalanceUsd: "餘額（USD）", ongoingColRemarks: "備註",
+          ongoingNatureHint: "（維護／服務／專案／貿易）",
+          ongoingTotalPoUsd: "PO 總額（USD）", ongoingTotalMaintUsd: "維護類總額（USD）",
+          ongoingTotalServiceUsd: "服務類總額（USD）", ongoingTotalProjectUsd: "專案類總額（USD）",
+          ongoingTotalTradeUsd: "貿易類總額（USD）", exportPdf: "匯出 PDF",
+          quotationSelectHint: "輸入狀態為 Accepted 的報價單號，離開欄位或按新增。一個工作可連結多張報價單。",
+          quotationNotAccepted: "找不到報價單，或狀態不是 Accepted。",
+          quotationNotFound: "此區域沒有這張報價單。",
+          quotationAlreadyLinked: "這張報價單已連結至工作 {job}。",
+          quotationMultiJobHint: "亦已連結工作：{jobs}",
+          jobQuotationLinesTitle: "已連結報價單",
+          jobQuotationAdd: "+ 新增報價單",
+          jobQuotationInputHint: "輸入 Accepted 報價單號，再離開欄位或按新增。",
+          quotationAmountTotal: "報價金額（總計）",
+          invoiceAmountTotal: "發票金額（總計）",
+          customerPoAmountTotal: "客戶 PO 金額（總計）",
+          jobCompleteCol: "工作完成",
+          arPaymentStatusAutoHint: "狀態自動更新：有收款日期 = 已收款；過 due date = 逾期；否則 = 待收款。",
+          apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；過 due date = 逾期；否則 = 待付款。",
+          jobPoLinesTitle: "客戶 PO 明細",
+          jobPoAddLine: "+ 新增 PO",
+          jobPoColNo: "PO 編號",
+          jobPoColAmount: "金額",
+          jobPoColDate: "收單日期",
+          jobPoColRemarks: "備註",
+          paymentStage: "付款階段",
+          paymentStageHint: "Deposit / Progress / Balance — 同一 Job 可開多張 AR 或 AP 分期單。",
+          duplicateInvoiceNo: "Invoice 編號 {no} 已存在於 {module}。",
+          duplicateQuotationNo: "報價單號 {no} 已存在。",
+          duplicateJobNo: "工作編號 {no} 已存在。",
+          jobAlreadyHasQuotation: "這個工作已連結報價單 {quotation}。",
+          quotationLinkedOk: "已對應 Accepted 報價單。",
+          monthlyReportTitle: "月報表",
+          monthlyReportHint: "全年各月 PO 收單、開票及預計應收（AR Expected = 下月到期日）。",
+          monthlyReportYear: "報表年份",
+          monthlyPoReceived: "本月 PO 收單",
+          monthlyInvoiceIssued: "本月開立發票",
+          monthlyArExpected: "預計應收",
+          monthlyArExpectedHint: "預計下月應收（例如 7 月欄顯示 8 月到期日）。未收的逾期項目會計入；已收款／已取消不計。月份結束後凍結，之後收款不會改變歷史月份。",
+          monthlyReportChartTitle: "{region} 月報表 {year}",
+          monthlyChartPo: "PO 收單", monthlyChartInvoice: "開立發票", monthlyChartArExpected: "預計應收",
+          monthlyTabReport: "報表", monthlyTabPoReceived: "PO 收單", monthlyTabArInvoice: "AR 發票",
+          monthlyColJobNo: "工作編號", monthlyColOtherCurrency: "幣別", monthlyColSourceAmount: "原幣金額", monthlyTotal: "合計",
+          monthlySyncFromJobs: "從工作同步", monthlySyncFromAr: "從應收同步",
+          monthlySyncReport: "同步月報",
+          monthlySyncReportDone: "已從工作及應收同步月報，PO／發票列已更新。已結束月份的預計應收維持凍結。",
+          monthlyReportSyncHint: "報表不會自動更新。修改工作或應收後，請點擊「同步月報」（或在 PO 收單／AR 發票頁籤分別同步）。",
+          monthlyPoDetailHint: "按月 PO — 工作編號、幣別、原幣 PO 金額（客戶 PO 金額）、換算成 {currency}。修改工作後請點擊「從工作同步」。報表頁使用 {currency} 合計。",
+          monthlyArDetailHint: "按月 AR — 工作編號、幣別、原幣發票金額、換算成 {currency}。報表頁使用 {currency} 合計。",
+          monthlySyncSaved: "已同步並儲存至本機瀏覽器，重新整理（F5）後仍會保留。",
+          monthlyStorageHint: "資料儲存在瀏覽器（localStorage），並非伺服器資料庫。請至「設定 → 備份」下載備份。匯入會套用目前右上角所選地區。",
+          monthlyExportPdf: "匯出 PDF",
+          allRegions: "全部地區",
+          paymentCancel: "已取消",
+          colJobNo: "工作編號", colCustomer: "客戶", colCustomerPo: "客戶 PO", colCustomerPoAmount: "客戶 PO 金額",
+          colInvoiceNo: "發票編號", colInvoiceDate: "發票日期", colInvoiceReceivedDate: "發票收到日期",
+          colInvoiceCurrency: "發票幣別", colInvoiceAmt: "發票金額", colDueDate: "到期日", colPayDate: "付款日期",
+          colCompanyName: "公司名稱", colPaymentTerms: "付款條件", colStartDate: "開始日期", colProjectName: "專案名稱",
+          colPayee: "付款對象", colRemarks: "備註", colOverdueDays: "逾期天數", colDays: "天數", colAmt: "金額", colDate: "日期",
+          colAccountDeptContact: "會計聯絡人", colBankCharge: "銀行手續費", colSwiftCode: "SWIFT 代碼",
+          colPaymentAdviceEmail: "付款通知電郵", colCustomerNo: "客戶編號",
+          colCompany: "公司名稱", colGstNo: "GST／統一編號", colPrimaryContact: "主要聯絡人",
+          colCompanyPhone: "公司電話", colMobilePhone: "手機", colEmail: "電子郵件", colPostalCode: "郵遞區號",
+          colName: "名稱", colBank: "銀行", colSwift: "SWIFT", colContact: "聯絡人",
+          importReading: "正在讀取檔案…",
+          importPreviewReady: "匯入預覽已準備好，請確認。",
+          storageSaveFailed: "無法儲存到瀏覽器，請檢查私隱設定或儲存空間。",
+          arOutstanding: "應收未結", apOutstanding: "應付未結", netPosition: "淨部位", dueSoon: "即將到期", overdueCount: "筆已逾期", pendingBills: "筆待處理", dueSoonHint: "未收款、即將到期",
+          topOverdue: "逾期發票排行", approvalQueue: "審批佇列", cashFlow: "現金流入 vs 流出（90 天）", arAging: "應收帳齡",
+          dashSubtitle: "管理層總覽 — 現金狀況及需要跟進的項目",
+          mgmtSubtitle: "老闆 BI — 毛利、客戶排行、工作類型利潤與 3 個月現金流預測",
+          mgmtFilterClient: "客戶", mgmtAllClients: "全部客戶", mgmtGroupCurrency: "集團本位幣", mgmtCompareCurrency: "對照貨幣",
+          mgmtGrossRevenue: "總收入", mgmtTotalCogs: "項目總成本", mgmtNetProfit: "淨利潤", mgmtGrossMargin: "毛利率",
+          mgmtRevenueHint: "已完成工作／Accepted 報價相關應收", mgmtCogsHint: "相關工作的供應商／分包商應付",
+          mgmtClientProfitShare: "此客戶佔公司利潤 {pct}%",
+          mgmtAggregatedRegions: "已匯總 {n} 個地區 · 折算為 {currency}",
+          mgmtTopClientsTitle: "客戶利潤排行榜", mgmtTopClientsHint: "條形長度 = 純利潤 · 點擊穿透分析 · 右側括號為毛利率",
+          mgmtJobTypeTitle: "按工作類型分類利潤", mgmtJobTypeHint: "維護／服務／專案／貿易各佔淨利潤比例",
+          mgmtCashForecastTitle: "3 個月現金流預測", mgmtCashForecastHint: "未收應收到期日 vs 未付應付到期日",
+          mgmtCashIn: "預計流入", mgmtCashOut: "預計流出", mgmtNetCashFlow: "淨現金流",
+          mgmtDryRunAlert: "流出大於流入 — 本月需準備資金，避免資金斷裂",
+          mgmtClientRiskTitle: "客戶收款風險", mgmtClientRiskHint: "此客戶未來 3 個月預計欠款與逾期應收",
+          mgmtOverdueAr: "逾期應收", mgmtExpectedInMonth: "當月預計收款",
+          mgmtRegionBreakdownTitle: "地區與客戶利潤明細", mgmtLocalAmount: "當地幣", mgmtConvertedAmount: "折算",
+          mgmtMarginPct: "毛利率", mgmtNatureProject: "專案", mgmtNatureService: "服務", mgmtNatureMaintenance: "維護", mgmtNatureTrade: "貿易",
+          mgmtNoQualifyingData: "此篩選範圍內沒有已完成／Accepted 的工作資料。",
+          mgmtClearClient: "返回全部客戶", mgmtShowingClient: "穿透分析：{name}",
+          dashCashIn: "現金流入（應收）", dashCashOut: "現金流出（應付）", dashCashInHint: "客戶未收款發票", dashCashOutHint: "供應商／分包商未付款", dashNetHint: "應收減應付",
+          dashActiveJobs: "進行中工作", dashActiveJobsHint: "開啟或進行中",
+          dashIncomeOut: "預期收入 vs 支出", dashIncomeOutHint: "按到期日 · 全年（1–12月）· 只計未結清",
+          dashIncomeOutH1: "1 – 6 月", dashIncomeOutH2: "7 – 12 月",
+          dashCashInLegend: "收入（應收到期）", dashCashOutLegend: "支出（應付到期）",
+          dashAllPaidHint: "此區域有記錄，但應收／應付已全部標記為已付款。",
+          dashRegionHint: "應收／應付資料在其他區域。請將「區域」改為 ALL 或對應區域。",
+          dashArDueSoon: "14 日內應收到期", dashApDueSoon: "14 日內應付到期",
+          dashOverdueAr: "逾期應收 — 催收", dashOverdueAp: "逾期應付 — 付款",
+          dashDueToday: "今日到期", dashDueInDays: "{n} 日後到期", dashDaysOverdue: "逾期 {n} 日",
+          dashNoDueSoon: "14 日內無到期項目", dashNoOverdue: "無逾期項目",
+          dashAgingCurrent: "未到期", dashAging1_30: "逾期 1–30 日", dashAging31_60: "逾期 31–60 日", dashAging61_90: "逾期 61–90 日", dashAging90plus: "逾期 90 日以上",
+          dashThisMonthIn: "本月應收到期", dashThisMonthOut: "本月應付到期", dashViewAll: "查看全部", dashDueDate: "到期",
+          dashGlobalMap: "跨地區財務世界地圖", dashGlobalMapHint: "全球地圖 · 下方為各地區應收佔比",
+          dashMapArTotal: "應收未結", dashMapActiveJobs: "進行中工作", dashMapOverdueAlert: "逾期應收 — 需跟進",
+          dashMapApTotal: "應付未結", dashMapNetRegion: "淨額（應收 − 應付）",
+          dashMapZoomIn: "放大", dashMapZoomOut: "縮小", dashMapZoomReset: "重設", dashMapZoomAsia: "亞太",
+          dashMapExpandHint: "點擊列展開詳情",
+          dashMapLegendHealthy: "健康", dashMapLegendCaution: "應付 > 應收", dashMapLegendAlert: "逾期應收", dashMapLegendEmpty: "無活動",
+          dashMapGoRegion: "切換至此地區",
+          editClient: "修改客戶", addClientTitle: "新增客戶", editJob: "修改工作", addJobTitle: "新增工作", editVendor: "修改供應商", addVendorTitle: "新增供應商", editSi: "修改分包商", addSiTitle: "新增分包商",
+          editAr: "修改應收發票", createArTitle: "新增應收發票", editAp: "修改應付單", createApTitle: "新增應付單", newTxTitle: "新增交易",
+          createArDesc: "建立應收發票", createApDesc: "建立應付單",
+          yes: "是", no: "否", goToAr: "前往應收", goToJob: "前往工作", goToAp: "前往應付",
+          paymentReceived: "收款日期", autoPaidHint: "輸入收款日期會自動設為已收款",
+          arDueAutoHint: "到期日依發票日期 + 客戶付款條款自動計算（可手動修改）。",
+          overviewTitle: "應收／應付總覽", overviewHint: "按發票日期篩選 · 金額以本位幣顯示",
+          overviewStartDate: "開始日期", overviewEndDate: "結束日期", overviewApply: "套用",
+          overviewInTotal: "流入（應收）", overviewOutTotal: "流出（應付）", overviewNet: "淨額",
+          overviewNoData: "此日期範圍內沒有應收／應付發票", overviewByInvoiceDate: "發票日期在範圍內",
+          overviewArCount: "應收發票", overviewApCount: "應付帳單", phoneNo: "電話", address: "地址",
+          overviewPaidTitle: "全年已收／已付", overviewPaidHint: "按收款／付款日期 · 本年度各月",
+          overviewArCollected: "應收已收", overviewApPaid: "應付已付", overviewArCollectedTotal: "全年應收已收", overviewApPaidTotal: "全年應付已付",
+          amtInCurrency: "折合 {ccy}",
+          amountManualOverride: "可手改", settingsLangHint: "切換後介面會即時更新為繁體中文（台灣）。",
+          invoiceAmountOrig: "金額（發票原幣）",           invoiceAmountHint: "供應商／客戶發票上的原幣金額，可以修改；修改後會按匯率重算本位幣。",
+          baseAmountHint: "一般 = 金額 × 匯率。若銀行實收、四捨五入不同，可在此手動修改。",
+          siPageHint: "分包商 (SI) 完成工作後向你開立 PO／發票，你在應付清單付款給對方。",
+          settingsGeneral: "一般", settingsManagement: "用戶管理", settingsAudit: "操作記錄",
+          worldTime: "世界時間", worldTimeHint: "依所選時區顯示（不跟電腦本機時間）。",
+          timezone: "時區", currentUser: "目前登入", switchUser: "切換用戶（示範）",
+          mgmtTitle: "用戶與權限管理", mgmtHint: "Root 管理員可新增用戶，並按模組設定檢視／新增／修改／刪除權限。",
+          addUser: "+ 新增用戶", editUser: "修改用戶", userName: "顯示名稱", userEmail: "電郵", userPassword: "密碼", userRole: "角色", roleRoot: "Root（最高權限）", roleUser: "一般用戶",
+          userActive: "啟用", accessRights: "存取權限", permView: "檢視", permAdd: "新增", permEdit: "修改", permDelete: "刪除",
+          auditTitle: "操作記錄", auditHint: "可按日期、用戶、模組、動作篩選，如同報表查詢。",
+          auditWhen: "時間（UTC 儲存）", auditUser: "用戶", auditModule: "模組", auditAction: "動作", auditEntity: "記錄", auditDetail: "詳情",
+          auditDateFrom: "開始日期", auditDateTo: "結束日期", auditSearch: "搜尋", auditReset: "重設篩選", auditNoRows: "沒有符合條件的記錄。",
+          actionCreate: "新增", actionUpdate: "修改", actionDelete: "刪除", actionMarkPaid: "標記已付款", actionUserCreate: "建立用戶", actionUserUpdate: "更新用戶",
+          confirmDelete: "確定刪除此記錄？", noPermission: "你沒有此操作權限。", rootOnly: "僅 Root 管理員可用。",
+          delete: "刪除", allUsers: "全部用戶", allModules: "全部模組", allActions: "全部動作",
+          permExport: "匯出", permImport: "匯入", exportData: "匯出資料", exportExcel: "匯出 Excel", exportTemplate: "下載範本",
+          importExcel: "匯入 Excel", importPreviewTitle: "匯入預覽", importConfirm: "確認匯入",
+          importRowCreate: "新增", importRowUpdate: "更新", importRowError: "錯誤", importSummary: "摘要",
+          importNoRows: "找不到有效資料列。", importFileError: "無法讀取檔案。",
+          actionExport: "匯出", actionImport: "匯入",           importModeHint: "已存在的主鍵會更新；新主鍵會新增。",
+          filterStatus: "篩選狀態", searchPlaceholder: "搜尋...", searchHint: "可搜發票號、客戶、工作編號、PO 等。",
+          searchHintClients: "可搜客戶編號、公司名稱、聯絡人、電郵、電話、地址等。",
+          searchHintQuotation: "可搜報價單號、客戶、工作編號、說明、狀態等。",
+          searchHintJob: "可搜工作編號、客戶、PO、報價單號、說明、狀態等。",
+          searchHintVendors: "可搜供應商編號、名稱、電郵、銀行、SWIFT、聯絡人等。",
+          searchHintSi: "可搜分包商編號、名稱、電郵、銀行、SWIFT、聯絡人等。",
+          region: "地區", regionAccess: "地區權限",           regionScopeHint: "您新增的資料會標記為目前地區；ALL 顯示您有權限的所有地區。",
+          regionDataHint: "新增資料會儲存於目前所選地區（選 ALL 時使用您有權限的第一個地區）。",
+          importRegionHint: "已匯入至地區：{region}。請確認右上角「地區」設為 ALL 或正確地區後才會看到資料。",
+          settingsBackup: "備份與還原", backupTitle: "備份與還原", backupHint: "所有 LIST 資料只儲存在此瀏覽器。下載備份檔可搬到另一部電腦／瀏覽器。還原會覆蓋目前所有資料。",
+          backupDownload: "下載備份", restoreUpload: "還原備份", restoreConfirm: "還原會覆蓋此瀏覽器內所有 ERP 資料，確定繼續？",
+          restoreDone: "還原完成，頁面將重新載入。", restoreInvalid: "備份檔案無效。", backupDone: "已下載備份檔。",
+          cloudSyncTitle: "雲端資料庫（Supabase）", cloudSyncHint: "上傳／下載經由 API 連接 Supabase。同步金鑰須與 Vercel 環境變數 ERP_SYNC_SECRET 相同。",
+          cloudSyncKey: "雲端同步金鑰", cloudSyncKeyPlaceholder: "與伺服器 ERP_SYNC_SECRET 相同",
+          cloudPush: "上傳至雲端", cloudPull: "從雲端下載", cloudPushDone: "已上傳至 Supabase。", cloudPullDone: "已從雲端下載，正在重新載入…",
+          cloudSyncFail: "雲端同步失敗", cloudNoBackup: "資料庫內沒有備份。", cloudNotConfigured: "伺服器尚未設定雲端同步。",
+          liveSyncTitle: "即時多人同步", liveSyncHint: "每筆資料（客戶、工作、應收應付等）自動寫入 Supabase，其他用戶幾秒內會看到更新。需先執行 SQL migration 002。",
+          liveSyncEnable: "啟用即時同步（自動上傳及下載）", liveSyncOk: "即時同步運作中", liveSyncReadOnly: "即時同步運作中（唯讀）", liveSyncSyncing: "同步中…", liveSyncError: "同步錯誤",
+          liveSyncLast: "上次同步", liveSyncNeedKey: "請先輸入雲端同步金鑰。", liveSyncBootstrapped: "已啟用即時同步，資料已連接雲端。",
+          liveSyncAutoHint: "開啟網站即自動同步。唯讀用戶只下載；有編輯權限的用戶才會上傳變更。",
+          loginUsername: "用戶名稱", loginPassword: "密碼", loginRemember: "記住我", loginBtn: "登入", loginFail: "用戶名稱或密碼錯誤。", loginInactive: "此帳號已停用。", logout: "登出",
+          myAccountTitle: "我的帳號", changePassword: "更改密碼", currentPassword: "現有密碼", newPassword: "新密碼", confirmPassword: "確認新密碼", passwordChanged: "密碼已更新。", passwordMismatch: "兩次輸入的新密碼不一致。", passwordWrong: "現有密碼不正確。", userLoginId: "用戶名稱",
+          noDatabaseNote: "目前尚無伺服器資料庫 — Excel 匯入只會更新瀏覽器資料。上傳後請在預覽視窗按「確認匯入」。"
         },
       };
 
@@ -2152,7 +2146,7 @@
                 <span className="text-slate-600">{t("filterJob")}:</span>
                 <Select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} className="w-48 bg-white">
                   <option value="all">{t("all")}</option>
-                  {jobs.map((j) => <option key={j.id} value={String(j.id)}>{j.job_no} Â· {j.company}</option>)}
+                  {jobs.map((j) => <option key={j.id} value={String(j.id)}>{j.job_no} · {j.company}</option>)}
                 </Select>
               </label>
             )}
@@ -2173,7 +2167,7 @@
             )}
             <span className="text-xs text-slate-500">
               {showSearch ? t(searchHintKey) : mode === "ap" && jobFilter !== "all" ? t("filterJobHint") : t("filterClientHint")}
-              {showDisplayMode ? " Â· " + t("groupHint") : ""}
+              {showDisplayMode ? " · " + t("groupHint") : ""}
             </span>
           </div>
         );
@@ -3041,7 +3035,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-09b";
+        const ERP_BUILD_ID = "airlink-2026-07-09c";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3060,7 +3054,7 @@
 
         function isImportStatusSticky(msg) {
           if (!msg) return false;
-          return msg === t("importSyncFail") || msg.includes("é›²ç«¯åŒæ­¥å¤±æ•—") || msg.toLowerCase().includes("cloud sync failed");
+          return msg === t("importSyncFail") || msg.includes("雲端同步失敗") || msg.toLowerCase().includes("cloud sync failed");
         }
 
         useEffect(() => {
@@ -3828,13 +3822,13 @@
           if (clientModal.mode === "add") {
             if (!guardPermission("clients", "add")) return;
             setClients([{ id: nextErpRecordId(clients), region: regionForNewRecord(), ...data }, ...clients]);
-            logAudit("clients", "create", data.company, `Created client ${data.customer_no} Â· ${data.company}`);
+            logAudit("clients", "create", data.company, `Created client ${data.customer_no} · ${data.company}`);
           } else {
             if (!guardPermission("clients", "edit")) return;
             const old = clients.find((c) => c.id === clientModal.id);
             setClients(clients.map((c) => (c.id === clientModal.id ? { ...c, ...data } : c)));
             if (old) syncCompanyName(old.company, data.company);
-            logAudit("clients", "update", data.company, `Updated client ${data.customer_no} Â· ${data.company}`);
+            logAudit("clients", "update", data.company, `Updated client ${data.customer_no} · ${data.company}`);
           }
           setClientModal(null);
         }
@@ -4195,7 +4189,7 @@
           if (vendorModal.mode === "add") {
             if (!guardPermission("vendors", "add")) return;
             setVendors([{ id: nextErpRecordId(vendors), region: regionForNewRecord(), ...data }, ...vendors]);
-            logAudit("vendors", "create", data.vendor_no, `Created vendor ${data.vendor_no} Â· ${data.name}`);
+            logAudit("vendors", "create", data.vendor_no, `Created vendor ${data.vendor_no} · ${data.name}`);
           } else {
             if (!guardPermission("vendors", "edit")) return;
             const old = vendors.find((v) => v.id === vendorModal.id);
@@ -4203,7 +4197,7 @@
             if (old && old.name !== data.name) {
               setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "Vendor" ? { ...b, company_name: data.name } : b)));
             }
-            logAudit("vendors", "update", data.vendor_no, `Updated vendor ${data.vendor_no} Â· ${data.name}`);
+            logAudit("vendors", "update", data.vendor_no, `Updated vendor ${data.vendor_no} · ${data.name}`);
           }
           setVendorModal(null);
         }
@@ -4222,7 +4216,7 @@
           if (siModal.mode === "add") {
             if (!guardPermission("si", "add")) return;
             setSis([{ id: nextErpRecordId(sis), region: regionForNewRecord(), ...data }, ...sis]);
-            logAudit("si", "create", data.si_no, `Created SI ${data.si_no} Â· ${data.name}`);
+            logAudit("si", "create", data.si_no, `Created SI ${data.si_no} · ${data.name}`);
           } else {
             if (!guardPermission("si", "edit")) return;
             const old = sis.find((s) => s.id === siModal.id);
@@ -4230,7 +4224,7 @@
             if (old && old.name !== data.name) {
               setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "SI" ? { ...b, company_name: data.name } : b)));
             }
-            logAudit("si", "update", data.si_no, `Updated SI ${data.si_no} Â· ${data.name}`);
+            logAudit("si", "update", data.si_no, `Updated SI ${data.si_no} · ${data.name}`);
           }
           setSiModal(null);
         }
@@ -5431,13 +5425,13 @@
               }
             }
             if (syncOk && liveSyncEnabled && erpSyncKey.trim()) {
-              setImportStatus(summary.replace("\n", " Â· ") + " Â· " + t("importSyncOk"));
+              setImportStatus(summary.replace("\n", " · ") + " · " + t("importSyncOk"));
               alert(summary + "\n" + t("importSyncOk"));
             } else if (!syncOk) {
               setImportStatus(t("importSyncFail"));
               alert(summary + "\n\n" + t("importSyncFail"));
             } else {
-              setImportStatus(summary.replace("\n", " Â· "));
+              setImportStatus(summary.replace("\n", " · "));
               alert(summary);
             }
           })();
@@ -5771,7 +5765,7 @@
                 {client && (
                   <div className="mb-4 p-3 bg-slate-50 rounded-lg text-sm">
                     <p className="font-medium">{t("ownedClient")}</p>
-                    <p><LinkBtn onClick={() => { setPage("clients"); setDetailPanel({ type: "client", id: client.id }); }}>{client.customer_no} Â· {client.company}</LinkBtn> Â· {client.primary_contact}</p>
+                    <p><LinkBtn onClick={() => { setPage("clients"); setDetailPanel({ type: "client", id: client.id }); }}>{client.customer_no} · {client.company}</LinkBtn> · {client.primary_contact}</p>
                   </div>
                 )}
                 <h4 className="font-semibold mb-2">{t("relatedInvoices")} ({relatedAr.length})</h4>
@@ -5829,7 +5823,7 @@
             if (!s) return null;
             const relatedAp = getApBySi(s.name);
             return (
-              <Modal title={t("siDetail") + " - " + (s.si_no ? s.si_no + " Â· " : "") + s.name} onClose={() => setDetailPanel(null)} wide>
+              <Modal title={t("siDetail") + " - " + (s.si_no ? s.si_no + " · " : "") + s.name} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                   <div><p className="text-slate-500">{t("siNo")}</p><p className="font-medium">{s.si_no || "-"}</p></div>
                   <div><p className="text-slate-500">Name</p><p className="font-medium">{s.name}</p></div>
@@ -5845,7 +5839,7 @@
                 {relatedAp.length ? (
                   <>
                     <p className="text-xs text-slate-500 mb-2">
-                      {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} Â· {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
+                      {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
                     </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
                     <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">{t("colPayDate")}</th><th className="p-2 text-left"></th></tr></thead>
@@ -5880,7 +5874,7 @@
             if (!v) return null;
             const relatedAp = getApByVendor(v.name);
             return (
-              <Modal title={t("vendorDetail") + " - " + (v.vendor_no ? v.vendor_no + " Â· " : "") + v.name} onClose={() => setDetailPanel(null)} wide>
+              <Modal title={t("vendorDetail") + " - " + (v.vendor_no ? v.vendor_no + " · " : "") + v.name} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                   <div><p className="text-slate-500">{t("vendorNo")}</p><p className="font-medium">{v.vendor_no || "-"}</p></div>
                   <div><p className="text-slate-500">Name</p><p className="font-medium">{v.name}</p></div>
@@ -5896,7 +5890,7 @@
                 {relatedAp.length ? (
                   <>
                     <p className="text-xs text-slate-500 mb-2">
-                      {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} Â· {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
+                      {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
                     </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
                     <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">{t("colPayDate")}</th><th className="p-2 text-left">{t("colRemarks")}</th><th className="p-2 text-left"></th></tr></thead>
@@ -5943,7 +5937,7 @@
                   <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</p></div>
                   <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(arStatus)}>{paymentStatusLabel(arStatus, t)}</span></p></div>
                 </div>
-                {job && <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm"><p className="font-medium">{t("linkedJob")}</p><p><LinkBtn onClick={() => navigateTo("job", { client: r.customer, highlightId: job.id })}>{job.job_no}</LinkBtn> Â· {job.job_type} Â· <span className={"px-1.5 py-0.5 rounded text-xs " + jobStatusClass(job.status)}>{job.status}</span></p></div>}
+                {job && <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm"><p className="font-medium">{t("linkedJob")}</p><p><LinkBtn onClick={() => navigateTo("job", { client: r.customer, highlightId: job.id })}>{job.job_no}</LinkBtn> · {job.job_type} · <span className={"px-1.5 py-0.5 rounded text-xs " + jobStatusClass(job.status)}>{job.status}</span></p></div>}
                 <DetailActions
                   editLabel={t("edit")}
                   deleteLabel={t("delete")}
@@ -6146,7 +6140,7 @@
               </nav>
               <div className={"shrink-0 mt-3 pt-3 border-t border-slate-800 " + (sidebarCollapsed ? "px-0" : "px-0.5")}>
                 {!sidebarCollapsed && getCurrentUser() && (
-                  <p className="text-[10px] text-slate-500 truncate mb-2 px-1">{getCurrentUser().name} Â· {getCurrentUser().email}</p>
+                  <p className="text-[10px] text-slate-500 truncate mb-2 px-1">{getCurrentUser().name} · {getCurrentUser().email}</p>
                 )}
                 <button
                   type="button"
@@ -6197,7 +6191,7 @@
                     {page === "si" && t("nav_si")}
                   </h2>
                   <p className="text-sm text-slate-500">
-                    {page === "dashboard" ? t("dashSubtitle") : page === "management_report" ? t("mgmtSubtitle") : page === "overview" ? t("overviewHint") : page === "ongoing" ? t("ongoingHint") : page === "monthly_report" ? t("monthlyReportHint") : <>{t("baseCurrency")}: {regionListCurrency} Â· {t("region")}: {regionLabel(activeRegion, lang)} Â· {t("hintClickRow")}</>}
+                    {page === "dashboard" ? t("dashSubtitle") : page === "management_report" ? t("mgmtSubtitle") : page === "overview" ? t("overviewHint") : page === "ongoing" ? t("ongoingHint") : page === "monthly_report" ? t("monthlyReportHint") : <>{t("baseCurrency")}: {regionListCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-nowrap">
@@ -6245,23 +6239,23 @@
                     <DashGradientCard
                       title={t("dashCashIn")}
                       value={money(arTotal)}
-                      hint={regionListCurrency + " Â· " + t("dashCashInHint")}
-                      badge={overdueArCount > 0 ? overdueArCount + " " + t("overdue") + " Â· " + money(overdueArTotal) : null}
+                      hint={regionListCurrency + " · " + t("dashCashInHint")}
+                      badge={overdueArCount > 0 ? overdueArCount + " " + t("overdue") + " · " + money(overdueArTotal) : null}
                       gradient={DASH_GRADIENTS.blue}
                       icon={<DashCardIcon><path d="M3 3v18h18" /><path d="M7 16l4-8 4 5 4-9" /></DashCardIcon>}
                     />
                     <DashGradientCard
                       title={t("dashCashOut")}
                       value={money(apTotal)}
-                      hint={regionListCurrency + " Â· " + t("dashCashOutHint")}
-                      badge={overdueApCount > 0 ? overdueApCount + " " + t("overdue") + " Â· " + money(overdueApTotal) : null}
+                      hint={regionListCurrency + " · " + t("dashCashOutHint")}
+                      badge={overdueApCount > 0 ? overdueApCount + " " + t("overdue") + " · " + money(overdueApTotal) : null}
                       gradient={DASH_GRADIENTS.redOrange}
                       icon={<DashCardIcon><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><path d="M6 15h.01" /><path d="M10 15h4" /></DashCardIcon>}
                     />
                     <DashGradientCard
                       title={t("netPosition")}
                       value={money(netPosition)}
-                      hint={regionListCurrency + " Â· " + t("dashNetHint")}
+                      hint={regionListCurrency + " · " + t("dashNetHint")}
                       badge={t("dashThisMonthIn") + ": " + money(thisMonthIn) + "  |  " + t("dashThisMonthOut") + ": " + money(thisMonthOut)}
                       gradient={netPosition >= 0 ? DASH_GRADIENTS.purple : DASH_GRADIENTS.redOrange}
                       icon={<DashCardIcon><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /><path d="M12 8v8" /></DashCardIcon>}
@@ -6282,7 +6276,7 @@
                       <div className="flex flex-wrap items-start justify-between gap-2 mb-3 shrink-0">
                         <div>
                           <h3 className="font-semibold text-lg text-slate-800">{t("dashIncomeOut")}</h3>
-                          <p className="text-xs text-slate-500 mt-0.5">{t("dashIncomeOutHint")} Â· {regionListCurrency}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{t("dashIncomeOutHint")} · {regionListCurrency}</p>
                         </div>
                         <div className="flex items-center gap-3 text-xs shrink-0">
                           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(135deg, #1d4ed8, #38bdf8)" }}></span>{t("dashCashInLegend")}</span>
@@ -6483,7 +6477,7 @@
                                     {reg.clients.map((c) => (
                                       <li key={c.company} className="text-xs flex justify-between gap-2">
                                         <button type="button" onClick={() => setMgmtClientFilter(c.company)} className="text-left text-blue-700 hover:underline truncate">{c.company}</button>
-                                        <span className="shrink-0 tabular-nums text-slate-600">{money(c.profit)} Â· {c.marginPct.toFixed(0)}%</span>
+                                        <span className="shrink-0 tabular-nums text-slate-600">{money(c.profit)} · {c.marginPct.toFixed(0)}%</span>
                                       </li>
                                     ))}
                                   </ul>
@@ -6610,7 +6604,7 @@
                     <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
                       <div>
                         <h3 className="font-semibold text-lg text-slate-800">{t("overviewPaidTitle")}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">{t("overviewPaidHint")} Â· {regionListCurrency}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{t("overviewPaidHint")} · {regionListCurrency}</p>
                       </div>
                       <div className="flex items-center gap-3 text-xs shrink-0">
                         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(135deg, #1d4ed8, #38bdf8)" }}></span>{t("overviewArCollected")}</span>
@@ -6657,7 +6651,7 @@
                         <Input type="date" value={overviewTo} onChange={(e) => setOverviewTo(e.target.value)} className="h-9" />
                       </Field>
                     </div>
-                    <p className="text-xs text-slate-500 mb-2">{t("overviewByInvoiceDate")} Â· {regionListCurrency}</p>
+                    <p className="text-xs text-slate-500 mb-2">{t("overviewByInvoiceDate")} · {regionListCurrency}</p>
                     <OverviewDonutChart inTotal={overviewReport.inTotal} outTotal={overviewReport.outTotal} currency={regionListCurrency} t={t} />
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-100">
                       <div className="rounded-lg bg-blue-50/80 px-3 py-2 text-center">
@@ -7158,7 +7152,7 @@
                     <div className="p-4 border-b flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <h3 className="font-semibold text-lg">{t("monthlyReportChartTitle").replace("{region}", activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang)).replace("{year}", monthlyReportYear)}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5">{t("monthlyReportHint")} Â· {regionListCurrency}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{t("monthlyReportHint")} · {regionListCurrency}</p>
                         <p className="text-[10px] text-slate-400 mt-1">{t("monthlyStorageHint")}</p>
                       </div>
                       <div className="flex flex-nowrap items-center gap-2 shrink-0">
@@ -7286,12 +7280,12 @@
                         </Select>
                       </Field>
                       <p className="text-sm text-slate-500">{t("worldTimeHint")}</p>
-                      <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{timezoneLabel(worldTimeZone, lang)} Â· {formatWorldTime(worldClock, worldTimeZone, lang)}</p>
+                      <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{timezoneLabel(worldTimeZone, lang)} · {formatWorldTime(worldClock, worldTimeZone, lang)}</p>
                       <p className="text-sm text-slate-500">{t("regionDataHint")}</p>
                       <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("noDatabaseNote")}</p>
                       <div className="pt-4 mt-4 border-t border-slate-200 space-y-3">
                         <h4 className="font-semibold text-slate-800">{t("myAccountTitle")}</h4>
-                        <p className="text-sm text-slate-500">{getCurrentUser() ? (getCurrentUser().name + " Â· " + getCurrentUser().email) : "â€”"}</p>
+                        <p className="text-sm text-slate-500">{getCurrentUser() ? (getCurrentUser().name + " · " + getCurrentUser().email) : "â€”"}</p>
                         <form onSubmit={changeMyPassword} className="space-y-3 max-w-md">
                           <Field label={t("currentPassword")}><Input required type="password" autoComplete="current-password" value={pwForm.current} onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })} /></Field>
                           <Field label={t("newPassword")}><Input required type="password" autoComplete="new-password" value={pwForm.next} onChange={(e) => setPwForm({ ...pwForm, next: e.target.value })} /></Field>
@@ -7324,8 +7318,8 @@
                         {cloudDbStatus && (
                           <p className={"text-xs font-medium " + (cloudDbStatus.database && cloudDbStatus.database.ok ? "text-emerald-700" : "text-amber-700")}>
                             API: {cloudDbStatus.status || "â€”"}
-                            {cloudDbStatus.database ? " Â· DB: " + (cloudDbStatus.database.ok ? (cloudDbStatus.database.provider || "ok") : "offline") : ""}
-                            {cloudDbStatus.cloud_sync_configured === false ? " Â· " + t("cloudNotConfigured") : ""}
+                            {cloudDbStatus.database ? " · DB: " + (cloudDbStatus.database.ok ? (cloudDbStatus.database.provider || "ok") : "offline") : ""}
+                            {cloudDbStatus.cloud_sync_configured === false ? " · " + t("cloudNotConfigured") : ""}
                           </p>
                         )}
                         {isRoot() && (
@@ -7357,7 +7351,7 @@
                         {liveSyncEnabled && (
                           <p className={"text-xs font-medium " + (liveSyncStatus === "error" ? "text-red-600" : liveSyncStatus === "syncing" ? "text-blue-600" : "text-emerald-700")}>
                             {liveSyncStatus === "syncing" ? t("liveSyncSyncing") : liveSyncStatus === "error" ? t("liveSyncError") : (canLiveSyncPush() ? t("liveSyncOk") : t("liveSyncReadOnly"))}
-                            {liveSyncLastAt ? " Â· " + t("liveSyncLast") + " " + liveSyncLastAt.toLocaleTimeString() : ""}
+                            {liveSyncLastAt ? " · " + t("liveSyncLast") + " " + liveSyncLastAt.toLocaleTimeString() : ""}
                           </p>
                         )}
                       </div>
@@ -7570,7 +7564,7 @@
 
               {importPreview && ReactDOM.createPortal(
                 <Modal title={t("importPreviewTitle") + " â€” " + moduleLabel(importPreview.module, t)} onClose={() => { setImportPreview(null); setImportStatus(""); }} wide>
-                  <p className="text-sm text-slate-500 mb-3">{t("importModeHint")} Â· {importPreview.fileName}</p>
+                  <p className="text-sm text-slate-500 mb-3">{t("importModeHint")} · {importPreview.fileName}</p>
                   {importPreview.parseErrors && importPreview.parseErrors.length > 0 ? (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
                       <p className="text-sm font-semibold text-red-800 mb-2">{t("importRowError")}</p>
@@ -7667,7 +7661,7 @@
                         setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, client_id: e.target.value, company: client ? client.company : "" } });
                       }}>
                         <option value="">Select Client</option>
-                        {clients.filter((c) => c.region === regionForNewRecord()).map((c) => <option key={c.id} value={c.id}>{c.customer_no} Â· {c.company}</option>)}
+                        {clients.filter((c) => c.region === regionForNewRecord()).map((c) => <option key={c.id} value={c.id}>{c.customer_no} · {c.company}</option>)}
                       </Select>
                     </Field>
                     <Field label={t("quotationDate")}><Input type="date" value={quotationModal.data.quotation_date} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_date: e.target.value } })} /></Field>
@@ -7686,7 +7680,7 @@
                     <Field label={t("colJobNo")}>
                       <Select value={quotationModal.data.job_no || ""} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, job_no: e.target.value } })}>
                         <option value="">â€”</option>
-                        {scopedJobs.map((j) => <option key={j.id} value={j.job_no}>{j.job_no} Â· {j.company}</option>)}
+                        {scopedJobs.map((j) => <option key={j.id} value={j.job_no}>{j.job_no} · {j.company}</option>)}
                       </Select>
                     </Field>
                     <div className="md:col-span-2"><Field label={t("description")}><Input value={quotationModal.data.description} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, description: e.target.value } })} /></Field></div>
@@ -7705,7 +7699,7 @@
                         setJobModal({ ...jobModal, data: { ...jobModal.data, client_id: e.target.value, company: client ? client.company : "" } });
                       }}>
                         <option value="">Select Client</option>
-                        {clients.filter((c) => c.region === (jobModal.mode === "edit" ? (jobs.find((j) => j.id === jobModal.id)?.region || regionForNewRecord()) : regionForNewRecord())).map((c) => <option key={c.id} value={c.id}>{c.customer_no} Â· {c.company}</option>)}
+                        {clients.filter((c) => c.region === (jobModal.mode === "edit" ? (jobs.find((j) => j.id === jobModal.id)?.region || regionForNewRecord()) : regionForNewRecord())).map((c) => <option key={c.id} value={c.id}>{c.customer_no} · {c.company}</option>)}
                       </Select>
                     </Field>
                     <Field label="Type">
@@ -7736,7 +7730,7 @@
                       </div>
                       <datalist id="erp-accepted-quotations">
                         {scopedQuotations.filter((q) => q.status === "Accepted").map((q) => (
-                          <option key={q.id} value={q.quotation_no}>{q.company} Â· {money(q.amount)} {q.currency}{q.job_no ? " Â· " + q.job_no : ""}</option>
+                          <option key={q.id} value={q.quotation_no}>{q.company} · {money(q.amount)} {q.currency}{q.job_no ? " · " + q.job_no : ""}</option>
                         ))}
                       </datalist>
                       {jobQuotationNos(jobModal.data).length ? (
@@ -7870,7 +7864,7 @@
                         setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, job_id: e.target.value, job_no: job ? job.job_no : "", customer: job ? job.company : arModal.data.customer, customer_po: job ? job.customer_po : arModal.data.customer_po }) });
                       }}>
                         <option value="">Select Job (optional)</option>
-                        {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} Â· {j.company} Â· {j.job_type}</option>)}
+                        {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company} · {j.job_type}</option>)}
                       </Select>
                     </Field>
                     <Field label="Customer"><Input value={arModal.data.customer} onChange={(e) => setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, customer: e.target.value }) })} /></Field>
@@ -7933,7 +7927,7 @@
                         setApModal({ ...apModal, data: { ...apModal.data, job_id: e.target.value, job_no: job ? job.job_no : "" } });
                       }}>
                         <option value="">Select Job</option>
-                        {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} Â· {j.company}</option>)}
+                        {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company}</option>)}
                       </Select>
                     </Field>
                     <Field label={t("payeeType")}>
@@ -7949,7 +7943,7 @@
                           setApModal({ ...apModal, data: { ...apModal.data, ...patch } });
                         }}>
                           <option value="">Select SI</option>
-                          {scopedSis.map((s) => <option key={s.id} value={s.id}>{s.si_no ? s.si_no + " Â· " : ""}{s.name}</option>)}
+                          {scopedSis.map((s) => <option key={s.id} value={s.id}>{s.si_no ? s.si_no + " · " : ""}{s.name}</option>)}
                         </Select>
                       ) : (
                         <Select required value={apModal.data.company_name} onChange={(e) => {
@@ -7957,7 +7951,7 @@
                           setApModal({ ...apModal, data: { ...apModal.data, ...patch } });
                         }}>
                           <option value="">Select Vendor</option>
-                          {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.vendor_no ? v.vendor_no + " Â· " : ""}{v.name}</option>)}
+                          {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.vendor_no ? v.vendor_no + " · " : ""}{v.name}</option>)}
                         </Select>
                       )}
                       <p className="text-[10px] text-slate-400 mt-1">{t("apPayeeAutoHint")}</p>
