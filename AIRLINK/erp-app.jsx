@@ -333,7 +333,7 @@
             rows: [],
             errors: [
               "Missing columns: " + missing.map((c) => c.header).join(", "),
-              "Tip: use Export Template (.xlsx) â€” sheet \"" + schema.sheetName + "\". Keep row 1 headers unchanged."
+              "Tip: use Export Template (.xlsx) — sheet \"" + schema.sheetName + "\". Keep row 1 headers unchanged."
             ]
           };
         }
@@ -393,15 +393,22 @@
 
       const I18N = {
         en: {
+          cloudOnlyLoading: "Loading data from Supabase…",
+          cloudOnlyHint: "Business data is stored in Supabase only (not browser cache). All PCs see the same data after login.",
+          cloudOnlyMode: "Cloud database mode",
+          importSyncRetry: "Retry sync",
+          importStatusDismiss: "Dismiss",
+          importSyncFail: "Import saved locally but cloud sync failed. Do not refresh until sync succeeds (check sync key / status bar).",
+          importSyncOk: "Data synced to cloud — other users will see it shortly.",
           appTitle: "AIRLINK ERP", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
           filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
-          jobFlowHint: "Client â†’ Job (quote) â†’ Customer PO â†’ Vendor/SI quotes â†’ Our PO â†’ Delivery & invoices â†’ Pay Vendor/SI (AP) â†’ Job Complete â†’ Invoice Client (AR)",
+          jobFlowHint: "Client → Job (quote) → Customer PO → Vendor/SI quotes → Our PO → Delivery & invoices → Pay Vendor/SI (AP) → Job Complete → Invoice Client (AR)",
           payeeType: "Payee Type", payeeVendor: "Vendor", payeeSi: "SI (Subcontractor)", apBills: "AP Bills",
           apPayeeAutoHint: "Auto-filled from Vendor/SI master when you select payee. You can still edit for this bill.",
           markApPaid: "Mark Paid", apPaid: "Paid", apUnpaid: "Unpaid", issueInvoiceToClient: "Issue Invoice to Client",
-          jobCompletedBanner: "Job completed â€” you can now issue an invoice to the client.", autoApPaidHint: "Entering pay date marks this bill as paid (green).",
+          jobCompletedBanner: "Job completed — you can now issue an invoice to the client.", autoApPaidHint: "Entering pay date marks this bill as paid (green).",
           settingsTitle: "Settings", language: "Language", langEn: "English", langZhTw: "Traditional Chinese (Taiwan)", settingsSaved: "Settings saved",
           clientDetail: "Client Details", jobDetail: "Job Details", vendorDetail: "Vendor Details", siDetail: "SI Details", arDetail: "AR Details", apDetail: "AP Details",
           relatedJobs: "Related Jobs", relatedInvoices: "AR Invoices (to Client)", relatedPo: "Related PO", relatedAp: "AP Bills (Vendor/SI costs)", noJobs: "No jobs", noInvoices: "No invoices", noPo: "No PO", noAp: "No AP bills",
@@ -443,7 +450,7 @@
           jobPoColDate: "Received Date",
           jobPoColRemarks: "Remarks",
           paymentStage: "Payment Stage",
-          paymentStageHint: "Deposit / Progress / Balance â€” use multiple AR or AP invoices per job for installments.",
+          paymentStageHint: "Deposit / Progress / Balance — use multiple AR or AP invoices per job for installments.",
           duplicateInvoiceNo: "Invoice No. {no} already exists in {module}.",
           duplicateQuotationNo: "Quotation No. {no} already exists.",
           duplicateJobNo: "Job No. {no} already exists.",
@@ -464,10 +471,10 @@
           monthlySyncReport: "Sync Report",
           monthlySyncReportDone: "Report updated from Jobs and AR. PO / Invoice rows refreshed. Past months' AR Expected stay frozen.",
           monthlyReportSyncHint: "Report does not auto-update. After editing Jobs or AR, click Sync Report (or sync on PO Received / AR Invoice tabs).",
-          monthlyPoDetailHint: "PO by month â€” Job#, currency, original PO amount (Customer PO Amount), then converted to {currency}. Click Sync from Jobs after editing jobs. Report tab uses the {currency} TOTAL.",
-          monthlyArDetailHint: "AR by month â€” Job#, currency, original invoice amount, then converted to {currency}. Report tab uses the {currency} TOTAL.",
+          monthlyPoDetailHint: "PO by month — Job#, currency, original PO amount (Customer PO Amount), then converted to {currency}. Click Sync from Jobs after editing jobs. Report tab uses the {currency} TOTAL.",
+          monthlyArDetailHint: "AR by month — Job#, currency, original invoice amount, then converted to {currency}. Report tab uses the {currency} TOTAL.",
           monthlySyncSaved: "Synced and saved to this browser. Data remains after refresh (F5).",
-          monthlyStorageHint: "Data is saved in your browser (localStorage), not a server database. Use Settings â†’ Backup to save a copy. Import applies to the current region filter.",
+          monthlyStorageHint: "Data is saved in your browser (localStorage), not a server database. Use Settings → Backup to save a copy. Import applies to the current region filter.",
           monthlyExportPdf: "Export PDF",
           allRegions: "All Regions",
           paymentCancel: "Cancel",
@@ -481,18 +488,13 @@
           colCompany: "Company", colGstNo: "GST#", colPrimaryContact: "Primary Contact",
           colCompanyPhone: "Company Phone #", colMobilePhone: "Mobile Phone #", colEmail: "E-mail", colPostalCode: "Postal Code",
           colName: "Name", colBank: "Bank", colSwift: "SWIFT", colContact: "Contact",
-          importReading: "Reading fileâ€¦",
-          importPreviewReady: "Import preview ready â€” please confirm.",
-          importLoading: "Reading Excel file, please waitâ€¦",
-          importPickFile: "Select an Excel file (.xlsx)â€¦",
-          sortClickHint: "Click to sort",
-          importXlsxMissing: "Excel library failed to load. Please refresh the page or check your network.",
-          importParseFailed: "Could not read this file. Use .xlsx template from Export Template.",
+          importReading: "Reading file…",
+          importPreviewReady: "Import preview ready — please confirm.",
           storageSaveFailed: "Could not save to browser storage. Check privacy settings or disk space.",
           arOutstanding: "AR Outstanding", apOutstanding: "AP Outstanding", netPosition: "Net Position", dueSoon: "Due Soon", overdueCount: "overdue", pendingBills: "bills pending", dueSoonHint: "unpaid, due soon",
           topOverdue: "Top Overdue Invoices", approvalQueue: "Approval Queue", cashFlow: "Cash In vs Cash Out (90 Days)", arAging: "A/R Aging",
-          dashSubtitle: "Executive summary â€” cash position & what needs attention",
-          mgmtSubtitle: "Boss BI â€” profit, client margins, job-type mix & 3-month cash forecast",
+          dashSubtitle: "Executive summary — cash position & what needs attention",
+          mgmtSubtitle: "Boss BI — profit, client margins, job-type mix & 3-month cash forecast",
           mgmtFilterClient: "Client", mgmtAllClients: "All Clients", mgmtGroupCurrency: "Group Base Currency", mgmtCompareCurrency: "Compare Currency",
           mgmtGrossRevenue: "Gross Revenue", mgmtTotalCogs: "Total COGS", mgmtNetProfit: "Net Profit", mgmtGrossMargin: "Gross Margin",
           mgmtRevenueHint: "AR from Completed jobs / Accepted quotations", mgmtCogsHint: "Vendor & SI AP on qualifying jobs",
@@ -502,7 +504,7 @@
           mgmtJobTypeTitle: "Profit by Job Type", mgmtJobTypeHint: "Share of net profit by Maintenance / Service / Project / Trade",
           mgmtCashForecastTitle: "3-Month Cash Flow Forecast", mgmtCashForecastHint: "Unpaid AR due dates vs unpaid AP due dates",
           mgmtCashIn: "Cash In", mgmtCashOut: "Cash Out", mgmtNetCashFlow: "Net Cash Flow",
-          mgmtDryRunAlert: "Cash out exceeds cash in â€” prepare funding this month",
+          mgmtDryRunAlert: "Cash out exceeds cash in — prepare funding this month",
           mgmtClientRiskTitle: "Client Collection Risk", mgmtClientRiskHint: "Unpaid & overdue AR for this client over the next 3 months",
           mgmtOverdueAr: "Overdue AR", mgmtExpectedInMonth: "Expected in month",
           mgmtRegionBreakdownTitle: "Profit by Region & Client", mgmtLocalAmount: "Local", mgmtConvertedAmount: "Converted",
@@ -512,19 +514,19 @@
           dashCashIn: "Cash In (AR)", dashCashOut: "Cash Out (AP)", dashCashInHint: "Unpaid client invoices", dashCashOutHint: "Unpaid vendor / SI bills", dashNetHint: "Receivables minus payables",
           dashActiveJobs: "Active Jobs", dashActiveJobsHint: "Open or in progress",
           dashIncomeOut: "Expected Income vs Out", dashIncomeOutHint: "Grouped by due date · full calendar year · unpaid only",
-          dashIncomeOutH1: "Jan â€“ Jun", dashIncomeOutH2: "Jul â€“ Dec",
+          dashIncomeOutH1: "Jan – Jun", dashIncomeOutH2: "Jul – Dec",
           dashCashInLegend: "Income (AR due)", dashCashOutLegend: "Out (AP due)",
           dashAllPaidHint: "Records exist but all AR/AP are marked paid for this region.",
           dashRegionHint: "AR/AP records exist in other regions. Try switching Region to ALL or the matching region.",
           dashArDueSoon: "AR Due Within 14 Days", dashApDueSoon: "AP Due Within 14 Days",
-          dashOverdueAr: "Overdue AR â€” Collect", dashOverdueAp: "Overdue AP â€” Pay",
+          dashOverdueAr: "Overdue AR — Collect", dashOverdueAp: "Overdue AP — Pay",
           dashDueToday: "Due today", dashDueInDays: "Due in {n}d", dashDaysOverdue: "{n}d overdue",
           dashNoDueSoon: "Nothing due in the next 14 days", dashNoOverdue: "No overdue items",
-          dashAgingCurrent: "Not yet due", dashAging1_30: "1â€“30 days overdue", dashAging31_60: "31â€“60 days overdue", dashAging61_90: "61â€“90 days overdue", dashAging90plus: "90+ days overdue",
+          dashAgingCurrent: "Not yet due", dashAging1_30: "1–30 days overdue", dashAging31_60: "31–60 days overdue", dashAging61_90: "61–90 days overdue", dashAging90plus: "90+ days overdue",
           dashThisMonthIn: "AR due this month", dashThisMonthOut: "AP due this month", dashViewAll: "View all", dashDueDate: "Due",
           dashGlobalMap: "Global Financial Map", dashGlobalMapHint: "World map · regional AR share below",
-          dashMapArTotal: "AR Outstanding", dashMapActiveJobs: "Active Jobs", dashMapOverdueAlert: "Overdue AR â€” action needed",
-          dashMapApTotal: "AP Outstanding", dashMapNetRegion: "Net (AR âˆ’ AP)",
+          dashMapArTotal: "AR Outstanding", dashMapActiveJobs: "Active Jobs", dashMapOverdueAlert: "Overdue AR — action needed",
+          dashMapApTotal: "AP Outstanding", dashMapNetRegion: "Net (AR − AP)",
           dashMapZoomIn: "Zoom in", dashMapZoomOut: "Zoom out", dashMapZoomReset: "Reset", dashMapZoomAsia: "Asia-Pacific",
           dashMapExpandHint: "Click row to expand details",
           dashMapLegendHealthy: "Healthy", dashMapLegendCaution: "AP > AR", dashMapLegendAlert: "Overdue AR", dashMapLegendEmpty: "No activity",
@@ -540,31 +542,28 @@
           overviewInTotal: "Cash In (AR)", overviewOutTotal: "Cash Out (AP)", overviewNet: "Net",
           overviewNoData: "No AR/AP invoices in this date range", overviewByInvoiceDate: "Invoice date within range",
           overviewArCount: "AR invoices", overviewApCount: "AP bills", phoneNo: "Phone", address: "Address",
-          overviewPaidTitle: "Collected vs Paid â€” Full Year", overviewPaidHint: "Grouped by payment date · current calendar year",
+          overviewPaidTitle: "Collected vs Paid — Full Year", overviewPaidHint: "Grouped by payment date · current calendar year",
           overviewArCollected: "AR Collected", overviewApPaid: "AP Paid", overviewArCollectedTotal: "Total AR Collected", overviewApPaidTotal: "Total AP Paid",
           amtInCurrency: "Amt in {ccy}",
           amountManualOverride: "editable", settingsLangHint: "The interface language updates immediately when you switch.",
-          invoiceAmountOrig: "Amount (invoice currency)", invoiceAmountHint: "Original amount on vendor/client invoice. Editable â€” updates base amount when rate changes.",
-          baseAmountHint: "Usually Amount Ã— Exchange Rate. Override here if bank/rounding differs.",
-          siPageHint: "SI completes work and sends PO/Invoice to you â€” pay them via AP List.",
+          invoiceAmountOrig: "Amount (invoice currency)", invoiceAmountHint: "Original amount on vendor/client invoice. Editable — updates base amount when rate changes.",
+          baseAmountHint: "Usually Amount × Exchange Rate. Override here if bank/rounding differs.",
+          siPageHint: "SI completes work and sends PO/Invoice to you — pay them via AP List.",
           settingsGeneral: "General", settingsManagement: "User Management", settingsAudit: "Audit Log",
           worldTime: "World Time", worldTimeHint: "Uses selected timezone (not your computer clock).",
           timezone: "Timezone", currentUser: "Signed in as", switchUser: "Switch user (demo)",
           mgmtTitle: "User & Access Management", mgmtHint: "Root admin can create users and assign view / add / edit / delete rights per module.",
           addUser: "+ Add User", editUser: "Edit User", userName: "Display Name", userEmail: "Email", userPassword: "Password", userRole: "Role", roleRoot: "Root (full access)", roleUser: "User",
           userActive: "Active", accessRights: "Access Rights", permView: "View", permAdd: "Add", permEdit: "Edit", permDelete: "Delete",
-          auditTitle: "Activity Log", auditHint: "Filter by date, user, module or action â€” like a report.",
+          auditTitle: "Activity Log", auditHint: "Filter by date, user, module or action — like a report.",
           auditWhen: "When (UTC stored)", auditUser: "User", auditModule: "Module", auditAction: "Action", auditEntity: "Record", auditDetail: "Details",
           auditDateFrom: "From date", auditDateTo: "To date", auditSearch: "Search", auditReset: "Reset filters", auditNoRows: "No log entries match your filters.",
-          actionCreate: "Create", actionUpdate: "Update", actionDelete: "Delete", actionMarkPaid: "Mark Paid", actionUserCreate: "User Created", actionUserUpdate: "User Updated", actionUserDelete: "User Deleted",
-          confirmDelete: "Delete this record?", confirmDeleteUser: "Delete this user account? They will no longer be able to log in.", cannotDeleteSelf: "You cannot delete your own account.", cannotDeleteRoot: "The root account cannot be deleted.",
-          noPermission: "You do not have permission for this action.", rootOnly: "Root admin only.",
+          actionCreate: "Create", actionUpdate: "Update", actionDelete: "Delete", actionMarkPaid: "Mark Paid", actionUserCreate: "User Created", actionUserUpdate: "User Updated",
+          confirmDelete: "Delete this record?", noPermission: "You do not have permission for this action.", rootOnly: "Root admin only.",
           delete: "Delete", allUsers: "All users", allModules: "All modules", allActions: "All actions",
           permExport: "Export", permImport: "Import", exportData: "Export Data", exportExcel: "Export Excel", exportTemplate: "Download Template",
           importExcel: "Import Excel", importPreviewTitle: "Import Preview", importConfirm: "Confirm Import",
           importRowCreate: "New", importRowUpdate: "Update", importRowError: "Error", importSummary: "Summary",
-          importSyncOk: "Data synced to cloud â€” other users will see it shortly.", importSyncFail: "Import saved locally but cloud sync failed. Do not refresh until sync succeeds (check sync key / status bar).",
-          importStatusDismiss: "Dismiss", importSyncRetry: "Retry sync",
           importNoRows: "No valid rows found.", importFileError: "Could not read file.",
           actionExport: "Export", actionImport: "Import",           importModeHint: "Existing keys will be updated; new keys will be created.",
           filterStatus: "Filter Status", searchPlaceholder: "Search...", searchHint: "Matches invoice no., client, job no., PO, etc.",
@@ -579,22 +578,17 @@
           settingsBackup: "Backup & Restore", backupTitle: "Backup & Restore", backupHint: "All lists are stored in this browser only (localStorage). Download a backup file to move data to another PC or browser. Restore replaces all current data.",
           backupDownload: "Download Backup", restoreUpload: "Restore from Backup", restoreConfirm: "Restore will REPLACE all current ERP data in this browser. Continue?",
           restoreDone: "Restore completed. Page will reload.", restoreInvalid: "Invalid backup file.", backupDone: "Backup file downloaded.",
-          cloudSyncTitle: "Cloud Database (Supabase)", cloudSyncHint: "Push/Pull uses your server API. Set the same sync key in Vercel â†’ ERP_SYNC_SECRET.",
+          cloudSyncTitle: "Cloud Database (Supabase)", cloudSyncHint: "Push/Pull uses your server API. Set the same sync key in Vercel → ERP_SYNC_SECRET.",
           cloudSyncKey: "Cloud Sync Key", cloudSyncKeyPlaceholder: "Same as ERP_SYNC_SECRET on server",
-          cloudPush: "Push to Cloud", cloudPull: "Pull from Cloud", cloudPushDone: "Uploaded to Supabase.", cloudPullDone: "Downloaded from cloud. Reloadingâ€¦",
+          cloudPush: "Push to Cloud", cloudPull: "Pull from Cloud", cloudPushDone: "Uploaded to Supabase.", cloudPullDone: "Downloaded from cloud. Reloading…",
           cloudSyncFail: "Cloud sync failed", cloudNoBackup: "No backup found in database.", cloudNotConfigured: "Server cloud sync not configured.",
           liveSyncTitle: "Live Multi-User Sync", liveSyncHint: "Each record syncs to Supabase automatically. All users see changes within a few seconds. Requires sync key + SQL migration 002.",
-          liveSyncEnable: "Enable live sync (auto push & pull)", liveSyncOk: "Live sync active", liveSyncReadOnly: "Live sync active (read-only)", liveSyncSyncing: "Syncingâ€¦", liveSyncError: "Sync error",
+          liveSyncEnable: "Enable live sync (auto push & pull)", liveSyncOk: "Live sync active", liveSyncReadOnly: "Live sync active (read-only)", liveSyncSyncing: "Syncing…", liveSyncError: "Sync error",
           liveSyncLast: "Last sync", liveSyncNeedKey: "Enter cloud sync key first.", liveSyncBootstrapped: "Live sync enabled. Data connected to cloud.",
-          liveSyncAutoHint: "Changes upload to Supabase immediately. View-only users download only; editors upload changes.",
-          cloudOnlyMode: "Cloud database mode", cloudOnlyHint: "Business data is stored in Supabase only (not browser cache). All PCs see the same data after login.",
-          cloudOnlyLoading: "Loading data from Supabase…",
-          monthlyClearAll: "Clear all monthly data",
-          monthlyClearAllConfirm: "Delete ALL monthly report lines and AR-expected snapshots (all years)? Demo / old data will be removed from cloud too.",
-          monthlyClearAllDone: "Monthly report data cleared.",
+          liveSyncAutoHint: "Sync starts automatically when you open the app. View-only users download only; editors upload changes.",
           loginUsername: "Username", loginPassword: "Password", loginRemember: "Remember me", loginBtn: "Login", loginFail: "Invalid username or password.", loginInactive: "This account is disabled.", logout: "Logout",
           myAccountTitle: "My Account", changePassword: "Change Password", currentPassword: "Current password", newPassword: "New password", confirmPassword: "Confirm new password", passwordChanged: "Password updated.", passwordMismatch: "New passwords do not match.", passwordWrong: "Current password is incorrect.", userLoginId: "Username",
-          noDatabaseNote: "No server database yet â€” Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
+          noDatabaseNote: "No server database yet — Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
         },
         zh_TW: {
           cloudOnlyLoading: "正在從 Supabase 載入資料…",
@@ -868,7 +862,7 @@
         return paymentStatusClass(deriveApPaymentStatus(bill));
       }
 
-      // Lucide-style sidebar icons (stroke 2, rounded caps â€” distinct from previous Heroicons set)
+      // Lucide-style sidebar icons (stroke 2, rounded caps — distinct from previous Heroicons set)
       const NAV_ICON_SVG = { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
 
       const NAV_ICONS = {
@@ -2746,7 +2740,7 @@
                     </svg>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-400 text-center py-6">Map data loadingâ€¦</p>
+                  <p className="text-xs text-slate-400 text-center py-6">Map data loading…</p>
                 )}
                 {display && (
                   <div className="absolute bottom-1 left-1 right-1 z-10 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg p-2.5 shadow-md text-xs">
@@ -2814,7 +2808,7 @@
                             className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
                             onClick={(e) => { e.stopPropagation(); onRegionClick && onRegionClick(stat.regionId); }}
                           >
-                            {t("dashMapGoRegion")} â†’
+                            {t("dashMapGoRegion")} →
                           </button>
                         </div>
                       )}
@@ -2904,7 +2898,7 @@
                   {t("loginRemember")}
                 </label>
                 {error && <p className="erp-login-error">{error}</p>}
-                <button type="submit" className="erp-login-btn" disabled={submitting || !cloudReady}>{submitting ? "â€¦" : (!cloudReady ? "â€¦" : t("loginBtn"))}</button>
+                <button type="submit" className="erp-login-btn" disabled={submitting || !cloudReady}>{submitting ? "…" : (!cloudReady ? "…" : t("loginBtn"))}</button>
               </form>
             </div>
           </div>
@@ -3035,7 +3029,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-09c";
+        const ERP_BUILD_ID = "airlink-2026-07-09d";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -5668,7 +5662,7 @@
                     <h4 className="font-semibold mb-2">{t("relatedPo")} ({pos.length})</h4>
                     {pos.length ? (
                       <ul className="text-sm space-y-1">{pos.map((po) => (
-                        <li key={po}><LinkBtn onClick={() => navigateToArByPo(c.company, po)}>{po}</LinkBtn> <span className="text-slate-400 text-xs">â†’ {t("goToAr")}</span></li>
+                        <li key={po}><LinkBtn onClick={() => navigateToArByPo(c.company, po)}>{po}</LinkBtn> <span className="text-slate-400 text-xs">→ {t("goToAr")}</span></li>
                       ))}</ul>
                     ) : <p className="text-slate-500">{t("noPo")}</p>}
                   </div>
@@ -6203,7 +6197,7 @@
                   </div>
                   <div className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg border border-slate-200 bg-white">
                     <span className="text-[10px] text-slate-400 whitespace-nowrap">{t("currentUser")}</span>
-                    <span className="text-xs font-semibold text-slate-700 whitespace-nowrap max-w-[8rem] truncate">{getCurrentUser() ? getCurrentUser().name : "â€”"}</span>
+                    <span className="text-xs font-semibold text-slate-700 whitespace-nowrap max-w-[8rem] truncate">{getCurrentUser() ? getCurrentUser().name : "—"}</span>
                     <span className="text-slate-300">|</span>
                     <button type="button" onClick={onLogout} className="h-9 px-3 text-xs font-semibold rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 whitespace-nowrap">{t("logout")}</button>
                   </div>
@@ -6234,7 +6228,7 @@
                       {t("dashAllPaidHint")}
                     </div>
                   )}
-                  {/* KPI â€” Boss sees cash position at a glance */}
+                  {/* KPI — Boss sees cash position at a glance */}
                   <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     <DashGradientCard
                       title={t("dashCashIn")}
@@ -6309,7 +6303,7 @@
                     )}
                   </section>
 
-                  {/* Due soon â€” AR & AP side by side */}
+                  {/* Due soon — AR & AP side by side */}
                   <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <article className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                       <div className="px-4 py-3 border-b bg-emerald-50/60 flex justify-between items-center">
@@ -7285,7 +7279,7 @@
                       <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("noDatabaseNote")}</p>
                       <div className="pt-4 mt-4 border-t border-slate-200 space-y-3">
                         <h4 className="font-semibold text-slate-800">{t("myAccountTitle")}</h4>
-                        <p className="text-sm text-slate-500">{getCurrentUser() ? (getCurrentUser().name + " · " + getCurrentUser().email) : "â€”"}</p>
+                        <p className="text-sm text-slate-500">{getCurrentUser() ? (getCurrentUser().name + " · " + getCurrentUser().email) : "—"}</p>
                         <form onSubmit={changeMyPassword} className="space-y-3 max-w-md">
                           <Field label={t("currentPassword")}><Input required type="password" autoComplete="current-password" value={pwForm.current} onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })} /></Field>
                           <Field label={t("newPassword")}><Input required type="password" autoComplete="new-password" value={pwForm.next} onChange={(e) => setPwForm({ ...pwForm, next: e.target.value })} /></Field>
@@ -7317,7 +7311,7 @@
                         <p className="text-sm text-slate-500">{t("cloudSyncHint")}</p>
                         {cloudDbStatus && (
                           <p className={"text-xs font-medium " + (cloudDbStatus.database && cloudDbStatus.database.ok ? "text-emerald-700" : "text-amber-700")}>
-                            API: {cloudDbStatus.status || "â€”"}
+                            API: {cloudDbStatus.status || "—"}
                             {cloudDbStatus.database ? " · DB: " + (cloudDbStatus.database.ok ? (cloudDbStatus.database.provider || "ok") : "offline") : ""}
                             {cloudDbStatus.cloud_sync_configured === false ? " · " + t("cloudNotConfigured") : ""}
                           </p>
@@ -7563,7 +7557,7 @@
               )}
 
               {importPreview && ReactDOM.createPortal(
-                <Modal title={t("importPreviewTitle") + " â€” " + moduleLabel(importPreview.module, t)} onClose={() => { setImportPreview(null); setImportStatus(""); }} wide>
+                <Modal title={t("importPreviewTitle") + " — " + moduleLabel(importPreview.module, t)} onClose={() => { setImportPreview(null); setImportStatus(""); }} wide>
                   <p className="text-sm text-slate-500 mb-3">{t("importModeHint")} · {importPreview.fileName}</p>
                   {importPreview.parseErrors && importPreview.parseErrors.length > 0 ? (
                     <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
@@ -7679,7 +7673,7 @@
                     </Field>
                     <Field label={t("colJobNo")}>
                       <Select value={quotationModal.data.job_no || ""} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, job_no: e.target.value } })}>
-                        <option value="">â€”</option>
+                        <option value="">—</option>
                         {scopedJobs.map((j) => <option key={j.id} value={j.job_no}>{j.job_no} · {j.company}</option>)}
                       </Select>
                     </Field>
@@ -7876,7 +7870,7 @@
                     <Field label={t("colInvoiceNo")}><Input required value={arModal.data.invoice_no} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_no: e.target.value } })} /></Field>
                     <Field label={t("paymentStage")}>
                       <Select value={arModal.data.payment_stage || ""} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, payment_stage: e.target.value } })}>
-                        {PAYMENT_STAGES.map((s) => <option key={s || "none"} value={s}>{s || "â€”"}</option>)}
+                        {PAYMENT_STAGES.map((s) => <option key={s || "none"} value={s}>{s || "—"}</option>)}
                       </Select>
                       <p className="text-[10px] text-slate-400 mt-1">{t("paymentStageHint")}</p>
                     </Field>
@@ -7959,7 +7953,7 @@
                     <Field label={t("colInvoiceNo")}><Input required value={apModal.data.invoice_no} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_no: e.target.value } })} /></Field>
                     <Field label={t("paymentStage")}>
                       <Select value={apModal.data.payment_stage || ""} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payment_stage: e.target.value } })}>
-                        {PAYMENT_STAGES.map((s) => <option key={s || "none"} value={s}>{s || "â€”"}</option>)}
+                        {PAYMENT_STAGES.map((s) => <option key={s || "none"} value={s}>{s || "—"}</option>)}
                       </Select>
                       <p className="text-[10px] text-slate-400 mt-1">{t("paymentStageHint")}</p>
                     </Field>
