@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/AIRLINK/(.*)", "destination": "/AIRLINK/$1" },
+    { "source": "/world-map-data.js", "destination": "/world-map-data.js" },
+    { "source": "/", "destination": "/AIRLINK/index.html" },
+    { "source": "/ui", "destination": "/AIRLINK/index.html" }
+  ]
+}
