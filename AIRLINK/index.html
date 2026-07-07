@@ -158,7 +158,7 @@
     <script>
       (async function bootErpApp() {
         var el = document.getElementById("app");
-        var BUILD = "airlink-2026-07-09a";
+        var BUILD = "airlink-2026-07-09b";
         try {
           if (typeof Babel === "undefined") throw new Error("Babel not loaded");
           var url = "/AIRLINK/erp-app.jsx?v=" + BUILD;
@@ -166,7 +166,12 @@
           var res = await fetch(url);
           if (!res.ok) throw new Error("Failed to load " + url + " (HTTP " + res.status + ")");
           var code = await res.text();
-          var compiled = Babel.transform(code, { presets: ["react"], filename: "erp-app.jsx" }).code;
+          var compiled = Babel.transform(code, {
+            presets: [["react", { runtime: "classic" }]],
+            sourceType: "script",
+            filename: "erp-app.jsx"
+          }).code;
+          if (/^\s*import\s/m.test(compiled)) throw new Error("Babel compile produced import statements — check react runtime setting");
           var s = document.createElement("script");
           s.textContent = compiled;
           document.body.appendChild(s);
