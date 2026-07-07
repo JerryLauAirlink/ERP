@@ -721,6 +721,7 @@
           permExport: "Export", permImport: "Import", exportData: "Export Data", exportExcel: "Export Excel", exportTemplate: "Download Template",
           importExcel: "Import Excel", importPreviewTitle: "Import Preview", importConfirm: "Confirm Import",
           importRowCreate: "New", importRowUpdate: "Update", importRowError: "Error", importSummary: "Summary",
+          importSyncOk: "Data synced to cloud — other users will see it shortly.", importSyncFail: "Import saved locally but cloud sync failed. Do not refresh until sync succeeds (check sync key / status bar).",
           importNoRows: "No valid rows found.", importFileError: "Could not read file.",
           actionExport: "Export", actionImport: "Import",           importModeHint: "Existing keys will be updated; new keys will be created.",
           filterStatus: "Filter Status", searchPlaceholder: "Search...", searchHint: "Matches invoice no., client, job no., PO, etc.",
@@ -921,6 +922,7 @@
           permExport: "匯出", permImport: "匯入", exportData: "匯出資料", exportExcel: "匯出 Excel", exportTemplate: "下載範本",
           importExcel: "匯入 Excel", importPreviewTitle: "匯入預覽", importConfirm: "確認匯入",
           importRowCreate: "新增", importRowUpdate: "更新", importRowError: "錯誤", importSummary: "摘要",
+          importSyncOk: "已同步至雲端，其他用戶稍後會看到。", importSyncFail: "匯入已儲存於本機，但雲端同步失敗。請勿重新整理，先確認同步金鑰及狀態列。",
           importNoRows: "找不到有效資料列。", importFileError: "無法讀取檔案。",
           actionExport: "匯出", actionImport: "匯入",           importModeHint: "已存在的主鍵會更新；新主鍵會新增。",
           filterStatus: "篩選狀態", searchPlaceholder: "搜尋...", searchHint: "可搜發票號、客戶、工作編號、PO 等。",
@@ -3148,7 +3150,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-08b";
+        const ERP_BUILD_ID = "airlink-2026-07-08c";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -4982,6 +4984,30 @@
           markSyncedSingleton("settings", buildSharedSettings());
         }
 
+        function markSyncedFromSnapshot(snap) {
+          if (!snap) return;
+          if (snap.clients) markSyncedArray("clients", snap.clients);
+          if (snap.jobs) markSyncedArray("jobs", snap.jobs);
+          if (snap.quotations) markSyncedArray("quotations", snap.quotations);
+          if (snap.vendors) markSyncedArray("vendors", snap.vendors);
+          if (snap.sis) markSyncedArray("sis", snap.sis);
+          if (snap.arInvoices) markSyncedArray("ar_invoices", snap.arInvoices);
+          if (snap.apBills) markSyncedArray("ap_bills", snap.apBills);
+        }
+
+        function collectChangesFromSnapshot(snap) {
+          if (!snap) return [];
+          const changes = [];
+          if (snap.clients) changes.push(...computeChangesForArray("clients", snap.clients));
+          if (snap.jobs) changes.push(...computeChangesForArray("jobs", snap.jobs));
+          if (snap.quotations) changes.push(...computeChangesForArray("quotations", snap.quotations));
+          if (snap.vendors) changes.push(...computeChangesForArray("vendors", snap.vendors));
+          if (snap.sis) changes.push(...computeChangesForArray("sis", snap.sis));
+          if (snap.arInvoices) changes.push(...computeChangesForArray("ar_invoices", snap.arInvoices));
+          if (snap.apBills) changes.push(...computeChangesForArray("ap_bills", snap.apBills));
+          return changes;
+        }
+
         function collectAllLiveChanges() {
           const changes = [];
           changes.push(...computeChangesForArray("clients", clients));
@@ -5095,44 +5121,60 @@
           setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
         }
 
+        function remoteArrayToChanges(arr) {
+          return (arr || []).map((r) => ({
+            entity_id: r.id,
+            payload: stripSyncMeta(r),
+            is_deleted: false,
+            updated_at: r.updated_at || r._syncAt || ""
+          }));
+        }
+
+        function mergeFullWithLocal(local, remoteArr) {
+          return mergeArrayByRemote(local || [], remoteArrayToChanges(remoteArr));
+        }
+
         function applyFullLiveEntities(body) {
           const e = body.entities || {};
           const singletons = body.singletons || {};
           liveApplyingRemoteRef.current = true;
-          setClients(ensureRegionOnRecords(e.clients || []));
-          setJobs(ensureJobsQuotations(ensureRegionOnRecords(e.jobs || [])));
-          setQuotations(ensureRegionOnRecords(e.quotations || []));
-          setVendors(ensureVendorNumbers(ensureRegionOnRecords(e.vendors || [])));
-          setSis(ensureSiNumbers(ensureRegionOnRecords(e.sis || [])));
-          setArInvoices(ensureRegionOnRecords(e.ar_invoices || []));
-          setApBills(ensureRegionOnRecords(e.ap_bills || []));
-          if (e.users) setUsers(e.users);
-          setAuditLogs(e.audit_logs || []);
-          setMonthlyPoLines(e.monthly_po_lines || []);
-          setMonthlyArLines(e.monthly_ar_lines || []);
+          setClients((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.clients)));
+          setJobs((prev) => ensureJobsQuotations(ensureRegionOnRecords(mergeFullWithLocal(prev, e.jobs))));
+          setQuotations((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.quotations)));
+          setVendors((prev) => ensureVendorNumbers(ensureRegionOnRecords(mergeFullWithLocal(prev, e.vendors))));
+          setSis((prev) => ensureSiNumbers(ensureRegionOnRecords(mergeFullWithLocal(prev, e.sis))));
+          setArInvoices((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.ar_invoices)));
+          setApBills((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.ap_bills)));
+          if (e.users) setUsers((prev) => mergeFullWithLocal(prev, e.users));
+          setAuditLogs((prev) => mergeFullWithLocal(prev, e.audit_logs));
+          setMonthlyPoLines((prev) => mergeFullWithLocal(prev, e.monthly_po_lines));
+          setMonthlyArLines((prev) => mergeFullWithLocal(prev, e.monthly_ar_lines));
           setMonthlyArExpectedSnapshots(singletons.monthly_ar_expected || {});
           if (singletons.settings) applySharedSettings(singletons.settings);
           liveServerVersionRef.current = body.server_version || 0;
           setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
         }
 
-        async function flushLiveSyncPush() {
-          if (!liveSyncEnabled || !canLiveSyncPush() || liveApplyingRemoteRef.current) return;
-          if (!erpSyncKey.trim()) return;
-          const changes = collectAllLiveChanges();
-          if (!changes.length) return;
+        async function flushLiveSyncPush(snapshotOverride) {
+          if (!liveSyncEnabled || !canLiveSyncPush() || liveApplyingRemoteRef.current) return false;
+          if (!erpSyncKey.trim()) return false;
+          const changes = snapshotOverride ? collectChangesFromSnapshot(snapshotOverride) : collectAllLiveChanges();
+          if (!changes.length) return true;
           try {
             setLiveSyncStatus("syncing");
             await pushLiveChangesInBatches(changes);
-            markAllSyncedFromState();
+            if (snapshotOverride) markSyncedFromSnapshot(snapshotOverride);
+            else markAllSyncedFromState();
             setLiveSyncLastAt(new Date());
             setLiveSyncStatus("ok");
+            return true;
           } catch (err) {
             setLiveSyncStatus("error");
             console.warn("Live sync push failed", err);
             if (String(err.message || "").includes("401") || String(err.message || "").includes("403")) {
               setImportStatus(t("liveSyncNeedKey"));
             }
+            throw err;
           }
         }
 
@@ -5164,11 +5206,21 @@
             if (!statusRes.ok) throw new Error(status.detail || statusRes.statusText);
             liveServerVersionRef.current = status.server_version || 0;
             if ((status.entity_count || 0) === 0) {
-              applyFullLiveEntities({
-                server_version: status.server_version || 0,
-                entities: {},
-                singletons: {}
-              });
+              const hasLocal = clients.length + jobs.length + quotations.length + vendors.length + sis.length + arInvoices.length + apBills.length;
+              if (hasLocal && canLiveSyncPush() && erpSyncKey.trim()) {
+                setLiveSyncReady(true);
+                await flushLiveSyncPush();
+                setLiveSyncLastAt(new Date());
+                setLiveSyncStatus("ok");
+                return true;
+              }
+              if (!hasLocal) {
+                applyFullLiveEntities({
+                  server_version: status.server_version || 0,
+                  entities: {},
+                  singletons: {}
+                });
+              }
             } else {
               const fullRes = await fetch("/api/sync/full");
               const full = await fullRes.json().catch(() => ({}));
@@ -5436,7 +5488,7 @@
             setQuotations(nextQuotations);
           }
 
-          persistErpLists({
+          const importSnap = {
             clients: nextClients,
             jobs: nextJobs,
             quotations: module === "job" ? nextQuotationsFromJobs : (module === "quotation" ? nextQuotations : quotations),
@@ -5444,15 +5496,34 @@
             sis: nextSis,
             arInvoices: nextAr,
             apBills: nextAp
-          });
+          };
+          persistErpLists(importSnap);
 
           logAudit(module, "import", fileName, `Imported ${created} new, ${updated} updated, ${preview.length - valid.length} errors`);
           setImportPreview(null);
-          scheduleLiveSyncPush(true);
           const regionNote = t("importRegionHint").replace("{region}", activeRegion === "ALL" ? t("allRegions") : regionLabel(activeRegion, lang));
           const summary = t("importSummary") + ": " + created + " " + t("importRowCreate") + ", " + updated + " " + t("importRowUpdate") + "\n" + regionNote;
-          setImportStatus(summary.replace("\n", " · "));
-          alert(summary);
+          (async () => {
+            let syncOk = true;
+            if (liveSyncEnabled && canLiveSyncPush() && erpSyncKey.trim()) {
+              try {
+                await flushLiveSyncPush(importSnap);
+              } catch (err) {
+                syncOk = false;
+                console.warn("Import cloud sync failed", err);
+              }
+            }
+            if (syncOk && liveSyncEnabled && erpSyncKey.trim()) {
+              setImportStatus(summary.replace("\n", " · ") + " · " + t("importSyncOk"));
+              alert(summary + "\n" + t("importSyncOk"));
+            } else if (!syncOk) {
+              setImportStatus(t("importSyncFail"));
+              alert(summary + "\n\n" + t("importSyncFail"));
+            } else {
+              setImportStatus(summary.replace("\n", " · "));
+              alert(summary);
+            }
+          })();
         }
 
         function exportOngoingExcel() {
