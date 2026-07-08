@@ -535,6 +535,7 @@
           overviewArCollected: "AR Collected", overviewApPaid: "AP Paid", overviewArCollectedTotal: "Total AR Collected", overviewApPaidTotal: "Total AP Paid",
           amtInCurrency: "Amt in {ccy}",
           amountManualOverride: "editable", settingsLangHint: "The interface language updates immediately when you switch.",
+          settingsGuide: "User Guide", openUserGuide: "Open User Guide", userGuideHint: "Recommended workflow order to avoid broken links or failed imports.",
           invoiceAmountOrig: "Amount (invoice currency)", invoiceAmountHint: "Original amount on vendor/client invoice. Editable — updates base amount when rate changes.",
           baseAmountHint: "Usually Amount × Exchange Rate. Override here if bank/rounding differs.",
           siPageHint: "SI completes work and sends PO/Invoice to you — pay them via AP List.",
@@ -581,7 +582,7 @@
         },
         zh_TW: {
           cloudOnlyLoading: "正在從 Supabase 載入資料…",
-          cloudOnlyHint: "業務資料只儲存在 Supabase（唔用瀏覽器快取）。所有電腦登入後會見到相同資料。",
+          cloudOnlyHint: "業務資料只儲存在 Supabase（不使用瀏覽器快取）。所有電腦登入後會看到相同資料。",
           cloudOnlyMode: "雲端資料庫模式",
           importSyncRetry: "重試同步",
           importStatusDismiss: "關閉",
@@ -591,10 +592,10 @@
           baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
           view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
           filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
-          jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 問供應商報價 → 出 PO → 收貨及 Invoice → 付供應商（應付）→ 工作完成 → 向客開 Invoice（應收）",
+          jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 向供應商詢價 → 開立 PO → 收貨及發票 → 付供應商（應付）→ 工作完成 → 向客戶開立發票（應收）",
           payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "舊分包商 (SI)", apBills: "應付單數",
           apPayeeAutoHint: "選擇供應商後會自動帶入主檔資料，仍可為此單修改。",
-          markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "待付款", issueInvoiceToClient: "向客開立發票",
+          markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "待付款", issueInvoiceToClient: "向客戶開立發票",
           jobCompletedBanner: "工作已完成 — 可向客戶開立發票收款。", autoApPaidHint: "輸入付款日期會標記為已付款（綠色顯示）。",
           settingsTitle: "設定", language: "介面語言", langEn: "英文", langZhTw: "繁體中文（台灣）", settingsSaved: "設定已儲存",
           clientDetail: "客戶詳情", jobDetail: "工作詳情", vendorDetail: "供應商詳情", siDetail: "分包商詳情", arDetail: "應收詳情", apDetail: "應付詳情",
@@ -671,17 +672,17 @@
           colCompanyName: "公司名稱", colPaymentTerms: "付款條件", colStartDate: "開始日期", colProjectName: "專案名稱",
           colPayee: "付款對象", colRemarks: "備註", colOverdueDays: "逾期天數", colDays: "天數", colAmt: "金額", colDate: "日期",
           colAccountDeptContact: "會計聯絡人", colBankCharge: "銀行手續費", colSwiftCode: "SWIFT 代碼",
-          colPaymentAdviceEmail: "付款通知電郵", colCustomerNo: "客戶編號", colBu: "BU", colBuNo: "BU 編號", clientBuHint: "同一公司、不同聯絡人／工作 — 可填 BU 編號。", colFinanceContact: "財務聯絡人", colFinanceEmail: "財務電郵",
+          colPaymentAdviceEmail: "付款通知電子郵件", colCustomerNo: "客戶編號", colBu: "BU", colBuNo: "BU 編號", clientBuHint: "同一公司、不同聯絡人或不同工作時可勾選，並填寫 BU 編號。", colFinanceContact: "財務聯絡人", colFinanceEmail: "財務電子郵件",
           colCompany: "公司名稱", colGstNo: "GST／統一編號", colPrimaryContact: "主要聯絡人",
           colCompanyPhone: "公司電話", colMobilePhone: "手機", colEmail: "電子郵件", colPostalCode: "郵遞區號",
           colName: "名稱", colBank: "銀行", colSwift: "SWIFT", colContact: "聯絡人",
           importReading: "正在讀取檔案…",
           importPreviewReady: "匯入預覽已準備好，請確認。",
-          storageSaveFailed: "無法儲存到瀏覽器，請檢查私隱設定或儲存空間。",
+          storageSaveFailed: "無法儲存到瀏覽器，請檢查隱私權設定或儲存空間。",
           arOutstanding: "應收未結", apOutstanding: "應付未結", netPosition: "淨部位", dueSoon: "即將到期", overdueCount: "筆已逾期", pendingBills: "筆待處理", dueSoonHint: "未收款、即將到期",
           topOverdue: "逾期發票排行", approvalQueue: "審批佇列", cashFlow: "現金流入 vs 流出（90 天）", arAging: "應收帳齡",
           dashSubtitle: "管理層總覽 — 現金狀況及需要跟進的項目",
-          mgmtSubtitle: "老闆 BI — 毛利、客戶排行、工作類型利潤與 3 個月現金流預測",
+          mgmtSubtitle: "管理層 BI — 毛利、客戶排行、工作類型利潤與 3 個月現金流預測",
           mgmtFilterClient: "客戶", mgmtAllClients: "全部客戶", mgmtGroupCurrency: "集團本位幣", mgmtCompareCurrency: "對照貨幣",
           mgmtGrossRevenue: "總收入", mgmtTotalCogs: "項目總成本", mgmtNetProfit: "淨利潤", mgmtGrossMargin: "毛利率",
           mgmtRevenueHint: "已完成工作／Accepted 報價相關應收", mgmtCogsHint: "相關工作的供應商／分包商應付",
@@ -732,7 +733,8 @@
           overviewPaidTitle: "全年已收／已付", overviewPaidHint: "按收款／付款日期 · 本年度各月",
           overviewArCollected: "應收已收", overviewApPaid: "應付已付", overviewArCollectedTotal: "全年應收已收", overviewApPaidTotal: "全年應付已付",
           amtInCurrency: "折合 {ccy}",
-          amountManualOverride: "可手改", settingsLangHint: "切換後介面會即時更新為繁體中文（台灣）。",
+          amountManualOverride: "可手動修改", settingsLangHint: "切換後介面會即時更新為繁體中文（台灣）。",
+          settingsGuide: "使用教學", openUserGuide: "開啟使用教學", userGuideHint: "說明正確操作順序，避免因步驟顛倒造成資料無法連結或匯入失敗。",
           invoiceAmountOrig: "金額（發票原幣）",           invoiceAmountHint: "供應商／客戶發票上的原幣金額，可以修改；修改後會按匯率重算本位幣。",
           baseAmountHint: "一般 = 金額 × 匯率。若銀行實收、四捨五入不同，可在此手動修改。",
           siPageHint: "分包商 (SI) 完成工作後向你開立 PO／發票，你在應付清單付款給對方。",
@@ -740,7 +742,7 @@
           worldTime: "世界時間", worldTimeHint: "依所選時區顯示（不跟電腦本機時間）。",
           timezone: "時區", currentUser: "目前登入", switchUser: "切換用戶（示範）",
           mgmtTitle: "用戶與權限管理", mgmtHint: "Root 管理員可新增用戶，並按模組設定檢視／新增／修改／刪除權限。",
-          addUser: "+ 新增用戶", editUser: "修改用戶", userName: "顯示名稱", userEmail: "電郵", userPassword: "密碼", userRole: "角色", roleRoot: "Root（最高權限）", roleUser: "一般用戶",
+          addUser: "+ 新增用戶", editUser: "修改用戶", userName: "顯示名稱", userEmail: "電子郵件", userPassword: "密碼", userRole: "角色", roleRoot: "Root（最高權限）", roleUser: "一般用戶",
           userActive: "啟用", accessRights: "存取權限", permView: "檢視", permAdd: "新增", permEdit: "修改", permDelete: "刪除",
           auditTitle: "操作記錄", auditHint: "可按日期、用戶、模組、動作篩選，如同報表查詢。",
           auditWhen: "時間（UTC 儲存）", auditUser: "用戶", auditModule: "模組", auditAction: "動作", auditEntity: "記錄", auditDetail: "詳情",
@@ -754,15 +756,14 @@
           importNoRows: "找不到有效資料列。", importFileError: "無法讀取檔案。",
           actionExport: "匯出", actionImport: "匯入",           importModeHint: "已存在的主鍵會更新；新主鍵會新增。",
           filterStatus: "篩選狀態", searchPlaceholder: "搜尋...", searchHint: "可搜發票號、客戶、工作編號、PO 等。",
-          searchHintClients: "可搜客戶編號、公司名稱、聯絡人、電郵、電話、地址等。",
-          searchHintQuotation: "可搜報價單號、客戶、工作編號、說明、狀態等。",
-          searchHintJob: "可搜工作編號、客戶、PO、報價單號、說明、狀態等。",
-          searchHintVendors: "可搜供應商編號、名稱、電郵、銀行、SWIFT、聯絡人等。",
-          searchHintSi: "可搜分包商編號、名稱、電郵、銀行、SWIFT、聯絡人等。",
+          searchHintClients: "可搜尋客戶編號、公司名稱、聯絡人、電子郵件、電話、地址等。",
+          searchHintQuotation: "可搜尋報價單號、客戶、工作編號、說明、狀態等。",
+          searchHintJob: "可搜尋工作編號、客戶、PO、報價單號、說明、狀態等。",
+          searchHintVendors: "可搜尋供應商編號、名稱、電子郵件、銀行、SWIFT、聯絡人等。",
           region: "地區", regionAccess: "地區權限",           regionScopeHint: "您新增的資料會標記為目前地區；ALL 顯示您有權限的所有地區。",
           regionDataHint: "新增資料會儲存於目前所選地區（選 ALL 時使用您有權限的第一個地區）。",
           importRegionHint: "已匯入至地區：{region}。請確認右上角「地區」設為 ALL 或正確地區後才會看到資料。",
-          settingsBackup: "備份與還原", backupTitle: "備份與還原", backupHint: "所有 LIST 資料只儲存在此瀏覽器。下載備份檔可搬到另一部電腦／瀏覽器。還原會覆蓋目前所有資料。",
+          settingsBackup: "備份與還原", backupTitle: "備份與還原", backupHint: "所有清單資料儲存在此瀏覽器。下載備份檔可搬移至另一台電腦或瀏覽器。還原會覆蓋目前所有資料。",
           backupDownload: "下載備份", restoreUpload: "還原備份", restoreConfirm: "還原會覆蓋此瀏覽器內所有 ERP 資料，確定繼續？",
           restoreDone: "還原完成，頁面將重新載入。", restoreInvalid: "備份檔案無效。", backupDone: "已下載備份檔。",
           cloudSyncTitle: "雲端資料庫（Supabase）", cloudSyncHint: "上傳／下載經由 API 連接 Supabase。同步金鑰須與 Vercel 環境變數 ERP_SYNC_SECRET 相同。",
@@ -3013,7 +3014,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-10a";
+        const ERP_BUILD_ID = "airlink-2026-07-10b";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -7108,6 +7109,7 @@
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                   <div className="px-6 pt-5 border-b flex flex-wrap gap-2">
                     <button type="button" onClick={() => setSettingsTab("general")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "general" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsGeneral")}</button>
+                    <button type="button" onClick={() => setSettingsTab("guide")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "guide" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsGuide")}</button>
                     <button type="button" onClick={() => setSettingsTab("backup")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "backup" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsBackup")}</button>
                     {isRoot() && <button type="button" onClick={() => setSettingsTab("management")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "management" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsManagement")}</button>}
                     <button type="button" onClick={() => setSettingsTab("audit")} className={"px-3 py-2 text-sm rounded-t-lg border-b-2 " + (settingsTab === "audit" ? "border-blue-600 text-blue-700 font-semibold" : "border-transparent text-slate-500")}>{t("settingsAudit")}</button>
@@ -7143,6 +7145,15 @@
                         </form>
                         {isRoot() && <p className="text-xs text-slate-500">{t("mgmtHint")}</p>}
                       </div>
+                    </div>
+                  )}
+
+                  {settingsTab === "guide" && (
+                    <div className="p-6 max-w-3xl space-y-4">
+                      <h3 className="font-semibold text-lg">{t("settingsGuide")}</h3>
+                      <p className="text-sm text-slate-500">{t("userGuideHint")}</p>
+                      <button type="button" onClick={() => window.open(airlinkAsset("user-guide.html"), "_blank")} className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700">{t("openUserGuide")}</button>
+                      <p className="text-xs text-slate-400">{i18nLang(lang) === "zh_TW" ? "若新分頁無法開啟，請向管理員索取 user-guide.html 檔案。" : "If the new tab fails, ask your admin for the user-guide.html file."}</p>
                     </div>
                   )}
 

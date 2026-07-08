@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIRLINK ERP 使用教學</title>
+  <style>
+    body { font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif; line-height: 1.65; color: #1e293b; max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; background: #f8fafc; }
+    h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
+    .sub { color: #64748b; font-size: 0.95rem; margin-bottom: 2rem; }
+    h2 { font-size: 1.2rem; margin-top: 2rem; padding-bottom: 0.35rem; border-bottom: 2px solid #2563eb; color: #1d4ed8; }
+    h3 { font-size: 1rem; margin-top: 1.25rem; color: #334155; }
+    ol, ul { padding-left: 1.35rem; }
+    li { margin: 0.35rem 0; }
+    .flow { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem 1.25rem; margin: 1rem 0; font-size: 0.92rem; }
+    .warn { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 0.75rem; padding: 1rem 1.25rem; margin: 1rem 0; }
+    .ok { background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 0.75rem; padding: 1rem 1.25rem; margin: 1rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; background: #fff; margin: 1rem 0; }
+    th, td { border: 1px solid #e2e8f0; padding: 0.5rem 0.65rem; text-align: left; }
+    th { background: #f1f5f9; }
+    code { background: #f1f5f9; padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-size: 0.88em; }
+    @media print { body { background: #fff; } }
+  </style>
+</head>
+<body>
+  <h1>AIRLINK ERP 使用教學</h1>
+  <p class="sub">繁體中文（台灣）· 建議操作順序與常見錯誤說明</p>
+
+  <div class="flow">
+    <strong>標準業務流程（請依序進行）</strong><br />
+    客戶 → 報價單（Accepted）→ 工作 → 客戶 PO → 應付（付供應商）→ 工作完成 → 應收（向客戶開立發票）
+  </div>
+
+  <h2>零、開始之前（管理員／Root）</h2>
+  <ol>
+    <li>登入後，確認右上角 <strong>地區</strong> 是否正確（HK／TW／SG 等）。新增資料會標記在目前地區。</li>
+    <li>前往 <strong>設定 → 一般</strong>：選擇介面語言、時區。</li>
+    <li>前往 <strong>設定 → 備份與還原</strong>：輸入雲端同步金鑰，啟用即時同步（與 Vercel 環境變數 <code>ERP_SYNC_SECRET</code> 相同）。</li>
+    <li>Root 管理員在 <strong>設定 → 用戶管理</strong> 建立帳號，並設定各模組的檢視／新增／修改／刪除／匯入／匯出權限及地區權限。</li>
+  </ol>
+
+  <h2>一、主檔資料（第一步）</h2>
+  <p>主檔必須先建立，後續報價、工作、應收應付才能正確連結。</p>
+
+  <h3>1. 客戶（最優先）</h3>
+  <ul>
+    <li>路徑：<strong>客戶 → + 新增客戶</strong></li>
+    <li>系統會自動建議下一個客戶編號（例如 SC056 之後為 SC057），仍可手動修改。</li>
+    <li><strong>BU 勾選</strong>：同一公司名稱、不同聯絡人或不同工作時，可勾選 BU 並填寫 BU 編號；每筆仍須有獨立的客戶編號。</li>
+  </ul>
+
+  <h3>2. 供應商（可與客戶並行建立）</h3>
+  <ul>
+    <li>路徑：<strong>供應商 → + 新增供應商</strong></li>
+    <li>應付單（AP）的付款對象。建議先建立常用供應商，並填寫銀行、SWIFT、財務聯絡人及電子郵件。</li>
+  </ul>
+
+  <div class="ok">
+    <strong>可並行：</strong>客戶與供應商可同時建立，但<strong>一定要先有任何一筆客戶</strong>，才能建立報價單與工作。
+  </div>
+
+  <h2>二、業務流程（嚴格順序）</h2>
+  <table>
+    <thead>
+      <tr><th>步驟</th><th>模組</th><th>說明</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>①</td><td>報價單</td><td>選擇客戶、填寫金額與幣別。要連結至工作時，狀態須為 <strong>Accepted</strong>。</td></tr>
+      <tr><td>②</td><td>工作</td><td>選擇客戶，可連結一張或多張 Accepted 報價單。填寫客戶 PO 明細（PO 編號、金額、收單日期）。</td></tr>
+      <tr><td>③</td><td>應付 AP</td><td>連結工作 → 選擇<strong>供應商</strong> → 記錄供應商發票。可分期（Deposit／Progress／Balance 等）。輸入付款日期即標記已付款。</td></tr>
+      <tr><td>④</td><td>工作狀態</td><td>完成交付後，將工作狀態改為 <strong>Completed</strong>。</td></tr>
+      <tr><td>⑤</td><td>應收 AR</td><td>連結工作 → 向客戶開立發票。建議在工作完成後開立；系統亦允許進行中開立分期發票。</td></tr>
+    </tbody>
+  </table>
+
+  <h2>三、報表與追蹤</h2>
+  <ul>
+    <li><strong>進行中清單</strong>：追蹤未結案工作與 PO 餘額。</li>
+    <li><strong>儀表板／總覽</strong>：自動從應收、應付彙總現金狀況。</li>
+    <li><strong>月報表</strong>：修改工作或應收後，須點擊 <strong>同步月報</strong>（或於 PO 收單／AR 發票分頁分別同步），報表數字才會更新。</li>
+    <li><strong>管理層報表</strong>：依已完成工作與 Accepted 報價分析毛利（需有對應應收／應付資料）。</li>
+  </ul>
+
+  <h2>四、Excel 匯入順序</h2>
+  <p>若使用匯入功能，請依下列順序匯入，否則會出現「找不到客戶／工作」等錯誤：</p>
+  <ol>
+    <li>客戶</li>
+    <li>供應商</li>
+    <li>報價單</li>
+    <li>工作</li>
+    <li>應收 AR</li>
+    <li>應付 AP</li>
+  </ol>
+  <p>匯入前請確認右上角地區正確；匯入後若已啟用雲端同步，請等待狀態列顯示同步成功。</p>
+
+  <h2>五、常見錯誤順序（請避免）</h2>
+  <div class="warn">
+    <ul>
+      <li><strong>未建客戶就建工作或報價</strong> → 無法選擇客戶，匯入亦會失敗。</li>
+      <li><strong>報價單狀態非 Accepted 就連結工作</strong> → 系統會拒絕連結。</li>
+      <li><strong>未建供應商就建應付</strong> → 可手動輸入公司名稱，但無法自動帶入銀行與 SWIFT。</li>
+      <li><strong>應付未連結工作</strong> → 工作詳情與月報無法正確歸集成本。</li>
+      <li><strong>修改資料後未同步月報</strong> → 月報表數字停留在舊資料。</li>
+      <li><strong>地區選錯</strong> → 資料存在其他地區，切換至 ALL 或正確地區才看得到。</li>
+      <li><strong>兩台電腦使用不同瀏覽器設定</strong> → 請確認已啟用雲端同步，不要只依賴本機瀏覽器快取。</li>
+    </ul>
+  </div>
+
+  <h2>六、權限與多人使用</h2>
+  <ul>
+    <li>僅有<strong>新增／修改／刪除／匯入</strong>權限的帳號，變更才會上傳至雲端。</li>
+    <li>唯讀帳號只能下載資料，不會覆寫他人修改。</li>
+    <li>同一帳號可在多台電腦登入；請以雲端資料為準，並在兩台電腦都執行強制重新整理（Ctrl+Shift+R）。</li>
+  </ul>
+
+  <h2>七、快速檢查清單</h2>
+  <ol>
+    <li>客戶已建立？客戶編號是否唯一？</li>
+    <li>報價單是否 Accepted（若要連結工作）？</li>
+    <li>工作是否已選客戶、PO 明細是否完整？</li>
+    <li>應付是否連結工作與供應商？</li>
+    <li>工作完成後是否已開應收發票？</li>
+    <li>月報是否已按「同步月報」？</li>
+    <li>雲端同步狀態是否正常？</li>
+  </ol>
+
+  <p class="sub" style="margin-top: 2.5rem;">AIRLINK ERP · 如有疑問請聯絡系統管理員</p>
+</body>
+</html>
