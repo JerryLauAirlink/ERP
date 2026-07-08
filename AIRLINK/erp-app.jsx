@@ -128,6 +128,7 @@
             { header: "Postal Code", field: "postal_code", hint: "" },
             { header: "Account Dept Contact", field: "account_dept_contact", hint: "" },
             { header: "Payment Terms", field: "payment_terms", hint: "e.g. 30 Days" },
+            { header: "Invoice Title", field: "invoice_title", hint: "Optional — shown on invoices/AR" },
             { header: "BU", field: "is_bu", hint: "Y if same company, different contact/job" },
             { header: "BU No", field: "bu_no", hint: "Business unit no. when BU is Y" }
           ]
@@ -392,7 +393,7 @@
           appTitle: "AIRLINK ERP", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
-          filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
+          filterClient: "Filter Client", filterJob: "Filter Job", filterType: "Filter Type", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
           jobFlowHint: "Client → Job (quote) → Customer PO → Vendor quotes → Our PO → Delivery & invoices → Pay Vendor (AP) → Job Complete → Invoice Client (AR)",
           payeeType: "Payee Type", payeeVendor: "Vendor", payeeSi: "Legacy SI", apBills: "AP Bills",
           apPayeeAutoHint: "Auto-filled from Vendor master when you select payee. You can still edit for this bill.",
@@ -523,6 +524,11 @@
           editClient: "Edit Client", addClientTitle: "Add Client", editJob: "Edit Job", addJobTitle: "Add Job", editVendor: "Edit Vendor", addVendorTitle: "Add Vendor", editSi: "Edit SI", addSiTitle: "Add SI",
           editAr: "Edit AR Invoice", createArTitle: "Create AR Invoice", editAp: "Edit AP Bill", createApTitle: "Create AP Bill", newTxTitle: "New Transaction",
           createArDesc: "Create accounts receivable invoice", createApDesc: "Create accounts payable bill",
+          selectClientHint: "Select or type client no. / name",
+          selectJobHint: "Select or type job no. / company",
+          selectJobOptionalHint: "Select or type job no. / company (optional)",
+          selectVendorHint: "Select or type vendor no. / name",
+          noMatchFound: "No matching results",
           yes: "Yes", no: "No", goToAr: "Go to AR", goToJob: "Go to Job", goToAp: "Go to AP",
           paymentReceived: "Payment Received Date", autoPaidHint: "Entering payment date will set status to Paid",
           arDueAutoHint: "Due date is calculated from Invoice Date + client Payment Terms (editable).",
@@ -591,7 +597,7 @@
           appTitle: "AIRLINK ERP", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_management_report: "管理層報表", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
           baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
           view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
-          filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
+          filterClient: "篩選客戶", filterJob: "篩選工作", filterType: "篩選類型", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
           jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 向供應商詢價 → 開立 PO → 收貨及發票 → 付供應商（應付）→ 工作完成 → 向客戶開立發票（應收）",
           payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "舊分包商 (SI)", apBills: "應付單數",
           apPayeeAutoHint: "選擇供應商後會自動帶入主檔資料，仍可為此單修改。",
@@ -722,6 +728,11 @@
           editClient: "修改客戶", addClientTitle: "新增客戶", editJob: "修改工作", addJobTitle: "新增工作", editVendor: "修改供應商", addVendorTitle: "新增供應商", editSi: "修改分包商", addSiTitle: "新增分包商",
           editAr: "修改應收發票", createArTitle: "新增應收發票", editAp: "修改應付單", createApTitle: "新增應付單", newTxTitle: "新增交易",
           createArDesc: "建立應收發票", createApDesc: "建立應付單",
+          selectClientHint: "可選擇或輸入客戶編號／名稱",
+          selectJobHint: "可選擇或輸入工作編號／公司名稱",
+          selectJobOptionalHint: "可選擇或輸入工作編號／公司名稱（非必填）",
+          selectVendorHint: "可選擇或輸入供應商編號／名稱",
+          noMatchFound: "找不到符合的結果",
           yes: "是", no: "否", goToAr: "前往應收", goToJob: "前往工作", goToAp: "前往應付",
           paymentReceived: "收款日期", autoPaidHint: "輸入收款日期會自動設為已收款",
           arDueAutoHint: "到期日依發票日期 + 客戶付款條款自動計算（可手動修改）。",
@@ -996,7 +1007,7 @@
           const byCo = clients.find((c) => c.company === job.company);
           if (byCo) return byCo;
         }
-        if (data.customer) return clients.find((c) => c.company === data.customer) || null;
+        if (data.customer) return clients.find((c) => c.company === data.customer || c.invoice_title === data.customer) || null;
         return null;
       }
 
@@ -1281,7 +1292,7 @@
       function nowIso() { return new Date().toISOString(); }
 
       function emptyClient() {
-        return { customer_no: "", company: "", gst_no: "", primary_contact: "", company_phone: "", mobile_phone: "", email: "", address: "", postal_code: "", account_dept_contact: "", payment_terms: "", is_bu: false, bu_no: "" };
+        return { customer_no: "", company: "", invoice_title: "", gst_no: "", primary_contact: "", company_phone: "", mobile_phone: "", email: "", address: "", postal_code: "", account_dept_contact: "", payment_terms: "", is_bu: false, bu_no: "" };
       }
 
       function nextCustomerNo(clientList) {
@@ -2065,6 +2076,68 @@
         return <select {...props} className={"w-full rounded-lg border border-slate-300 px-3 py-2 text-sm " + (props.className || "")} />;
       }
 
+      function SearchableSelect({ value, options, onChange, placeholder, required, noResultsText }) {
+        const listId = React.useMemo(() => "erp-searchable-" + Math.random().toString(36).slice(2), []);
+        const selected = options.find((opt) => String(opt.value) === String(value));
+        const [query, setQuery] = useState(selected ? selected.label : "");
+
+        useEffect(() => {
+          setQuery(selected ? selected.label : "");
+        }, [selected ? selected.label : "", value]);
+
+        const filtered = useMemo(() => {
+          const q = String(query || "").trim().toLowerCase();
+          if (!q) return options;
+          return options.filter((opt) => String(opt.searchText || opt.label || "").toLowerCase().includes(q));
+        }, [options, query]);
+
+        function commit(nextQuery) {
+          const normalized = String(nextQuery || "").trim().toLowerCase();
+          if (!normalized) {
+            setQuery("");
+            onChange("", null);
+            return;
+          }
+          const exact = options.find((opt) => {
+            const label = String(opt.label || "").toLowerCase();
+            const searchText = String(opt.searchText || "").toLowerCase();
+            return label === normalized || searchText === normalized;
+          });
+          if (exact) {
+            setQuery(exact.label);
+            onChange(String(exact.value), exact);
+          }
+        }
+
+        return (
+          <div className="relative">
+            <input
+              list={listId}
+              value={query}
+              onChange={(e) => {
+                const next = e.target.value;
+                setQuery(next);
+                const exact = options.find((opt) => String(opt.label || "").toLowerCase() === next.toLowerCase());
+                if (exact) onChange(String(exact.value), exact);
+                else if (!next.trim()) onChange("", null);
+              }}
+              onBlur={() => commit(query)}
+              placeholder={placeholder}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <datalist id={listId}>
+              {filtered.map((opt) => (
+                <option key={opt.value} value={opt.label}>
+                  {opt.searchText && opt.searchText !== opt.label ? opt.searchText : opt.label}
+                </option>
+              ))}
+            </datalist>
+            {required ? <input tabIndex={-1} value={value || ""} onChange={() => {}} required className="absolute opacity-0 pointer-events-none h-0 w-0" aria-hidden="true" /> : null}
+            {!filtered.length && query.trim() ? <p className="text-[10px] text-slate-400 mt-1">{noResultsText || "No matching results"}</p> : null}
+          </div>
+        );
+      }
+
       function ActionButtons({ onView, onEdit, onDelete, viewLabel, editLabel, deleteLabel, canEdit = true, canDelete = false, extra }) {
         return (
           <div className="flex gap-1 flex-wrap">
@@ -2097,19 +2170,45 @@
         return <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="text-blue-600 hover:underline font-medium">{children}</button>;
       }
 
-      function ListToolbar({ t, mode, clients, jobs, viewMode, setViewMode, clientFilter, setClientFilter, jobFilter, setJobFilter, statusFilter, setStatusFilter, searchQ, setSearchQ, lang }) {
+      function ListToolbar({ t, mode, clients, jobs, viewMode, setViewMode, clientFilter, setClientFilter, jobFilter, setJobFilter, statusFilter, setStatusFilter, typeFilter, setTypeFilter, searchQ, setSearchQ, lang }) {
         const showSearch = ["job", "ar", "ap", "clients", "quotation", "vendors"].includes(mode);
         const showDisplayMode = ["job", "ar", "ap"].includes(mode);
         const searchHintKey = { ar: "searchHint", ap: "searchHint", job: "searchHintJob", clients: "searchHintClients", quotation: "searchHintQuotation", vendors: "searchHintVendors" }[mode] || "filterClientHint";
+        const clientOptions = useMemo(() => [
+          { value: "all", label: t("all"), searchText: t("all") },
+          ...sortRecords(clients || [], "customer_no", "asc").map((c) => ({
+            value: mode === "ar" ? (c.invoice_title || c.company) : c.company,
+            label: mode === "ar"
+              ? `${c.customer_no} · ${c.invoice_title || c.company}${c.bu_no ? " · BU " + c.bu_no : ""}`
+              : `${c.customer_no} · ${c.company}${c.bu_no ? " · BU " + c.bu_no : ""}`,
+            searchText: (mode === "ar"
+              ? [c.customer_no, c.invoice_title, c.company, c.primary_contact, c.bu_no]
+              : [c.customer_no, c.company, c.primary_contact, c.bu_no]
+            ).filter(Boolean).join(" ")
+          }))
+        ], [clients, t, mode]);
+        const jobOptions = useMemo(() => [
+          { value: "all", label: t("all"), searchText: t("all") },
+          ...sortRecords(jobs || [], "job_no", "asc").map((j) => ({
+            value: String(j.id),
+            label: `${j.job_no} · ${j.company}`,
+            searchText: [j.job_no, j.company, j.job_type, j.customer_po].filter(Boolean).join(" ")
+          }))
+        ], [jobs, t]);
         return (
           <div className="p-4 border-b flex flex-wrap gap-3 items-center bg-slate-50/80">
             {(mode === "job" || mode === "ar" || mode === "ap") && (
               <label className="text-sm flex items-center gap-2">
                 <span className="text-slate-600">{t("filterClient")}:</span>
-                <Select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className="w-48 bg-white">
-                  <option value="all">{t("all")}</option>
-                  {clients.map((c) => <option key={c.id} value={c.company}>{c.company}</option>)}
-                </Select>
+                <div className="w-72">
+                  <SearchableSelect
+                    value={clientFilter}
+                    options={clientOptions}
+                    placeholder={t("selectClientHint")}
+                    noResultsText={t("noMatchFound")}
+                    onChange={(nextValue, option) => setClientFilter(nextValue || (option ? option.value : "all") || "all")}
+                  />
+                </div>
               </label>
             )}
             {mode === "job" && (
@@ -2121,13 +2220,27 @@
                 </Select>
               </label>
             )}
+            {mode === "job" && (
+              <label className="text-sm flex items-center gap-2">
+                <span className="text-slate-600">{t("filterType")}:</span>
+                <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="w-48 bg-white">
+                  <option value="all">{t("all")}</option>
+                  {JOB_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </Select>
+              </label>
+            )}
             {mode === "ap" && (
               <label className="text-sm flex items-center gap-2">
                 <span className="text-slate-600">{t("filterJob")}:</span>
-                <Select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} className="w-48 bg-white">
-                  <option value="all">{t("all")}</option>
-                  {jobs.map((j) => <option key={j.id} value={String(j.id)}>{j.job_no} · {j.company}</option>)}
-                </Select>
+                <div className="w-72">
+                  <SearchableSelect
+                    value={jobFilter}
+                    options={jobOptions}
+                    placeholder={t("selectJobHint")}
+                    noResultsText={t("noMatchFound")}
+                    onChange={(nextValue, option) => setJobFilter(nextValue || (option ? option.value : "all") || "all")}
+                  />
+                </div>
               </label>
             )}
             {showSearch && setSearchQ && (
@@ -2959,6 +3072,7 @@
         const [apViewMode, setApViewMode] = useState("list");
         const [jobClientFilter, setJobClientFilter] = useState("all");
         const [jobStatusFilter, setJobStatusFilter] = useState("all");
+        const [jobTypeFilter, setJobTypeFilter] = useState("all");
         const [jobSearch, setJobSearch] = useState("");
         const [clientsSearch, setClientsSearch] = useState("");
         const [quotationSearch, setQuotationSearch] = useState("");
@@ -3014,7 +3128,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-10b";
+        const ERP_BUILD_ID = "airlink-2026-07-10d";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3295,7 +3409,10 @@
           setPage(targetPage);
           if (opts.client) {
             setJobClientFilter(opts.client);
-            setArClientFilter(opts.client);
+            const byCompany = clients.find((c) => c.company === opts.client);
+            const byTitle = clients.find((c) => c.invoice_title === opts.client);
+            const arClientVal = (byCompany?.invoice_title || byTitle?.invoice_title || opts.client);
+            setArClientFilter(arClientVal);
             setApClientFilter(opts.client);
           }
           if (opts.jobId) setApJobFilter(String(opts.jobId));
@@ -3306,7 +3423,10 @@
         }
 
         function navigateToArByPo(customer, po) {
-          const match = arInvoices.find((r) => r.customer === customer && r.customer_po === po);
+          const client = clients.find((c) => c.company === customer);
+          const invoiceTitle = client?.invoice_title || customer;
+          const match = arInvoices.find((r) => r.customer === customer && r.customer_po === po) ||
+            arInvoices.find((r) => r.customer === invoiceTitle && r.customer_po === po);
           navigateTo("ar", { highlightId: match ? match.id : null });
         }
 
@@ -3334,10 +3454,12 @@
         function openArFromJob(j) {
           if (!guardPermission("ar", "add")) return;
           setDetailPanel(null);
+          const client = j.client_id ? clients.find((c) => c.id === Number(j.client_id)) : clients.find((c) => c.company === j.company);
+          const customerTitle = client?.invoice_title || j.company;
           setArModal({
             mode: "add",
             data: {
-              job_id: String(j.id), job_no: j.job_no, customer: j.company, customer_po: j.customer_po || "",
+              job_id: String(j.id), job_no: j.job_no, customer: customerTitle, customer_po: j.customer_po || "",
               invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "",
               override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment"
             }
@@ -3358,6 +3480,41 @@
         const scopedVendors = useMemo(() => vendors.filter(recordInActiveRegion), [vendors, activeRegion, users, sessionUserId]);
         const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, sessionUserId]);
         const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, sessionUserId]);
+        const sortedScopedClients = useMemo(() => sortRecords(scopedClients, "customer_no", "asc"), [scopedClients]);
+        const sortedScopedJobs = useMemo(() => sortRecords(scopedJobs, "job_no", "asc"), [scopedJobs]);
+        const sortedScopedVendors = useMemo(() => sortRecords(scopedVendors, "vendor_no", "asc"), [scopedVendors]);
+        const newRecordRegion = regionForNewRecord();
+        const jobFormRegion = jobModal?.mode === "edit" ? (jobs.find((j) => j.id === jobModal.id)?.region || newRecordRegion) : newRecordRegion;
+        const quotationFormRegion = quotationModal?.mode === "edit" ? (quotations.find((q) => q.id === quotationModal.id)?.region || newRecordRegion) : newRecordRegion;
+        const clientOptionsForJob = useMemo(() => sortedScopedClients
+          .filter((c) => c.region === jobFormRegion)
+          .map((c) => ({
+            value: String(c.id),
+            label: `${c.customer_no} · ${c.company}${c.bu_no ? " · BU " + c.bu_no : ""}`,
+            searchText: [c.customer_no, c.company, c.primary_contact, c.bu_no].filter(Boolean).join(" ")
+          })), [sortedScopedClients, jobFormRegion]);
+        const clientOptionsForQuotation = useMemo(() => sortedScopedClients
+          .filter((c) => c.region === quotationFormRegion)
+          .map((c) => ({
+            value: String(c.id),
+            label: `${c.customer_no} · ${c.company}${c.bu_no ? " · BU " + c.bu_no : ""}`,
+            searchText: [c.customer_no, c.company, c.primary_contact, c.bu_no].filter(Boolean).join(" ")
+          })), [sortedScopedClients, quotationFormRegion]);
+        const jobOptions = useMemo(() => sortedScopedJobs.map((j) => ({
+          value: String(j.id),
+          label: `${j.job_no} · ${j.company}`,
+          searchText: [j.job_no, j.company, j.job_type, j.customer_po].filter(Boolean).join(" ")
+        })), [sortedScopedJobs]);
+        const quotationJobOptions = useMemo(() => sortedScopedJobs.map((j) => ({
+          value: j.job_no || "",
+          label: `${j.job_no} · ${j.company}`,
+          searchText: [j.job_no, j.company, j.job_type].filter(Boolean).join(" ")
+        })), [sortedScopedJobs]);
+        const vendorOptions = useMemo(() => sortedScopedVendors.map((v) => ({
+          value: v.name || "",
+          label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}`,
+          searchText: [v.vendor_no, v.name, v.contact, v.email, v.finance_contact, v.finance_email].filter(Boolean).join(" ")
+        })), [sortedScopedVendors]);
 
         const mgmtDisplayCurrency = activeRegion === "ALL" ? mgmtGroupCurrency : (REGION_CURRENCY[activeRegion] || regionListCurrency);
         const mgmtRegionCount = useMemo(() => {
@@ -3384,6 +3541,20 @@
           scopedClients.forEach((c) => { if (c.company) names.add(c.company); });
           return [...names].filter(Boolean).sort();
         }, [mgmtReport.clientMargins, scopedClients]);
+        const mgmtClientSearchOptions = useMemo(() => {
+          const byCompany = new Map(sortedScopedClients.map((c) => [c.company, c]));
+          return [
+            { value: "all", label: t("mgmtAllClients"), searchText: t("mgmtAllClients") },
+            ...mgmtClientOptions.map((name) => {
+              const client = byCompany.get(name);
+              return {
+                value: name,
+                label: client ? `${client.customer_no} · ${client.company}${client.bu_no ? " · BU " + client.bu_no : ""}` : name,
+                searchText: client ? [client.customer_no, client.company, client.primary_contact, client.bu_no].filter(Boolean).join(" ") : name
+              };
+            }).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }))
+          ];
+        }, [mgmtClientOptions, sortedScopedClients, t]);
 
         const arDisplay = useMemo(() => scopedArInvoices.map((r) => {
           const due_date = r.due_date || computeArDueDate(r, clients, jobs);
@@ -3570,13 +3741,14 @@
           let list = scopedJobs;
           if (jobClientFilter !== "all") list = list.filter((j) => j.company === jobClientFilter);
           if (jobStatusFilter !== "all") list = list.filter((j) => j.status === jobStatusFilter);
+          if (jobTypeFilter !== "all") list = list.filter((j) => (j.job_type || "") === jobTypeFilter);
           if (jobSearch.trim()) list = list.filter((j) => matchesSearch(j, jobSearch, ["job_no", "company", "description", "customer_po", "quotation_no", "job_type", "status", "remarks", "currency"]));
           return applyTableSort(list, "job");
-        }, [scopedJobs, jobClientFilter, jobStatusFilter, jobSearch, tableSort]);
+        }, [scopedJobs, jobClientFilter, jobStatusFilter, jobTypeFilter, jobSearch, tableSort]);
 
         const filteredClients = useMemo(() => {
           let list = scopedClients;
-          if (clientsSearch.trim()) list = list.filter((c) => matchesSearch(c, clientsSearch, ["customer_no", "company", "gst_no", "primary_contact", "company_phone", "mobile_phone", "email", "address", "postal_code", "account_dept_contact", "payment_terms", "bu_no"]));
+          if (clientsSearch.trim()) list = list.filter((c) => matchesSearch(c, clientsSearch, ["customer_no", "company", "invoice_title", "gst_no", "primary_contact", "company_phone", "mobile_phone", "email", "address", "postal_code", "account_dept_contact", "payment_terms", "bu_no"]));
           return applyTableSort(list, "clients");
         }, [scopedClients, clientsSearch, tableSort]);
 
@@ -3704,7 +3876,14 @@
 
         const filteredAr = useMemo(() => {
           let list = arDisplay;
-          if (arClientFilter !== "all") list = list.filter((r) => r.customer === arClientFilter);
+          if (arClientFilter !== "all") {
+            const byCompany = clients.find((c) => c.company === arClientFilter);
+            const byTitle = clients.find((c) => c.invoice_title === arClientFilter);
+            const possible = new Set([arClientFilter]);
+            if (byCompany?.invoice_title) possible.add(byCompany.invoice_title);
+            if (byTitle?.company) possible.add(byTitle.company); // backward-compat if older AR.customer stored company
+            list = list.filter((r) => possible.has(r.customer));
+          }
           if (arSearch.trim()) list = list.filter((r) => matchesSearch(r, arSearch, ["invoice_no", "customer", "customer_po", "job_no"]));
           return applyTableSort(list, "ar");
         }, [arDisplay, arClientFilter, arSearch, tableSort]);
@@ -3751,7 +3930,9 @@
         }
 
         function getArByClient(company) {
-          return arInvoices.filter((r) => r.customer === company);
+          const client = clients.find((c) => c.company === company);
+          const invoiceTitle = client?.invoice_title;
+          return arInvoices.filter((r) => r.customer === company || (invoiceTitle && r.customer === invoiceTitle));
         }
 
         function getArByJob(jobNo) {
@@ -3852,7 +4033,9 @@
               setArInvoices((prev) => prev.map((r) => (r.job_no === old.job_no ? { ...r, job_no: payload.job_no, job_id: jobModal.id } : r)));
             }
             if (old && old.company !== payload.company) {
-              setArInvoices((prev) => prev.map((r) => (r.job_no === payload.job_no ? { ...r, customer: payload.company } : r)));
+              const client = clients.find((c) => c.id === payload.client_id);
+              const customerTitle = client?.invoice_title || payload.company;
+              setArInvoices((prev) => prev.map((r) => (r.job_no === payload.job_no ? { ...r, customer: customerTitle } : r)));
             }
             syncArWithJobStatus(jobModal.id, payload.job_no, payload.status);
             syncQuotationsForJob(jobModal.id, payload.job_no, newQuotationNos, oldQuotationNos);
@@ -4114,6 +4297,7 @@
             job_no: job ? job.job_no : (data.job_no || "")
           };
           const currentQuotation = quotationModal.mode === "edit" ? quotations.find((q) => q.id === quotationModal.id) : null;
+          const oldStatus = currentQuotation ? currentQuotation.status : null;
           const oldJobNo = currentQuotation ? currentQuotation.job_no || "" : "";
           const oldQuotationNo = currentQuotation ? currentQuotation.quotation_no || "" : "";
           const dupQuotationNo = quotations.find((q) => q.id !== quotationModal.id && String(q.quotation_no || "").trim().toLowerCase() === String(payload.quotation_no || "").trim().toLowerCase());
@@ -4136,6 +4320,17 @@
             setQuotations(quotations.map((q) => (q.id === quotationModal.id ? qRec : q)));
             setJobs((prev) => syncJobsOnQuotationSave(prev, payload.job_id, payload.job_no, payload.quotation_no, oldJobNo, oldQuotationNo));
             logAudit("quotation", "update", payload.quotation_no, `Updated quotation ${payload.quotation_no}`);
+          }
+          const shouldAutoOpenJob = payload.status === "Accepted" && oldStatus !== "Accepted" && !String(payload.job_no || "").trim();
+          if (shouldAutoOpenJob && can("job", "add")) {
+            setJobModal({
+              mode: "add",
+              data: {
+                ...emptyJob(),
+                po_lines: [emptyPoLine()],
+                ...fieldsFromQuotation({ ...payload, company: payload.company })
+              }
+            });
           }
           setQuotationModal(null);
         }
@@ -4191,7 +4386,7 @@
             ...f,
             job_id: Number(f.job_id) || null,
             job_no: selectedJob ? selectedJob.job_no : f.job_no,
-            customer: selectedJob ? selectedJob.company : f.customer,
+            customer: selectedJob ? (((clients.find((c) => c.id === selectedJob.client_id) || clients.find((c) => c.company === selectedJob.company))?.invoice_title) || selectedJob.company) : f.customer,
             customer_po: f.customer_po || (selectedJob ? selectedJob.customer_po : ""),
             invoice_amt: Number(f.invoice_amt || 0),
             exchange_rate_locked: Number(f.exchange_rate || 0),
@@ -5550,6 +5745,7 @@
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-slate-500">{t("colCustomerNo")}</p><p className="font-medium">{c.customer_no}</p></div>
                   <div><p className="text-slate-500">{t("colCompany")}</p><p className="font-medium">{c.company}</p></div>
+                  <div><p className="text-slate-500">Invoice Title</p><p>{c.invoice_title || "-"}</p></div>
                   {c.is_bu && <div><p className="text-slate-500">{t("colBuNo")}</p><p>{c.bu_no || "-"}</p></div>}
                   <div><p className="text-slate-500">{t("colPrimaryContact")}</p><p>{c.primary_contact}</p></div>
                   <div><p className="text-slate-500">E-mail</p><p>{c.email}</p></div>
@@ -6258,12 +6454,15 @@
                   <section className="flex flex-wrap items-end gap-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
                     <div className="min-w-[10rem]">
                       <label className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">{t("mgmtFilterClient")}</label>
-                      <select value={mgmtClientFilter} onChange={(e) => setMgmtClientFilter(e.target.value)} className="h-9 w-full min-w-[12rem] rounded-lg border border-slate-300 bg-white text-sm px-2">
-                        <option value="all">{t("mgmtAllClients")}</option>
-                        {[...new Set(mgmtClientOptions)].sort().map((name) => (
-                          <option key={name} value={name}>{name}</option>
-                        ))}
-                      </select>
+                      <div className="w-full min-w-[18rem]">
+                        <SearchableSelect
+                          value={mgmtClientFilter}
+                          options={mgmtClientSearchOptions}
+                          placeholder={t("selectClientHint")}
+                          noResultsText={t("noMatchFound")}
+                          onChange={(nextValue, option) => setMgmtClientFilter(nextValue || (option ? option.value : "all") || "all")}
+                        />
+                      </div>
                     </div>
                     {activeRegion === "ALL" && (
                       <>
@@ -6699,7 +6898,7 @@
                     </div>
                     <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
                   </div>
-                  <ListToolbar t={t} mode="job" clients={scopedClients} jobs={scopedJobs} viewMode={jobViewMode} setViewMode={setJobViewMode} clientFilter={jobClientFilter} setClientFilter={setJobClientFilter} statusFilter={jobStatusFilter} setStatusFilter={setJobStatusFilter} searchQ={jobSearch} setSearchQ={setJobSearch} lang={lang} />
+                  <ListToolbar t={t} mode="job" clients={scopedClients} jobs={scopedJobs} viewMode={jobViewMode} setViewMode={setJobViewMode} clientFilter={jobClientFilter} setClientFilter={setJobClientFilter} statusFilter={jobStatusFilter} setStatusFilter={setJobStatusFilter} typeFilter={jobTypeFilter} setTypeFilter={setJobTypeFilter} searchQ={jobSearch} setSearchQ={setJobSearch} lang={lang} />
                   <div className="erp-list-scroll erp-list-scroll--toolbar erp-list-scroll--compact">
                     {jobViewMode === "grouped" ? (
                       groupRows(filteredJobs, (j) => j.company).map(([group, rows]) => (
@@ -7497,6 +7696,7 @@
                   <form onSubmit={saveClient} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Field label={t("colCustomerNo")}><Input required value={clientModal.data.customer_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, customer_no: e.target.value } })} /></Field>
                     <Field label={t("colCompany")}><Input required value={clientModal.data.company} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company: e.target.value } })} /></Field>
+                    <Field label="Invoice Title"><Input value={clientModal.data.invoice_title || ""} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, invoice_title: e.target.value } })} /></Field>
                     <Field label={t("colGstNo")}><Input value={clientModal.data.gst_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, gst_no: e.target.value } })} /></Field>
                     <Field label={t("colPrimaryContact")}><Input value={clientModal.data.primary_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, primary_contact: e.target.value } })} /></Field>
                     <Field label={t("colCompanyPhone")}><Input value={clientModal.data.company_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company_phone: e.target.value } })} /></Field>
@@ -7505,7 +7705,36 @@
                     <Field label={t("address")}><Input value={clientModal.data.address} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, address: e.target.value } })} /></Field>
                     <Field label={t("colPostalCode")}><Input value={clientModal.data.postal_code} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, postal_code: e.target.value } })} /></Field>
                     <Field label={t("colAccountDeptContact")}><Input value={clientModal.data.account_dept_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_contact: e.target.value } })} /></Field>
-                    <Field label={t("colPaymentTerms")}><Input value={clientModal.data.payment_terms} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: e.target.value } })} /></Field>
+                    <Field label={t("colPaymentTerms")}>
+                      {(() => {
+                        const raw = String(clientModal.data.payment_terms || "").trim();
+                        const m = raw.match(/(\d+)/);
+                        const days = m ? parseInt(m[1], 10) : null;
+                        const quick = [30, 45, 60, 90];
+                        const isQuick = days != null && quick.includes(days);
+                        return (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap gap-2">
+                              {quick.map((d) => (
+                                <button
+                                  key={d}
+                                  type="button"
+                                  onClick={() => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: `${d} Days` } })}
+                                  className={
+                                    "px-2 py-1 text-xs rounded-lg border " +
+                                    (isQuick && days === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50")
+                                  }
+                                >
+                                  {d} Days
+                                </button>
+                              ))}
+                              {!isQuick && <span className="text-[10px] text-slate-400 mt-2">Custom</span>}
+                            </div>
+                            <Input value={clientModal.data.payment_terms} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: e.target.value } })} />
+                          </div>
+                        );
+                      })()}
+                    </Field>
                     <div className="md:col-span-2 flex items-center gap-2">
                       <input type="checkbox" id="client-bu" checked={!!clientModal.data.is_bu} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, is_bu: e.target.checked, bu_no: e.target.checked ? (clientModal.data.bu_no || "") : "" } })} className="rounded border-slate-300" />
                       <label htmlFor="client-bu" className="text-sm text-slate-700">{t("colBu")}</label>
@@ -7524,13 +7753,17 @@
                   <form onSubmit={saveQuotation} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Field label={t("quotationNo")}><Input required value={quotationModal.data.quotation_no} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_no: e.target.value } })} /></Field>
                     <Field label={t("clientGroup")}>
-                      <Select required value={quotationModal.data.client_id} onChange={(e) => {
-                        const client = clients.find((c) => c.id === Number(e.target.value));
-                        setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, client_id: e.target.value, company: client ? client.company : "" } });
-                      }}>
-                        <option value="">Select Client</option>
-                        {clients.filter((c) => c.region === regionForNewRecord()).map((c) => <option key={c.id} value={c.id}>{c.customer_no} · {c.company}</option>)}
-                      </Select>
+                      <SearchableSelect
+                        required
+                        value={quotationModal.data.client_id}
+                        options={clientOptionsForQuotation}
+                        placeholder={t("selectClientHint")}
+                        noResultsText={t("noMatchFound")}
+                        onChange={(nextValue) => {
+                          const client = clients.find((c) => c.id === Number(nextValue));
+                          setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, client_id: nextValue, company: client ? client.company : "" } });
+                        }}
+                      />
                     </Field>
                     <Field label={t("quotationDate")}><Input type="date" value={quotationModal.data.quotation_date} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_date: e.target.value } })} /></Field>
                     <Field label={t("validUntil")}><Input type="date" value={quotationModal.data.valid_until} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, valid_until: e.target.value } })} /></Field>
@@ -7546,10 +7779,13 @@
                       </Select>
                     </Field>
                     <Field label={t("colJobNo")}>
-                      <Select value={quotationModal.data.job_no || ""} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, job_no: e.target.value } })}>
-                        <option value="">—</option>
-                        {scopedJobs.map((j) => <option key={j.id} value={j.job_no}>{j.job_no} · {j.company}</option>)}
-                      </Select>
+                      <SearchableSelect
+                        value={quotationModal.data.job_no || ""}
+                        options={quotationJobOptions}
+                        placeholder={t("selectJobHint")}
+                        noResultsText={t("noMatchFound")}
+                        onChange={(nextValue) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, job_no: nextValue } })}
+                      />
                     </Field>
                     <div className="md:col-span-2"><Field label={t("description")}><Input value={quotationModal.data.description} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, description: e.target.value } })} /></Field></div>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setQuotationModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
@@ -7562,13 +7798,17 @@
                   <form onSubmit={saveJob} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Field label={t("colJobNo")}><Input required value={jobModal.data.job_no} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, job_no: e.target.value } })} /></Field>
                     <Field label={t("clientGroup")}>
-                      <Select required value={jobModal.data.client_id} onChange={(e) => {
-                        const client = clients.find((c) => c.id === Number(e.target.value));
-                        setJobModal({ ...jobModal, data: { ...jobModal.data, client_id: e.target.value, company: client ? client.company : "" } });
-                      }}>
-                        <option value="">Select Client</option>
-                        {clients.filter((c) => c.region === (jobModal.mode === "edit" ? (jobs.find((j) => j.id === jobModal.id)?.region || regionForNewRecord()) : regionForNewRecord())).map((c) => <option key={c.id} value={c.id}>{c.customer_no} · {c.company}</option>)}
-                      </Select>
+                      <SearchableSelect
+                        required
+                        value={jobModal.data.client_id}
+                        options={clientOptionsForJob}
+                        placeholder={t("selectClientHint")}
+                        noResultsText={t("noMatchFound")}
+                        onChange={(nextValue) => {
+                          const client = clients.find((c) => c.id === Number(nextValue));
+                          setJobModal({ ...jobModal, data: { ...jobModal.data, client_id: nextValue, company: client ? client.company : "" } });
+                        }}
+                      />
                     </Field>
                     <Field label="Type">
                       <Select required value={jobModal.data.job_type} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, job_type: e.target.value } })}>
@@ -7712,13 +7952,21 @@
                 <Modal title={arModal.mode === "add" ? t("createArTitle") : t("editAr")} onClose={() => setArModal(null)} wide>
                   <form onSubmit={saveAR} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Field label="Link Job">
-                      <Select value={arModal.data.job_id} onChange={(e) => {
-                        const job = jobs.find((j) => j.id === Number(e.target.value));
-                        setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, job_id: e.target.value, job_no: job ? job.job_no : "", customer: job ? job.company : arModal.data.customer, customer_po: job ? job.customer_po : arModal.data.customer_po }) });
-                      }}>
-                        <option value="">Select Job (optional)</option>
-                        {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company} · {j.job_type}</option>)}
-                      </Select>
+                      <SearchableSelect
+                        value={arModal.data.job_id}
+                        options={jobOptions.map((opt) => {
+                          const row = sortedScopedJobs.find((j) => String(j.id) === String(opt.value));
+                          return { ...opt, label: `${opt.label} · ${row ? row.job_type : ""}` };
+                        })}
+                        placeholder={t("selectJobOptionalHint")}
+                        noResultsText={t("noMatchFound")}
+                        onChange={(nextValue) => {
+                          const job = jobs.find((j) => j.id === Number(nextValue));
+                          const client = job ? clients.find((c) => c.id === job.client_id) : null;
+                          const customerTitle = client?.invoice_title || (job ? job.company : arModal.data.customer);
+                          setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, job_id: nextValue, job_no: job ? job.job_no : "", customer: customerTitle, customer_po: job ? job.customer_po : arModal.data.customer_po }) });
+                        }}
+                      />
                     </Field>
                     <Field label="Customer"><Input value={arModal.data.customer} onChange={(e) => setArModal({ ...arModal, data: patchArModalData({ ...arModal.data, customer: e.target.value }) })} /></Field>
                     <Field label={t("colCustomerPo")}><Input value={arModal.data.customer_po} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, customer_po: e.target.value } })} /></Field>
@@ -7775,25 +8023,36 @@
                 <Modal title={apModal.mode === "add" ? t("createApTitle") : t("editAp")} onClose={() => setApModal(null)} wide>
                   <form onSubmit={saveAP} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Field label="Link Job">
-                      <Select value={apModal.data.job_id} onChange={(e) => {
-                        const job = jobs.find((j) => j.id === Number(e.target.value));
-                        setApModal({ ...apModal, data: { ...apModal.data, job_id: e.target.value, job_no: job ? job.job_no : "" } });
-                      }}>
-                        <option value="">Select Job</option>
-                        {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company}</option>)}
-                      </Select>
+                      <SearchableSelect
+                        value={apModal.data.job_id}
+                        options={jobOptions}
+                        placeholder={t("selectJobHint")}
+                        noResultsText={t("noMatchFound")}
+                        onChange={(nextValue) => {
+                          const job = jobs.find((j) => j.id === Number(nextValue));
+                          setApModal({ ...apModal, data: { ...apModal.data, job_id: nextValue, job_no: job ? job.job_no : "" } });
+                        }}
+                      />
                     </Field>
                     <Field label={t("colCompanyName")}>
-                      <Select required value={apModal.data.company_name} onChange={(e) => {
-                        const patch = patchApFromPayeeMaster(e.target.value, vendors);
-                        setApModal({ ...apModal, data: { ...apModal.data, payee_type: "Vendor", si_id: "", ...patch } });
-                      }}>
-                        <option value="">Select Vendor</option>
-                        {apModal.data.company_name && !scopedVendors.some((v) => v.name === apModal.data.company_name) && (
-                          <option value={apModal.data.company_name}>{apModal.data.company_name}{apModal.data.payee_type === "SI" ? " (" + t("payeeSi") + ")" : ""}</option>
-                        )}
-                        {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.vendor_no ? v.vendor_no + " · " : ""}{v.name}</option>)}
-                      </Select>
+                      <SearchableSelect
+                        required
+                        value={apModal.data.company_name}
+                        options={[
+                          ...(apModal.data.company_name && !sortedScopedVendors.some((v) => v.name === apModal.data.company_name) ? [{
+                            value: apModal.data.company_name,
+                            label: apModal.data.company_name + (apModal.data.payee_type === "SI" ? " (" + t("payeeSi") + ")" : ""),
+                            searchText: apModal.data.company_name
+                          }] : []),
+                          ...vendorOptions
+                        ]}
+                        placeholder={t("selectVendorHint")}
+                        noResultsText={t("noMatchFound")}
+                        onChange={(nextValue) => {
+                          const patch = patchApFromPayeeMaster(nextValue, vendors);
+                          setApModal({ ...apModal, data: { ...apModal.data, payee_type: "Vendor", si_id: "", ...patch } });
+                        }}
+                      />
                       {apModal.data.payee_type === "SI" && apModal.data.company_name && (
                         <p className="text-[10px] text-amber-600 mt-1">{t("payeeSi")}: {apModal.data.company_name}</p>
                       )}
