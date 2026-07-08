@@ -15,7 +15,7 @@
       };
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
-      const ERP_MODULES = ["dashboard", "management_report", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "si", "settings"];
+      const ERP_MODULES = ["dashboard", "management_report", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "settings"];
       const QUOTATION_STATUSES = ["Draft", "Sent", "Accepted", "Rejected", "Expired"];
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
       const PAYMENT_STAGES = ["", "Deposit", "Progress", "Balance", "Retention", "Final"];
@@ -127,7 +127,9 @@
             { header: "Address", field: "address", hint: "" },
             { header: "Postal Code", field: "postal_code", hint: "" },
             { header: "Account Dept Contact", field: "account_dept_contact", hint: "" },
-            { header: "Payment Terms", field: "payment_terms", hint: "e.g. 30 Days" }
+            { header: "Payment Terms", field: "payment_terms", hint: "e.g. 30 Days" },
+            { header: "BU", field: "is_bu", hint: "Y if same company, different contact/job" },
+            { header: "BU No", field: "bu_no", hint: "Business unit no. when BU is Y" }
           ]
         },
         job: {
@@ -174,7 +176,7 @@
           columns: [
             { header: "Invoice No", field: "invoice_no", required: true, hint: "Required, unique key" },
             { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
-            { header: "Payee Type", field: "payee_type", hint: "Vendor / SI" },
+            { header: "Payee Type", field: "payee_type", hint: "Vendor" },
             { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name" },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
@@ -198,21 +200,9 @@
             { header: "Bank", field: "bank", hint: "" },
             { header: "SWIFT", field: "swift_code", hint: "" },
             { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
-            { header: "Contact", field: "contact", hint: "" }
-          ]
-        },
-        si: {
-          sheetName: "SI",
-          filePrefix: "si",
-          keyField: "si_no",
-          columns: [
-            { header: "SI No", field: "si_no", required: true, hint: "Required, unique key" },
-            { header: "Name", field: "name", required: true, hint: "Required" },
-            { header: "Email", field: "email", hint: "Payment advice email" },
-            { header: "Address", field: "address", hint: "" },
-            { header: "Bank", field: "bank", hint: "" },
-            { header: "SWIFT", field: "swift_code", hint: "" },
-            { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
+            { header: "Contact", field: "contact", hint: "" },
+            { header: "Finance Contact", field: "finance_contact", hint: "" },
+            { header: "Finance Email", field: "finance_email", hint: "" }
           ]
         },
         quotation: {
@@ -379,7 +369,6 @@
           ap: t("nav_ap"),
           monthly_report: t("nav_monthly_report"),
           vendors: t("nav_vendors"),
-          si: t("nav_si"),
           settings: t("nav_settings")
         };
         return map[module] || module;
@@ -404,14 +393,14 @@
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
           filterClient: "Filter Client", filterJob: "Filter Job", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
-          jobFlowHint: "Client → Job (quote) → Customer PO → Vendor/SI quotes → Our PO → Delivery & invoices → Pay Vendor/SI (AP) → Job Complete → Invoice Client (AR)",
-          payeeType: "Payee Type", payeeVendor: "Vendor", payeeSi: "SI (Subcontractor)", apBills: "AP Bills",
-          apPayeeAutoHint: "Auto-filled from Vendor/SI master when you select payee. You can still edit for this bill.",
+          jobFlowHint: "Client → Job (quote) → Customer PO → Vendor quotes → Our PO → Delivery & invoices → Pay Vendor (AP) → Job Complete → Invoice Client (AR)",
+          payeeType: "Payee Type", payeeVendor: "Vendor", payeeSi: "Legacy SI", apBills: "AP Bills",
+          apPayeeAutoHint: "Auto-filled from Vendor master when you select payee. You can still edit for this bill.",
           markApPaid: "Mark Paid", apPaid: "Paid", apUnpaid: "Unpaid", issueInvoiceToClient: "Issue Invoice to Client",
           jobCompletedBanner: "Job completed — you can now issue an invoice to the client.", autoApPaidHint: "Entering pay date marks this bill as paid (green).",
           settingsTitle: "Settings", language: "Language", langEn: "English", langZhTw: "Traditional Chinese (Taiwan)", settingsSaved: "Settings saved",
           clientDetail: "Client Details", jobDetail: "Job Details", vendorDetail: "Vendor Details", siDetail: "SI Details", arDetail: "AR Details", apDetail: "AP Details",
-          relatedJobs: "Related Jobs", relatedInvoices: "AR Invoices (to Client)", relatedPo: "Related PO", relatedAp: "AP Bills (Vendor/SI costs)", noJobs: "No jobs", noInvoices: "No invoices", noPo: "No PO", noAp: "No AP bills",
+          relatedJobs: "Related Jobs", relatedInvoices: "AR Invoices (to Client)", relatedPo: "Related PO", relatedAp: "AP Bills (Vendor costs)", noJobs: "No jobs", noInvoices: "No invoices", noPo: "No PO", noAp: "No AP bills",
           ownedClient: "Linked Client", linkedJob: "Linked Job", markPaid: "Mark Paid", paymentStatus: "Payment Status", paid: "Paid", awaitingPayment: "Awaiting Payment", overdue: "Overdue",
           addClient: "+ Add Client", addJob: "+ Add Job", addVendor: "+ Add Vendor", addSi: "+ Add SI", createAr: "+ Create AR Invoice", createAp: "+ Create AP Bill",
           vendorNo: "Vendor No.", siNo: "SI No.",
@@ -484,7 +473,7 @@
           colCompanyName: "Company Name", colPaymentTerms: "Payment Terms", colStartDate: "Start Date", colProjectName: "Project Name",
           colPayee: "Payee", colRemarks: "Remarks", colOverdueDays: "Overdue Days", colDays: "Days", colAmt: "Amt", colDate: "Date",
           colAccountDeptContact: "Account Dept Contact", colBankCharge: "Bank Charge", colSwiftCode: "SWIFT CODE",
-          colPaymentAdviceEmail: "Payment Advice email", colCustomerNo: "Customer No.",
+          colPaymentAdviceEmail: "Payment Advice email", colCustomerNo: "Customer No.", colBu: "BU", colBuNo: "BU No.", clientBuHint: "Same company, different contact/job — enter BU No.", colFinanceContact: "Finance Contact", colFinanceEmail: "Finance Email",
           colCompany: "Company", colGstNo: "GST#", colPrimaryContact: "Primary Contact",
           colCompanyPhone: "Company Phone #", colMobilePhone: "Mobile Phone #", colEmail: "E-mail", colPostalCode: "Postal Code",
           colName: "Name", colBank: "Bank", colSwift: "SWIFT", colContact: "Contact",
@@ -602,14 +591,14 @@
           baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
           view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
           filterClient: "篩選客戶", filterJob: "篩選工作", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
-          jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 問 Vendor／SI 報價 → 出 PO → 收貨及 Invoice → 付 Vendor／SI（應付）→ 工作完成 → 向客開 Invoice（應收）",
-          payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "分包商 (SI)", apBills: "應付單數",
-          apPayeeAutoHint: "選擇供應商／SI 後會自動帶入主檔資料，仍可為此單修改。",
+          jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 問供應商報價 → 出 PO → 收貨及 Invoice → 付供應商（應付）→ 工作完成 → 向客開 Invoice（應收）",
+          payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "舊分包商 (SI)", apBills: "應付單數",
+          apPayeeAutoHint: "選擇供應商後會自動帶入主檔資料，仍可為此單修改。",
           markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "待付款", issueInvoiceToClient: "向客開立發票",
           jobCompletedBanner: "工作已完成 — 可向客戶開立發票收款。", autoApPaidHint: "輸入付款日期會標記為已付款（綠色顯示）。",
           settingsTitle: "設定", language: "介面語言", langEn: "英文", langZhTw: "繁體中文（台灣）", settingsSaved: "設定已儲存",
           clientDetail: "客戶詳情", jobDetail: "工作詳情", vendorDetail: "供應商詳情", siDetail: "分包商詳情", arDetail: "應收詳情", apDetail: "應付詳情",
-          relatedJobs: "相關工作", relatedInvoices: "應收發票（向客戶）", relatedPo: "相關採購單", relatedAp: "應付單（供應商／分包商成本）", noJobs: "暫無工作", noInvoices: "暫無發票", noPo: "暫無 PO", noAp: "暫無應付單",
+          relatedJobs: "相關工作", relatedInvoices: "應收發票（向客戶）", relatedPo: "相關採購單", relatedAp: "應付單（供應商成本）", noJobs: "暫無工作", noInvoices: "暫無發票", noPo: "暫無 PO", noAp: "暫無應付單",
           ownedClient: "所屬客戶", linkedJob: "關聯工作", markPaid: "標記已收款", paymentStatus: "付款狀態", paid: "已收款", awaitingPayment: "待收款", overdue: "逾期",
           addClient: "+ 新增客戶", addJob: "+ 新增工作", addVendor: "+ 新增供應商", addSi: "+ 新增分包商", createAr: "+ 新增應收發票", createAp: "+ 新增應付單",
           vendorNo: "供應商編號", siNo: "分包商編號",
@@ -682,7 +671,7 @@
           colCompanyName: "公司名稱", colPaymentTerms: "付款條件", colStartDate: "開始日期", colProjectName: "專案名稱",
           colPayee: "付款對象", colRemarks: "備註", colOverdueDays: "逾期天數", colDays: "天數", colAmt: "金額", colDate: "日期",
           colAccountDeptContact: "會計聯絡人", colBankCharge: "銀行手續費", colSwiftCode: "SWIFT 代碼",
-          colPaymentAdviceEmail: "付款通知電郵", colCustomerNo: "客戶編號",
+          colPaymentAdviceEmail: "付款通知電郵", colCustomerNo: "客戶編號", colBu: "BU", colBuNo: "BU 編號", clientBuHint: "同一公司、不同聯絡人／工作 — 可填 BU 編號。", colFinanceContact: "財務聯絡人", colFinanceEmail: "財務電郵",
           colCompany: "公司名稱", colGstNo: "GST／統一編號", colPrimaryContact: "主要聯絡人",
           colCompanyPhone: "公司電話", colMobilePhone: "手機", colEmail: "電子郵件", colPostalCode: "郵遞區號",
           colName: "名稱", colBank: "銀行", colSwift: "SWIFT", colContact: "聯絡人",
@@ -928,12 +917,6 @@
           <path key="3" d="M14 21v-3a2 2 0 0 0-4 0v3" />,
           <path key="4" d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2" />,
           <path key="5" d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16" />
-        ],
-        si: [
-          <path key="1" d="M2 18a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2z" />,
-          <path key="2" d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5" />,
-          <path key="3" d="M4 15v-3a6 6 0 0 1 6-6" />,
-          <path key="4" d="M14 6a6 6 0 0 1 6 6v3" />
         ],
         settings: [
           <path key="1" d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />,
@@ -1297,7 +1280,34 @@
       function nowIso() { return new Date().toISOString(); }
 
       function emptyClient() {
-        return { customer_no: "", company: "", gst_no: "", primary_contact: "", company_phone: "", mobile_phone: "", email: "", address: "", postal_code: "", account_dept_contact: "", payment_terms: "" };
+        return { customer_no: "", company: "", gst_no: "", primary_contact: "", company_phone: "", mobile_phone: "", email: "", address: "", postal_code: "", account_dept_contact: "", payment_terms: "", is_bu: false, bu_no: "" };
+      }
+
+      function nextCustomerNo(clientList) {
+        let bestPrefix = "SC";
+        let bestNum = 0;
+        let bestWidth = 3;
+        (clientList || []).forEach((c) => {
+          const m = String(c.customer_no || "").trim().match(/^([A-Za-z]*)(\d+)$/);
+          if (!m) return;
+          const prefix = m[1];
+          const num = parseInt(m[2], 10);
+          if (Number.isNaN(num)) return;
+          const width = m[2].length;
+          if (num > bestNum) {
+            bestNum = num;
+            bestPrefix = prefix || "SC";
+            bestWidth = width;
+          }
+        });
+        if (bestNum === 0) return bestPrefix + String(1).padStart(bestWidth, "0");
+        return bestPrefix + String(bestNum + 1).padStart(bestWidth, "0");
+      }
+
+      function parseBuFlag(value) {
+        if (value === true) return true;
+        const v = String(value || "").trim().toLowerCase();
+        return v === "y" || v === "yes" || v === "1" || v === "true";
       }
 
       function emptyJob() {
@@ -1970,9 +1980,7 @@
         return { quotation_no: "", client_id: "", company: "", quotation_date: "", valid_until: "", amount: "", currency: "USD", status: "Draft", description: "", job_no: "" };
       }
 
-      function emptyVendor() { return { vendor_no: "", name: "", email: "", bank: "", swift_code: "", charge: "OUR", contact: "", phone: "", address: "" }; }
-
-      function emptySi() { return { si_no: "", name: "", email: "", bank: "", swift_code: "", charge: "OUR", contact: "", phone: "", address: "" }; }
+      function emptyVendor() { return { vendor_no: "", name: "", email: "", bank: "", swift_code: "", charge: "OUR", contact: "", phone: "", address: "", finance_contact: "", finance_email: "" }; }
 
       function ensureVendorNumbers(list) {
         let n = 1;
@@ -1983,21 +1991,11 @@
         });
       }
 
-      function ensureSiNumbers(list) {
-        let n = 1;
-        return list.map((s) => {
-          if (s.si_no) return s;
-          const no = "SI-" + String(n++).padStart(4, "0");
-          return { ...s, si_no: no };
-        });
-      }
-
       const LIST_DEFAULT_SORT = {
         clients: { field: "customer_no", dir: "asc" },
         quotation: { field: "quotation_no", dir: "asc" },
         job: { field: "job_no", dir: "asc" },
         vendors: { field: "vendor_no", dir: "asc" },
-        si: { field: "si_no", dir: "asc" },
         ar: { field: "invoice_no", dir: "asc" },
         ap: { field: "invoice_no", dir: "asc" },
       };
@@ -2023,24 +2021,11 @@
         return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", payment_status: "Awaiting Payment", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
       }
 
-      function patchApFromPayeeMaster(payeeType, siId, companyName, vendorList, siList) {
-        if (payeeType === "SI") {
-          const si = siList.find((s) => String(s.id) === String(siId));
-          if (!si) return { si_id: siId || "", company_name: "", bank: "", swift_code: "", payment_advice_email: "", charge: "" };
-          return {
-            si_id: String(si.id),
-            company_name: si.name || "",
-            bank: si.bank || "",
-            swift_code: si.swift_code || "",
-            payment_advice_email: si.email || "",
-            charge: si.charge || "OUR"
-          };
-        }
+      function patchApFromPayeeMaster(companyName, vendorList) {
         const v = vendorList.find((x) => x.name === companyName);
-        if (!v) return { company_name: companyName || "", si_id: "", bank: "", swift_code: "", payment_advice_email: "", charge: "" };
+        if (!v) return { company_name: companyName || "", bank: "", swift_code: "", payment_advice_email: "", charge: "" };
         return {
           company_name: v.name || "",
-          si_id: "",
           bank: v.bank || "",
           swift_code: v.swift_code || "",
           payment_advice_email: v.email || "",
@@ -2112,9 +2097,9 @@
       }
 
       function ListToolbar({ t, mode, clients, jobs, viewMode, setViewMode, clientFilter, setClientFilter, jobFilter, setJobFilter, statusFilter, setStatusFilter, searchQ, setSearchQ, lang }) {
-        const showSearch = ["job", "ar", "ap", "clients", "quotation", "vendors", "si"].includes(mode);
+        const showSearch = ["job", "ar", "ap", "clients", "quotation", "vendors"].includes(mode);
         const showDisplayMode = ["job", "ar", "ap"].includes(mode);
-        const searchHintKey = { ar: "searchHint", ap: "searchHint", job: "searchHintJob", clients: "searchHintClients", quotation: "searchHintQuotation", vendors: "searchHintVendors", si: "searchHintSi" }[mode] || "filterClientHint";
+        const searchHintKey = { ar: "searchHint", ap: "searchHint", job: "searchHintJob", clients: "searchHintClients", quotation: "searchHintQuotation", vendors: "searchHintVendors" }[mode] || "filterClientHint";
         return (
           <div className="p-4 border-b flex flex-wrap gap-3 items-center bg-slate-50/80">
             {(mode === "job" || mode === "ar" || mode === "ap") && (
@@ -2171,7 +2156,6 @@
       const initialJobs = [];
       const initialQuotations = [];
       const initialVendors = [];
-      const initialSis = [];
       const initialAr = [];
       const initialAp = [];
 
@@ -2293,7 +2277,6 @@
             ap: { view: true, add: true, edit: true, delete: false, export: true, import: true },
             monthly_report: { view: true, add: false, edit: true, delete: false, export: true, import: false },
             vendors: { view: true, add: false, edit: false, delete: false, export: true, import: true },
-            si: { view: true, add: false, edit: false, delete: false, export: true, import: true },
             settings: { view: true, add: false, edit: false, delete: false, export: false, import: false }
           }
         }
@@ -2320,7 +2303,7 @@
       }
 
       const ERP_BUSINESS_CACHE_KEYS = [
-        "erp_clients", "erp_jobs", "erp_quotations", "erp_vendors", "erp_sis",
+        "erp_clients", "erp_jobs", "erp_quotations", "erp_vendors",
         "erp_ar", "erp_ap", "erp_monthly_po_lines", "erp_monthly_ar_lines", "erp_monthly_ar_expected"
       ];
 
@@ -2951,6 +2934,10 @@
 
       function App({ authUserId, onLogout }) {
         const [page, setPage] = useState("dashboard");
+
+        useEffect(() => {
+          if (page === "si") setPage("clients");
+        }, [page]);
         const [lang, setLang] = useState(() => localStorage.getItem("erp_lang") || "zh_TW");
         const [baseCurrency, setBaseCurrency] = useState("HKD");
         const [customCurrency, setCustomCurrency] = useState("");
@@ -2958,7 +2945,6 @@
         const [jobs, setJobs] = useState(() => initialBusinessList("erp_jobs", (rows) => ensureJobsQuotations(ensureRegionOnRecords(rows)), initialJobs));
         const [quotations, setQuotations] = useState(() => initialBusinessList("erp_quotations", ensureRegionOnRecords, initialQuotations));
         const [vendors, setVendors] = useState(() => initialBusinessList("erp_vendors", (rows) => ensureVendorNumbers(ensureRegionOnRecords(rows)), initialVendors));
-        const [sis, setSis] = useState(() => initialBusinessList("erp_sis", (rows) => ensureSiNumbers(ensureRegionOnRecords(rows)), initialSis));
         const [arInvoices, setArInvoices] = useState(() => initialBusinessList("erp_ar", ensureRegionOnRecords, initialAr));
         const [apBills, setApBills] = useState(() => initialBusinessList("erp_ap", ensureRegionOnRecords, initialAp));
         const [approvals] = useState(initialApprovals);
@@ -2976,7 +2962,6 @@
         const [clientsSearch, setClientsSearch] = useState("");
         const [quotationSearch, setQuotationSearch] = useState("");
         const [vendorsSearch, setVendorsSearch] = useState("");
-        const [siSearch, setSiSearch] = useState("");
         const [mgmtClientFilter, setMgmtClientFilter] = useState("all");
         const [mgmtGroupCurrency, setMgmtGroupCurrency] = useState("HKD");
         const [mgmtCompareCurrency, setMgmtCompareCurrency] = useState("USD");
@@ -2992,7 +2977,6 @@
         const [jobModal, setJobModal] = useState(null);
         const [quotationModal, setQuotationModal] = useState(null);
         const [vendorModal, setVendorModal] = useState(null);
-        const [siModal, setSiModal] = useState(null);
         const [arModal, setArModal] = useState(null);
         const [apModal, setApModal] = useState(null);
 
@@ -3029,7 +3013,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-09e";
+        const ERP_BUILD_ID = "airlink-2026-07-10a";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3073,7 +3057,6 @@
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_jobs", JSON.stringify(jobs)); }, [jobs, cloudOnlyMode]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_quotations", JSON.stringify(quotations)); }, [quotations, cloudOnlyMode]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_vendors", JSON.stringify(vendors)); }, [vendors, cloudOnlyMode]);
-        useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_sis", JSON.stringify(sis)); }, [sis, cloudOnlyMode]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_ar", JSON.stringify(arInvoices)); }, [arInvoices, cloudOnlyMode]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_ap", JSON.stringify(apBills)); }, [apBills, cloudOnlyMode]);
         useEffect(() => {
@@ -3138,7 +3121,7 @@
           if (!erpSyncKey.trim()) return;
           scheduleLiveSyncPush(false);
           return () => { if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current); };
-        }, [clients, jobs, quotations, vendors, sis, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
+        }, [clients, jobs, quotations, vendors, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
 
         useEffect(() => {
           if (liveSyncEnabled && !liveSyncReady) {
@@ -3241,7 +3224,7 @@
 
         function canLiveSyncPush() {
           if (isRoot()) return true;
-          const mods = ["clients", "quotation", "job", "ar", "ap", "vendors", "si", "monthly_report", "management_report", "dashboard", "overview", "ongoing", "settings"];
+          const mods = ["clients", "quotation", "job", "ar", "ap", "vendors", "monthly_report", "management_report", "dashboard", "overview", "ongoing", "settings"];
           return mods.some((m) => can(m, "add") || can(m, "edit") || can(m, "delete") || can(m, "import"));
         }
 
@@ -3372,7 +3355,6 @@
         const scopedJobs = useMemo(() => jobs.filter(recordInActiveRegion), [jobs, activeRegion, users, sessionUserId]);
         const scopedQuotations = useMemo(() => quotations.filter(recordInActiveRegion), [quotations, activeRegion, users, sessionUserId]);
         const scopedVendors = useMemo(() => vendors.filter(recordInActiveRegion), [vendors, activeRegion, users, sessionUserId]);
-        const scopedSis = useMemo(() => sis.filter(recordInActiveRegion), [sis, activeRegion, users, sessionUserId]);
         const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, sessionUserId]);
         const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, sessionUserId]);
 
@@ -3593,7 +3575,7 @@
 
         const filteredClients = useMemo(() => {
           let list = scopedClients;
-          if (clientsSearch.trim()) list = list.filter((c) => matchesSearch(c, clientsSearch, ["customer_no", "company", "gst_no", "primary_contact", "company_phone", "mobile_phone", "email", "address", "postal_code", "account_dept_contact", "payment_terms"]));
+          if (clientsSearch.trim()) list = list.filter((c) => matchesSearch(c, clientsSearch, ["customer_no", "company", "gst_no", "primary_contact", "company_phone", "mobile_phone", "email", "address", "postal_code", "account_dept_contact", "payment_terms", "bu_no"]));
           return applyTableSort(list, "clients");
         }, [scopedClients, clientsSearch, tableSort]);
 
@@ -3605,15 +3587,9 @@
 
         const filteredVendors = useMemo(() => {
           let list = scopedVendors;
-          if (vendorsSearch.trim()) list = list.filter((v) => matchesSearch(v, vendorsSearch, ["vendor_no", "name", "email", "bank", "swift_code", "charge", "contact", "phone", "address"]));
+          if (vendorsSearch.trim()) list = list.filter((v) => matchesSearch(v, vendorsSearch, ["vendor_no", "name", "email", "bank", "swift_code", "charge", "contact", "phone", "address", "finance_contact", "finance_email"]));
           return applyTableSort(list, "vendors");
         }, [scopedVendors, vendorsSearch, tableSort]);
-
-        const filteredSis = useMemo(() => {
-          let list = scopedSis;
-          if (siSearch.trim()) list = list.filter((s) => matchesSearch(s, siSearch, ["si_no", "name", "email", "bank", "swift_code", "charge", "contact", "phone", "address"]));
-          return applyTableSort(list, "si");
-        }, [scopedSis, siSearch, tableSort]);
 
         const ongoingJobsList = useMemo(() => scopedJobs
           .filter((j) => !isJobCompleted(j.status))
@@ -3786,11 +3762,7 @@
         }
 
         function getApByVendor(name) {
-          return apBills.filter((r) => r.company_name === name && r.payee_type !== "SI");
-        }
-
-        function getApBySi(name) {
-          return apBills.filter((r) => r.company_name === name && r.payee_type === "SI");
+          return apBills.filter((r) => r.company_name === name);
         }
 
         function syncCompanyName(oldName, newName) {
@@ -3812,7 +3784,11 @@
 
         function saveClient(e) {
           e.preventDefault();
-          const data = clientModal.data;
+          const data = {
+            ...clientModal.data,
+            is_bu: !!clientModal.data.is_bu,
+            bu_no: clientModal.data.is_bu ? String(clientModal.data.bu_no || "").trim() : ""
+          };
           if (clientModal.mode === "add") {
             if (!guardPermission("clients", "add")) return;
             setClients([{ id: nextErpRecordId(clients), region: regionForNewRecord(), ...data }, ...clients]);
@@ -4204,33 +4180,6 @@
           logAudit("vendors", "delete", v ? v.name : String(id), `Deleted vendor ${v ? v.name : id}`);
         }
 
-        function saveSi(e) {
-          e.preventDefault();
-          const data = siModal.data;
-          if (siModal.mode === "add") {
-            if (!guardPermission("si", "add")) return;
-            setSis([{ id: nextErpRecordId(sis), region: regionForNewRecord(), ...data }, ...sis]);
-            logAudit("si", "create", data.si_no, `Created SI ${data.si_no} · ${data.name}`);
-          } else {
-            if (!guardPermission("si", "edit")) return;
-            const old = sis.find((s) => s.id === siModal.id);
-            setSis(sis.map((s) => (s.id === siModal.id ? { ...s, ...data } : s)));
-            if (old && old.name !== data.name) {
-              setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "SI" ? { ...b, company_name: data.name } : b)));
-            }
-            logAudit("si", "update", data.si_no, `Updated SI ${data.si_no} · ${data.name}`);
-          }
-          setSiModal(null);
-        }
-
-        function deleteSi(id) {
-          if (!guardPermission("si", "delete")) return;
-          const s = sis.find((x) => x.id === id);
-          if (!window.confirm(t("confirmDelete"))) return;
-          setSis(sis.filter((x) => x.id !== id));
-          logAudit("si", "delete", s ? s.name : String(id), `Deleted SI ${s ? s.name : id}`);
-        }
-
         function saveAR(e) {
           e.preventDefault();
           const f = arModal.data;
@@ -4291,8 +4240,8 @@
             ...f,
             job_id: Number(f.job_id) || null,
             job_no: selectedJob ? selectedJob.job_no : f.job_no,
-            payee_type: f.payee_type || "Vendor",
-            si_id: f.payee_type === "SI" ? (Number(f.si_id) || null) : null,
+            payee_type: "Vendor",
+            si_id: null,
             amount: Number(f.amount || 0),
             exchange_rate_locked: Number(f.exchange_rate || 0),
             base_amount_locked: baseInput,
@@ -4406,7 +4355,11 @@
         }
 
         function getExportRows(module) {
-          if (module === "clients") return scopedClients.map((c) => rowFromSchema(EXCEL_SCHEMAS.clients, c));
+          if (module === "clients") return scopedClients.map((c) => {
+            const row = rowFromSchema(EXCEL_SCHEMAS.clients, c);
+            row.is_bu = c.is_bu ? "Y" : "";
+            return row;
+          });
           if (module === "job") return scopedJobs.map((j) => rowFromSchema(EXCEL_SCHEMAS.job, j));
           if (module === "ar") return scopedArInvoices.map((r) => {
             const due_date = r.due_date || computeArDueDate(r, clients, jobs);
@@ -4444,7 +4397,6 @@
             payment_advice_email: b.payment_advice_email || ""
           }));
           if (module === "vendors") return scopedVendors.map((v) => rowFromSchema(EXCEL_SCHEMAS.vendors, v));
-          if (module === "si") return scopedSis.map((s) => rowFromSchema(EXCEL_SCHEMAS.si, s));
           if (module === "quotation") return scopedQuotations.map((q) => rowFromSchema(EXCEL_SCHEMAS.quotation, q));
           if (module === "monthly_report") return monthlyReportSeries.map((m) => ({
             month: m.header,
@@ -4522,7 +4474,6 @@
           if (module === "ar") return arInvoices.find((r) => r.invoice_no.toLowerCase() === k);
           if (module === "ap") return apBills.find((b) => b.invoice_no.toLowerCase() === k);
           if (module === "vendors") return vendors.find((v) => v.vendor_no.toLowerCase() === k);
-          if (module === "si") return sis.find((s) => s.si_no.toLowerCase() === k);
           if (module === "quotation") return quotations.find((q) => q.quotation_no.toLowerCase() === k);
           return null;
         }
@@ -4559,7 +4510,7 @@
           }
           if (module === "ap") {
             const pt = String(row.payee_type || "Vendor").trim();
-            if (pt && pt !== "Vendor" && pt !== "SI") errors.push("Invalid Payee Type: " + pt);
+            if (pt && pt !== "Vendor") row.payee_type = "Vendor";
           }
         }
 
@@ -4572,8 +4523,9 @@
             if (module === "vendors" && !String(row.vendor_no || "").trim() && row.name) {
               row.vendor_no = "VEND-" + String(row.name).trim().replace(/\s+/g, "-").slice(0, 24).toUpperCase();
             }
-            if (module === "si" && !String(row.si_no || "").trim() && row.name) {
-              row.si_no = "SI-" + String(row.name).trim().replace(/\s+/g, "-").slice(0, 24).toUpperCase();
+            if (module === "clients") {
+              row.is_bu = parseBuFlag(row.is_bu);
+              if (!row.is_bu) row.bu_no = "";
             }
             const key = String(row[schema.keyField] || "").trim();
             const errors = [];
@@ -4676,7 +4628,6 @@
           if (snapshot.jobs != null) { localStorage.setItem("erp_jobs", JSON.stringify(snapshot.jobs)); }
           if (snapshot.quotations != null) { localStorage.setItem("erp_quotations", JSON.stringify(snapshot.quotations)); }
           if (snapshot.vendors != null) { localStorage.setItem("erp_vendors", JSON.stringify(snapshot.vendors)); }
-          if (snapshot.sis != null) { localStorage.setItem("erp_sis", JSON.stringify(snapshot.sis)); }
           if (snapshot.arInvoices != null) { localStorage.setItem("erp_ar", JSON.stringify(snapshot.arInvoices)); }
           if (snapshot.apBills != null) { localStorage.setItem("erp_ap", JSON.stringify(snapshot.apBills)); }
         }
@@ -4687,7 +4638,7 @@
             exportedAt: new Date().toISOString(),
             app: "ERP System",
             data: {
-              users, auditLogs, clients, jobs, quotations, vendors, sis,
+              users, auditLogs, clients, jobs, quotations, vendors,
               arInvoices, apBills, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots,
               settings: buildSharedSettings()
             }
@@ -4702,7 +4653,6 @@
           setJobs(ensureJobsQuotations(ensureRegionOnRecords(d.jobs)));
           setQuotations(ensureRegionOnRecords(d.quotations || []));
           setVendors(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || [])));
-          setSis(ensureSiNumbers(ensureRegionOnRecords(d.sis || [])));
           setArInvoices(ensureRegionOnRecords(d.arInvoices || []));
           setApBills(ensureRegionOnRecords(d.apBills || []));
           setMonthlyPoLines(d.monthlyPoLines || []);
@@ -4714,7 +4664,6 @@
           localStorage.setItem("erp_jobs", JSON.stringify(ensureJobsQuotations(ensureRegionOnRecords(d.jobs))));
           localStorage.setItem("erp_quotations", JSON.stringify(ensureRegionOnRecords(d.quotations || [])));
           localStorage.setItem("erp_vendors", JSON.stringify(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || []))));
-          localStorage.setItem("erp_sis", JSON.stringify(ensureSiNumbers(ensureRegionOnRecords(d.sis || []))));
           localStorage.setItem("erp_ar", JSON.stringify(ensureRegionOnRecords(d.arInvoices || [])));
           localStorage.setItem("erp_ap", JSON.stringify(ensureRegionOnRecords(d.apBills || [])));
           saveErpStorage("erp_monthly_po_lines", d.monthlyPoLines || []);
@@ -4874,7 +4823,6 @@
           markSyncedArray("jobs", jobs);
           markSyncedArray("quotations", quotations);
           markSyncedArray("vendors", vendors);
-          markSyncedArray("sis", sis);
           markSyncedArray("ar_invoices", arInvoices);
           markSyncedArray("ap_bills", apBills);
           markSyncedArray("users", users);
@@ -4891,7 +4839,6 @@
           if (snap.jobs) markSyncedArray("jobs", snap.jobs);
           if (snap.quotations) markSyncedArray("quotations", snap.quotations);
           if (snap.vendors) markSyncedArray("vendors", snap.vendors);
-          if (snap.sis) markSyncedArray("sis", snap.sis);
           if (snap.arInvoices) markSyncedArray("ar_invoices", snap.arInvoices);
           if (snap.apBills) markSyncedArray("ap_bills", snap.apBills);
         }
@@ -4903,7 +4850,6 @@
           if (snap.jobs) changes.push(...computeChangesForArray("jobs", snap.jobs));
           if (snap.quotations) changes.push(...computeChangesForArray("quotations", snap.quotations));
           if (snap.vendors) changes.push(...computeChangesForArray("vendors", snap.vendors));
-          if (snap.sis) changes.push(...computeChangesForArray("sis", snap.sis));
           if (snap.arInvoices) changes.push(...computeChangesForArray("ar_invoices", snap.arInvoices));
           if (snap.apBills) changes.push(...computeChangesForArray("ap_bills", snap.apBills));
           return changes;
@@ -4915,7 +4861,6 @@
           changes.push(...computeChangesForArray("jobs", jobs));
           changes.push(...computeChangesForArray("quotations", quotations));
           changes.push(...computeChangesForArray("vendors", vendors));
-          changes.push(...computeChangesForArray("sis", sis));
           changes.push(...computeChangesForArray("ar_invoices", arInvoices));
           changes.push(...computeChangesForArray("ap_bills", apBills));
           changes.push(...computeChangesForArray("users", users));
@@ -4944,7 +4889,6 @@
           pushArr("jobs", jobs);
           pushArr("quotations", quotations);
           pushArr("vendors", vendors);
-          pushArr("sis", sis);
           pushArr("ar_invoices", arInvoices);
           pushArr("ap_bills", apBills);
           pushArr("users", users);
@@ -5005,7 +4949,6 @@
           if (byType.jobs) setJobs((prev) => ensureJobsQuotations(ensureRegionOnRecords(mergeArrayByRemote(prev, byType.jobs))));
           if (byType.quotations) setQuotations((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.quotations)));
           if (byType.vendors) setVendors((prev) => ensureVendorNumbers(ensureRegionOnRecords(mergeArrayByRemote(prev, byType.vendors))));
-          if (byType.sis) setSis((prev) => ensureSiNumbers(ensureRegionOnRecords(mergeArrayByRemote(prev, byType.sis))));
           if (byType.ar_invoices) setArInvoices((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.ar_invoices)));
           if (byType.ap_bills) setApBills((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.ap_bills)));
           if (byType.users) setUsers((prev) => mergeArrayByRemote(prev, byType.users));
@@ -5043,7 +4986,6 @@
           setJobs((prev) => ensureJobsQuotations(ensureRegionOnRecords(mergeFullWithLocal(prev, e.jobs))));
           setQuotations((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.quotations)));
           setVendors((prev) => ensureVendorNumbers(ensureRegionOnRecords(mergeFullWithLocal(prev, e.vendors))));
-          setSis((prev) => ensureSiNumbers(ensureRegionOnRecords(mergeFullWithLocal(prev, e.sis))));
           setArInvoices((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.ar_invoices)));
           setApBills((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.ap_bills)));
           if (e.users) setUsers((prev) => mergeFullWithLocal(prev, e.users));
@@ -5108,7 +5050,7 @@
             if (!statusRes.ok) throw new Error(status.detail || statusRes.statusText);
             liveServerVersionRef.current = status.server_version || 0;
             if ((status.entity_count || 0) === 0) {
-              const hasLocal = !cloudOnlyMode && (clients.length + jobs.length + quotations.length + vendors.length + sis.length + arInvoices.length + apBills.length);
+              const hasLocal = !cloudOnlyMode && (clients.length + jobs.length + quotations.length + vendors.length + arInvoices.length + apBills.length);
               if (hasLocal && canLiveSyncPush() && erpSyncKey.trim()) {
                 setLiveSyncReady(true);
                 await flushLiveSyncPush();
@@ -5182,7 +5124,7 @@
           if (!valid.length) { alert(t("importNoRows")); return; }
 
           resetErpIdAllocator();
-          const idSources = () => [clients, jobs, quotations, vendors, sis, arInvoices, apBills, auditLogs, monthlyPoLines, monthlyArLines];
+          const idSources = () => [clients, jobs, quotations, vendors, arInvoices, apBills, auditLogs, monthlyPoLines, monthlyArLines];
 
           let created = 0;
           let updated = 0;
@@ -5190,7 +5132,6 @@
           let nextJobs = jobs;
           let nextQuotations = quotations;
           let nextVendors = vendors;
-          let nextSis = sis;
           let nextAr = arInvoices;
           let nextAp = apBills;
           let nextQuotationsFromJobs = quotations;
@@ -5353,21 +5294,12 @@
           } else if (module === "vendors") {
             nextVendors = [...vendors];
             valid.forEach((p) => {
-              const payload = { vendor_no: p.data.vendor_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", charge: p.data.charge || "OUR", contact: p.data.contact || "" };
+              const payload = { vendor_no: p.data.vendor_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", charge: p.data.charge || "OUR", contact: p.data.contact || "", finance_contact: p.data.finance_contact || "", finance_email: p.data.finance_email || "" };
               const existing = nextVendors.find((v) => v.vendor_no.toLowerCase() === p.key.toLowerCase());
               if (existing) { nextVendors = nextVendors.map((v) => (v.id === existing.id ? { ...v, ...payload } : v)); updated++; }
               else { nextVendors = [{ id: nextErpRecordId(nextVendors, ...idSources()), region: regionForNewRecord(), ...payload }, ...nextVendors]; created++; }
             });
             setVendors(nextVendors);
-          } else if (module === "si") {
-            nextSis = [...sis];
-            valid.forEach((p) => {
-              const payload = { si_no: p.data.si_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", charge: p.data.charge || "OUR", contact: p.data.contact || "" };
-              const existing = nextSis.find((s) => s.si_no.toLowerCase() === p.key.toLowerCase());
-              if (existing) { nextSis = nextSis.map((s) => (s.id === existing.id ? { ...s, ...payload } : s)); updated++; }
-              else { nextSis = [{ id: nextErpRecordId(nextSis, ...idSources()), region: regionForNewRecord(), ...payload }, ...nextSis]; created++; }
-            });
-            setSis(nextSis);
           } else if (module === "quotation") {
             nextQuotations = [...quotations];
             valid.forEach((p) => {
@@ -5398,7 +5330,6 @@
             jobs: nextJobs,
             quotations: module === "job" ? nextQuotationsFromJobs : (module === "quotation" ? nextQuotations : quotations),
             vendors: nextVendors,
-            sis: nextSis,
             arInvoices: nextAr,
             apBills: nextAp
           };
@@ -5618,6 +5549,7 @@
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-slate-500">{t("colCustomerNo")}</p><p className="font-medium">{c.customer_no}</p></div>
                   <div><p className="text-slate-500">{t("colCompany")}</p><p className="font-medium">{c.company}</p></div>
+                  {c.is_bu && <div><p className="text-slate-500">{t("colBuNo")}</p><p>{c.bu_no || "-"}</p></div>}
                   <div><p className="text-slate-500">{t("colPrimaryContact")}</p><p>{c.primary_contact}</p></div>
                   <div><p className="text-slate-500">E-mail</p><p>{c.email}</p></div>
                   <div><p className="text-slate-500">{t("colPaymentTerms")}</p><p>{c.payment_terms}</p></div>
@@ -5812,57 +5744,6 @@
             );
           }
 
-          if (type === "si") {
-            const s = sis.find((x) => x.id === id);
-            if (!s) return null;
-            const relatedAp = getApBySi(s.name);
-            return (
-              <Modal title={t("siDetail") + " - " + (s.si_no ? s.si_no + " · " : "") + s.name} onClose={() => setDetailPanel(null)} wide>
-                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-                  <div><p className="text-slate-500">{t("siNo")}</p><p className="font-medium">{s.si_no || "-"}</p></div>
-                  <div><p className="text-slate-500">Name</p><p className="font-medium">{s.name}</p></div>
-                  <div><p className="text-slate-500">Email</p><p>{s.email}</p></div>
-                  <div><p className="text-slate-500">{t("phoneNo")}</p><p>{s.phone || "-"}</p></div>
-                  <div><p className="text-slate-500">{t("address")}</p><p>{s.address || "-"}</p></div>
-                  <div><p className="text-slate-500">Bank</p><p>{s.bank}</p></div>
-                  <div><p className="text-slate-500">Charge</p><p>{s.charge || "OUR"}</p></div>
-                  <div><p className="text-slate-500">SWIFT</p><p>{s.swift_code || "-"}</p></div>
-                  <div><p className="text-slate-500">Contact</p><p>{s.contact || "-"}</p></div>
-                </div>
-                <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
-                {relatedAp.length ? (
-                  <>
-                    <p className="text-xs text-slate-500 mb-2">
-                      {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
-                    </p>
-                  <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">{t("colPayDate")}</th><th className="p-2 text-left"></th></tr></thead>
-                    <tbody>{relatedAp.map((b) => (
-                      <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/70" : "")}>
-                        <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
-                        <td className="p-2">{b.job_no || "-"}</td>
-                        <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</td>
-                        <td className="p-2">{b.due_date}</td>
-                        <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></td>
-                        <td className="p-2">{b.pay_date || "-"}</td>
-                        <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{t("goToAp")}</button></td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                  </>
-                ) : <p className="text-slate-500">{t("noAp")}</p>}
-                <DetailActions
-                  editLabel={t("edit")}
-                  deleteLabel={t("delete")}
-                  canEdit={can("si", "edit")}
-                  canDelete={can("si", "delete")}
-                  onEdit={() => { setDetailPanel(null); setSiModal({ mode: "edit", id: s.id, data: { ...s } }); }}
-                  onDelete={() => { deleteSi(s.id); setDetailPanel(null); }}
-                />
-              </Modal>
-            );
-          }
-
           if (type === "vendor") {
             const v = vendors.find((x) => x.id === id);
             if (!v) return null;
@@ -5879,6 +5760,8 @@
                   <div><p className="text-slate-500">Charge</p><p>{v.charge || "OUR"}</p></div>
                   <div><p className="text-slate-500">SWIFT</p><p>{v.swift_code || "-"}</p></div>
                   <div><p className="text-slate-500">Contact</p><p>{v.contact || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colFinanceContact")}</p><p>{v.finance_contact || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colFinanceEmail")}</p><p>{v.finance_email || "-"}</p></div>
                 </div>
                 <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
                 {relatedAp.length ? (
@@ -6129,7 +6012,6 @@
                 <SidebarItem id="ar" label={t("nav_ar")} module="ar" collapsed={sidebarCollapsed} />
                 <SidebarItem id="ap" label={t("nav_ap")} module="ap" collapsed={sidebarCollapsed} />
                 <SidebarItem id="vendors" label={t("nav_vendors")} module="vendors" collapsed={sidebarCollapsed} />
-                <SidebarItem id="si" label={t("nav_si")} module="si" collapsed={sidebarCollapsed} />
                 <SidebarItem id="settings" label={t("nav_settings")} module="settings" collapsed={sidebarCollapsed} />
               </nav>
               <div className={"shrink-0 mt-3 pt-3 border-t border-slate-800 " + (sidebarCollapsed ? "px-0" : "px-0.5")}>
@@ -6182,7 +6064,6 @@
                     {page === "monthly_report" && t("nav_monthly_report")}
                     {page === "vendors" && t("nav_vendors")}
                     {page === "settings" && t("nav_settings")}
-                    {page === "si" && t("nav_si")}
                   </h2>
                   <p className="text-sm text-slate-500">
                     {page === "dashboard" ? t("dashSubtitle") : page === "management_report" ? t("mgmtSubtitle") : page === "overview" ? t("overviewHint") : page === "ongoing" ? t("ongoingHint") : page === "monthly_report" ? t("monthlyReportHint") : <>{t("baseCurrency")}: {regionListCurrency} · {t("region")}: {regionLabel(activeRegion, lang)} · {t("hintClickRow")}</>}
@@ -6730,7 +6611,7 @@
                     <h3 className="font-semibold">{t("nav_clients")}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="clients" />
-                      {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: emptyClient() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
+                      {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: { ...emptyClient(), customer_no: nextCustomerNo(scopedClients) } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="clients" searchQ={clientsSearch} setSearchQ={setClientsSearch} lang={lang} />
@@ -6739,6 +6620,7 @@
                       <thead className="bg-slate-50 text-slate-500">
                         <tr>
                           <SortableTh module="clients" field="customer_no" label={t("colCustomerNo")} />
+                          <th className="p-3 text-left">{t("colBuNo")}</th>
                           <SortableTh module="clients" field="company" label={t("colCompany")} />
                           <th className="p-3 text-left">{t("colGstNo")}</th>
                           <th className="p-3 text-left">{t("colPrimaryContact")}</th><th className="p-3 text-left">{t("colCompanyPhone")}</th><th className="p-3 text-left">{t("colMobilePhone")}</th>
@@ -6749,7 +6631,9 @@
                       <tbody className="divide-y">
                         {filteredClients.map((c) => (
                           <tr key={c.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "client", id: c.id })}>
-                            <td className="p-3">{c.customer_no}</td><td className="p-3 font-medium">{c.company}</td><td className="p-3">{c.gst_no}</td>
+                            <td className="p-3">{c.customer_no}</td>
+                            <td className="p-3">{c.is_bu ? (c.bu_no || <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{t("colBu")}</span>) : "-"}</td>
+                            <td className="p-3 font-medium">{c.company}</td><td className="p-3">{c.gst_no}</td>
                             <td className="p-3">{c.primary_contact}</td><td className="p-3">{c.company_phone}</td><td className="p-3">{c.mobile_phone}</td>
                             <td className="p-3 erp-cell-truncate" title={c.email}>{c.email}</td><td className="p-3 erp-cell-truncate" title={c.address}>{c.address}</td><td className="p-3">{c.postal_code}</td>
                             <td className="p-3">{c.account_dept_contact}</td><td className="p-3">{c.payment_terms}</td>
@@ -7009,41 +6893,12 @@
                   <div className="erp-list-scroll erp-list-scroll--compact">
                     <table className="w-full text-sm">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><SortableTh module="vendors" field="vendor_no" label={t("vendorNo")} /><SortableTh module="vendors" field="name" label={t("colName")} /><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th></tr>
+                        <tr><SortableTh module="vendors" field="vendor_no" label={t("vendorNo")} /><SortableTh module="vendors" field="name" label={t("colName")} /><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colFinanceContact")}</th><th className="p-3 text-left">{t("colFinanceEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th></tr>
                       </thead>
                       <tbody className="divide-y">
                         {filteredVendors.map((v) => (
                           <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
-                            <td className="p-3 whitespace-nowrap">{v.vendor_no || "-"}</td><td className="p-3 font-medium">{v.name}</td><td className="p-3 whitespace-nowrap">{v.phone || "-"}</td><td className="p-3 erp-cell-truncate" title={v.address || ""}>{v.address || "-"}</td><td className="p-3 erp-cell-truncate" title={v.email}>{v.email}</td><td className="p-3 erp-cell-truncate" title={v.bank}>{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              )}
-
-              {page === "si" && (
-                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold">{t("nav_si")}</h3>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <ListImportExportBar module="si" />
-                      {can("si", "add") && <button onClick={() => setSiModal({ mode: "add", data: emptySi() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addSi")}</button>}
-                    </div>
-                  </div>
-                  <p className="px-4 py-2 text-xs text-slate-500 border-b bg-amber-50/50">{t("siPageHint")}</p>
-                  <ListToolbar t={t} mode="si" searchQ={siSearch} setSearchQ={setSiSearch} lang={lang} />
-                  <div className="erp-list-scroll erp-list-scroll--compact">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-slate-500">
-                        <tr><SortableTh module="si" field="si_no" label={t("siNo")} /><SortableTh module="si" field="name" label={t("colName")} /><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th><th className="p-3 text-left">{t("apBills")}</th></tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {filteredSis.map((s) => (
-                          <tr key={s.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "si", id: s.id })}>
-                            <td className="p-3 whitespace-nowrap">{s.si_no || "-"}</td><td className="p-3 font-medium">{s.name}</td><td className="p-3 whitespace-nowrap">{s.phone || "-"}</td><td className="p-3 erp-cell-truncate" title={s.address || ""}>{s.address || "-"}</td><td className="p-3 erp-cell-truncate" title={s.email}>{s.email}</td><td className="p-3 erp-cell-truncate" title={s.bank}>{s.bank}</td><td className="p-3">{s.swift_code || "-"}</td><td className="p-3">{s.contact || "-"}</td>
-                            <td className="p-3">{getApBySi(s.name).length}</td>
+                            <td className="p-3 whitespace-nowrap">{v.vendor_no || "-"}</td><td className="p-3 font-medium">{v.name}</td><td className="p-3 whitespace-nowrap">{v.phone || "-"}</td><td className="p-3 erp-cell-truncate" title={v.address || ""}>{v.address || "-"}</td><td className="p-3 erp-cell-truncate" title={v.email}>{v.email}</td><td className="p-3">{v.finance_contact || "-"}</td><td className="p-3 erp-cell-truncate" title={v.finance_email || ""}>{v.finance_email || "-"}</td><td className="p-3 erp-cell-truncate" title={v.bank}>{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -7640,6 +7495,14 @@
                     <Field label={t("colPostalCode")}><Input value={clientModal.data.postal_code} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, postal_code: e.target.value } })} /></Field>
                     <Field label={t("colAccountDeptContact")}><Input value={clientModal.data.account_dept_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_contact: e.target.value } })} /></Field>
                     <Field label={t("colPaymentTerms")}><Input value={clientModal.data.payment_terms} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: e.target.value } })} /></Field>
+                    <div className="md:col-span-2 flex items-center gap-2">
+                      <input type="checkbox" id="client-bu" checked={!!clientModal.data.is_bu} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, is_bu: e.target.checked, bu_no: e.target.checked ? (clientModal.data.bu_no || "") : "" } })} className="rounded border-slate-300" />
+                      <label htmlFor="client-bu" className="text-sm text-slate-700">{t("colBu")}</label>
+                      <span className="text-[10px] text-slate-400">{t("clientBuHint")}</span>
+                    </div>
+                    {clientModal.data.is_bu && (
+                      <Field label={t("colBuNo")}><Input value={clientModal.data.bu_no || ""} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, bu_no: e.target.value } })} /></Field>
+                    )}
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setClientModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
@@ -7825,26 +7688,11 @@
                     <Field label="Charge"><Input value={vendorModal.data.charge || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, charge: e.target.value } })} placeholder="OUR" /></Field>
                     <Field label="SWIFT CODE"><Input value={vendorModal.data.swift_code} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, swift_code: e.target.value } })} /></Field>
                     <Field label="Contact"><Input value={vendorModal.data.contact} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, contact: e.target.value } })} /></Field>
+                    <Field label={t("colFinanceContact")}><Input value={vendorModal.data.finance_contact || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, finance_contact: e.target.value } })} /></Field>
+                    <Field label={t("colFinanceEmail")}><Input type="email" value={vendorModal.data.finance_email || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, finance_email: e.target.value } })} /></Field>
                     <Field label={t("phoneNo")}><Input value={vendorModal.data.phone} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, phone: e.target.value } })} /></Field>
                     <div className="md:col-span-2"><Field label={t("address")}><Input value={vendorModal.data.address || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, address: e.target.value } })} /></Field></div>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setVendorModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
-                  </form>
-                </Modal>
-              )}
-
-              {siModal && (
-                <Modal title={siModal.mode === "add" ? t("addSiTitle") : t("editSi")} onClose={() => setSiModal(null)}>
-                  <form onSubmit={saveSi} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Field label={t("siNo")}><Input required value={siModal.data.si_no} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, si_no: e.target.value } })} /></Field>
-                    <Field label="SI Name"><Input required value={siModal.data.name} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, name: e.target.value } })} /></Field>
-                    <Field label="Email"><Input type="email" value={siModal.data.email} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, email: e.target.value } })} /></Field>
-                    <Field label="Bank"><Input value={siModal.data.bank} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, bank: e.target.value } })} /></Field>
-                    <Field label="Charge"><Input value={siModal.data.charge || ""} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, charge: e.target.value } })} placeholder="OUR" /></Field>
-                    <Field label="SWIFT CODE"><Input value={siModal.data.swift_code} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, swift_code: e.target.value } })} /></Field>
-                    <Field label="Contact"><Input value={siModal.data.contact} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, contact: e.target.value } })} /></Field>
-                    <Field label={t("phoneNo")}><Input value={siModal.data.phone} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, phone: e.target.value } })} /></Field>
-                    <div className="md:col-span-2"><Field label={t("address")}><Input value={siModal.data.address || ""} onChange={(e) => setSiModal({ ...siModal, data: { ...siModal.data, address: e.target.value } })} /></Field></div>
-                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setSiModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
               )}
@@ -7924,29 +7772,19 @@
                         {scopedJobs.map((j) => <option key={j.id} value={j.id}>{j.job_no} · {j.company}</option>)}
                       </Select>
                     </Field>
-                    <Field label={t("payeeType")}>
-                      <Select value={apModal.data.payee_type} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payee_type: e.target.value, company_name: "", si_id: "", bank: "", swift_code: "", payment_advice_email: "", charge: "" } })}>
-                        <option value="Vendor">{t("payeeVendor")}</option>
-                        <option value="SI">{t("payeeSi")}</option>
-                      </Select>
-                    </Field>
                     <Field label={t("colCompanyName")}>
-                      {apModal.data.payee_type === "SI" ? (
-                        <Select required value={apModal.data.si_id} onChange={(e) => {
-                          const patch = patchApFromPayeeMaster("SI", e.target.value, "", vendors, sis);
-                          setApModal({ ...apModal, data: { ...apModal.data, ...patch } });
-                        }}>
-                          <option value="">Select SI</option>
-                          {scopedSis.map((s) => <option key={s.id} value={s.id}>{s.si_no ? s.si_no + " · " : ""}{s.name}</option>)}
-                        </Select>
-                      ) : (
-                        <Select required value={apModal.data.company_name} onChange={(e) => {
-                          const patch = patchApFromPayeeMaster("Vendor", "", e.target.value, vendors, sis);
-                          setApModal({ ...apModal, data: { ...apModal.data, ...patch } });
-                        }}>
-                          <option value="">Select Vendor</option>
-                          {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.vendor_no ? v.vendor_no + " · " : ""}{v.name}</option>)}
-                        </Select>
+                      <Select required value={apModal.data.company_name} onChange={(e) => {
+                        const patch = patchApFromPayeeMaster(e.target.value, vendors);
+                        setApModal({ ...apModal, data: { ...apModal.data, payee_type: "Vendor", si_id: "", ...patch } });
+                      }}>
+                        <option value="">Select Vendor</option>
+                        {apModal.data.company_name && !scopedVendors.some((v) => v.name === apModal.data.company_name) && (
+                          <option value={apModal.data.company_name}>{apModal.data.company_name}{apModal.data.payee_type === "SI" ? " (" + t("payeeSi") + ")" : ""}</option>
+                        )}
+                        {scopedVendors.map((v) => <option key={v.id} value={v.name}>{v.vendor_no ? v.vendor_no + " · " : ""}{v.name}</option>)}
+                      </Select>
+                      {apModal.data.payee_type === "SI" && apModal.data.company_name && (
+                        <p className="text-[10px] text-amber-600 mt-1">{t("payeeSi")}: {apModal.data.company_name}</p>
                       )}
                       <p className="text-[10px] text-slate-400 mt-1">{t("apPayeeAutoHint")}</p>
                     </Field>
