@@ -3484,7 +3484,9 @@
         const sortedScopedJobs = useMemo(() => sortRecords(scopedJobs, "job_no", "asc"), [scopedJobs]);
         const sortedScopedVendors = useMemo(() => sortRecords(scopedVendors, "vendor_no", "asc"), [scopedVendors]);
         const newRecordRegion = regionForNewRecord();
-        const jobFormRegion = jobModal?.mode === "edit" ? (jobs.find((j) => j.id === jobModal.id)?.region || newRecordRegion) : newRecordRegion;
+        const jobFormRegion = jobModal?.mode === "edit"
+          ? (jobs.find((j) => j.id === jobModal.id)?.region || newRecordRegion)
+          : (jobModal?.data?.region || newRecordRegion);
         const quotationFormRegion = quotationModal?.mode === "edit" ? (quotations.find((q) => q.id === quotationModal.id)?.region || newRecordRegion) : newRecordRegion;
         const clientOptionsForJob = useMemo(() => sortedScopedClients
           .filter((c) => c.region === jobFormRegion)
@@ -3515,6 +3517,14 @@
           label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}`,
           searchText: [v.vendor_no, v.name, v.contact, v.email, v.finance_contact, v.finance_email].filter(Boolean).join(" ")
         })), [sortedScopedVendors]);
+        const quotationsForJobRegion = useMemo(() => {
+          const allowed = getUserRegions();
+          return quotations.filter((q) => {
+            const rg = q.region || "HK";
+            if (!(allowed.includes("ALL") || allowed.includes(rg))) return false;
+            return rg === jobFormRegion;
+          });
+        }, [quotations, users, sessionUserId, jobFormRegion]);
 
         const mgmtDisplayCurrency = activeRegion === "ALL" ? mgmtGroupCurrency : (REGION_CURRENCY[activeRegion] || regionListCurrency);
         const mgmtRegionCount = useMemo(() => {
@@ -4007,7 +4017,7 @@
           const oldQuotationNos = oldJob ? jobQuotationNos(oldJob) : [];
           const newQuotationNos = jobQuotationNos(payload);
           for (const qNo of newQuotationNos) {
-            const q = findQuotationByNo(qNo, scopedQuotations);
+            const q = findQuotationByNo(qNo, quotationsForJobRegion);
             const check = canLinkQuotationToJob(q, jobModal, jobs);
             if (!check.ok) {
               if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
@@ -4022,7 +4032,7 @@
               return;
             }
             const newId = nextErpRecordId(jobs, quotations);
-            setJobs([{ id: newId, region: regionForNewRecord(), ...payload }, ...jobs]);
+            setJobs([{ id: newId, region: payload.region || regionForNewRecord(), ...payload }, ...jobs]);
             syncQuotationsForJob(newId, payload.job_no, newQuotationNos, []);
             logAudit("job", "create", payload.job_no, `Created job ${payload.job_no} for ${payload.company}`);
           } else {
@@ -4065,7 +4075,7 @@
           if (!jobModal) return;
           const trimmed = String(jobModal.data._quotationDraft || "").trim();
           if (!trimmed) return;
-          const q = findQuotationByNo(trimmed, scopedQuotations);
+          const q = findQuotationByNo(trimmed, quotationsForJobRegion);
           const check = canLinkQuotationToJob(q, jobModal, jobs);
           if (!check.ok) {
             if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
@@ -4092,7 +4102,7 @@
           if (!jobModal) return;
           const trimmed = String(quotationNo || "").trim();
           if (!trimmed) return;
-          const q = findQuotationByNo(trimmed, scopedQuotations);
+          const q = findQuotationByNo(trimmed, quotationsForJobRegion);
           const check = canLinkQuotationToJob(q, jobModal, jobs);
           if (!check.ok) {
             if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
@@ -4323,11 +4333,13 @@
           }
           const shouldAutoOpenJob = payload.status === "Accepted" && oldStatus !== "Accepted" && !String(payload.job_no || "").trim();
           if (shouldAutoOpenJob && can("job", "add")) {
+            const modalJobRegion = currentQuotation?.region || client?.region || newRecordRegion;
             setJobModal({
               mode: "add",
               data: {
                 ...emptyJob(),
                 po_lines: [emptyPoLine()],
+                region: modalJobRegion,
                 ...fieldsFromQuotation({ ...payload, company: payload.company })
               }
             });
@@ -7806,7 +7818,7 @@
                         noResultsText={t("noMatchFound")}
                         onChange={(nextValue) => {
                           const client = clients.find((c) => c.id === Number(nextValue));
-                          setJobModal({ ...jobModal, data: { ...jobModal.data, client_id: nextValue, company: client ? client.company : "" } });
+                          setJobModal({ ...jobModal, data: { ...jobModal.data, client_id: nextValue, company: client ? client.company : "", region: client?.region || jobModal.data.region || newRecordRegion } });
                         }}
                       />
                     </Field>
@@ -7837,14 +7849,14 @@
                         <button type="button" className="text-xs px-2 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap" onClick={addQuotationDraftToJob}>{t("jobQuotationAdd")}</button>
                       </div>
                       <datalist id="erp-accepted-quotations">
-                        {scopedQuotations.filter((q) => q.status === "Accepted").map((q) => (
+                        {quotationsForJobRegion.filter((q) => q.status === "Accepted").map((q) => (
                           <option key={q.id} value={q.quotation_no}>{q.company} · {money(q.amount)} {q.currency}{q.job_no ? " · " + q.job_no : ""}</option>
                         ))}
                       </datalist>
                       {jobQuotationNos(jobModal.data).length ? (
                         <ul className="space-y-1 mb-2">
                           {jobQuotationNos(jobModal.data).map((qNo) => {
-                            const q = findQuotationByNo(qNo, scopedQuotations);
+                            const q = findQuotationByNo(qNo, quotationsForJobRegion);
                             const others = q ? quotationJobNos(q).filter((n) => n !== jobModal.data.job_no) : [];
                             return (
                               <li key={qNo} className="flex items-start justify-between gap-2 text-xs bg-white border rounded px-2 py-1.5">
