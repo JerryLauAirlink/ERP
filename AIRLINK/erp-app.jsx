@@ -1809,6 +1809,12 @@
         };
       }
 
+      function quotationAccessibleInCurrentScope(q, allowedRegions) {
+        if (!q) return false;
+        const rg = q.region || "HK";
+        return allowedRegions.includes("ALL") || allowedRegions.includes(rg);
+      }
+
       function findLinkedQuotationForJob(job, quotations) {
         const all = findLinkedQuotationsForJob(job, quotations);
         return all[0] || null;
@@ -3517,6 +3523,10 @@
           label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}`,
           searchText: [v.vendor_no, v.name, v.contact, v.email, v.finance_contact, v.finance_email].filter(Boolean).join(" ")
         })), [sortedScopedVendors]);
+        const accessibleQuotations = useMemo(() => {
+          const allowed = getUserRegions();
+          return quotations.filter((q) => quotationAccessibleInCurrentScope(q, allowed));
+        }, [quotations, users, sessionUserId]);
         const quotationsForJobRegion = useMemo(() => {
           const allowed = getUserRegions();
           return quotations.filter((q) => {
@@ -4075,7 +4085,7 @@
           if (!jobModal) return;
           const trimmed = String(jobModal.data._quotationDraft || "").trim();
           if (!trimmed) return;
-          const q = findQuotationByNo(trimmed, quotationsForJobRegion);
+          const q = findQuotationByNo(trimmed, quotationsForJobRegion) || findQuotationByNo(trimmed, accessibleQuotations);
           const check = canLinkQuotationToJob(q, jobModal, jobs);
           if (!check.ok) {
             if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
@@ -4089,7 +4099,7 @@
           }
           const withQ = addQuotationToJob(jobModal.data, trimmed);
           const patch = { ...withQ, _quotationDraft: "" };
-          if (!existing.length) Object.assign(patch, fieldsFromQuotation(q));
+          if (!existing.length) Object.assign(patch, { region: q?.region || jobModal.data.region || newRecordRegion }, fieldsFromQuotation(q));
           setJobModal({ ...jobModal, data: { ...jobModal.data, ...patch } });
         }
 
@@ -4102,7 +4112,7 @@
           if (!jobModal) return;
           const trimmed = String(quotationNo || "").trim();
           if (!trimmed) return;
-          const q = findQuotationByNo(trimmed, quotationsForJobRegion);
+          const q = findQuotationByNo(trimmed, quotationsForJobRegion) || findQuotationByNo(trimmed, accessibleQuotations);
           const check = canLinkQuotationToJob(q, jobModal, jobs);
           if (!check.ok) {
             if (check.key === "quotationNotAccepted") alert(t("quotationNotAccepted"));
@@ -4113,7 +4123,7 @@
           if (existing.some((n) => n.toLowerCase() === trimmed.toLowerCase())) return;
           const withQ = addQuotationToJob(jobModal.data, trimmed);
           const patch = { ...withQ, _quotationDraft: "" };
-          if (!existing.length) Object.assign(patch, fieldsFromQuotation(q));
+          if (!existing.length) Object.assign(patch, { region: q?.region || jobModal.data.region || newRecordRegion }, fieldsFromQuotation(q));
           setJobModal({ ...jobModal, data: { ...jobModal.data, ...patch } });
         }
 
