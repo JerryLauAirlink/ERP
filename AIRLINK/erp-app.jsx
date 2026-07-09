@@ -1782,10 +1782,18 @@
         );
       }
 
+      function normalizeQuotationNo(value) {
+        return String(value || "")
+          .replace(/\u00a0/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase();
+      }
+
       function findQuotationByNo(quotationNo, quotations) {
-        const k = String(quotationNo || "").trim().toLowerCase();
+        const k = normalizeQuotationNo(quotationNo);
         if (!k) return null;
-        return quotations.find((q) => String(q.quotation_no || "").toLowerCase() === k) || null;
+        return quotations.find((q) => normalizeQuotationNo(q.quotation_no) === k) || null;
       }
 
       function canLinkQuotationToJob(q, jobModal, jobs) {
@@ -3134,7 +3142,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-10d";
+        const ERP_BUILD_ID = "airlink-2026-07-10e";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -4073,7 +4081,7 @@
           const removed = [...oldSet].filter((k) => !newSet.has(k));
           if (!added.length && !removed.length) return;
           setQuotations((prev) => prev.map((q) => {
-            const qKey = String(q.quotation_no || "").toLowerCase();
+            const qKey = normalizeQuotationNo(q.quotation_no);
             let next = { ...q };
             if (removed.includes(qKey)) next = removeJobFromQuotation(next, jobId, jNo);
             if (added.includes(qKey)) next = addJobToQuotation(next, jobId, jNo);
@@ -4134,7 +4142,7 @@
           if (j) {
             jobQuotationNos(j).forEach((qNo) => {
               setQuotations((prev) => prev.map((q) => {
-                if (String(q.quotation_no || "").toLowerCase() !== qNo.toLowerCase()) return q;
+                if (normalizeQuotationNo(q.quotation_no) !== normalizeQuotationNo(qNo)) return q;
                 return removeJobFromQuotation(q, j.id, j.job_no);
               }));
             });
@@ -4320,7 +4328,7 @@
           const oldStatus = currentQuotation ? currentQuotation.status : null;
           const oldJobNo = currentQuotation ? currentQuotation.job_no || "" : "";
           const oldQuotationNo = currentQuotation ? currentQuotation.quotation_no || "" : "";
-          const dupQuotationNo = quotations.find((q) => q.id !== quotationModal.id && String(q.quotation_no || "").trim().toLowerCase() === String(payload.quotation_no || "").trim().toLowerCase());
+          const dupQuotationNo = quotations.find((q) => q.id !== quotationModal.id && normalizeQuotationNo(q.quotation_no) === normalizeQuotationNo(payload.quotation_no));
           if (dupQuotationNo) {
             alert(t("duplicateQuotationNo").replace("{no}", payload.quotation_no || ""));
             return;
@@ -4362,7 +4370,7 @@
           const q = quotations.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
           if (q) {
-            const qNo = String(q.quotation_no || "").trim();
+          const qNo = String(q.quotation_no || "").trim();
             quotationJobNos(q).forEach((jno) => {
               setJobs((prev) => prev.map((j) => (j.job_no === jno ? removeQuotationFromJob(j, qNo) : j)));
             });
@@ -4708,7 +4716,7 @@
             if (!String(row.status || "").trim()) row.status = "Open";
             const qNo = String(row.quotation_no || "").trim();
             if (qNo) {
-              const q = quotations.find((x) => String(x.quotation_no || "").trim().toLowerCase() === qNo.toLowerCase());
+              const q = quotations.find((x) => normalizeQuotationNo(x.quotation_no) === normalizeQuotationNo(qNo));
               if (q && q.status !== "Accepted") errors.push("Quotation not Accepted: " + qNo);
             }
           }
@@ -5415,7 +5423,7 @@
               if (!job) return;
               jobQuotationNos(job).forEach((qNo) => {
                 nextQuotationsFromJobs = nextQuotationsFromJobs.map((q) => {
-                  if (String(q.quotation_no || "").trim().toLowerCase() !== qNo.toLowerCase()) return q;
+                  if (normalizeQuotationNo(q.quotation_no) !== normalizeQuotationNo(qNo)) return q;
                   return addJobToQuotation(q, job.id, job.job_no);
                 });
               });
