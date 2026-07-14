@@ -12,6 +12,7 @@ VALID_ENTITY_TYPES = frozenset({
     "jobs",
     "quotations",
     "vendors",
+    "vendor_pos",
     "sis",
     "ar_invoices",
     "ap_bills",

@@ -14,7 +14,14 @@ HOW TO UPLOAD (important!)
 7. Wait Vercel deploy (2-3 min)
 8. Open: https://airlink-erp.vercel.app
 9. Press F12 → Console → must see:
-   AIRLINK ERP build: airlink-2026-07-07b
+   AIRLINK ERP build: airlink-2026-07-09e
+
+SUPABASE SQL (required once — fixes import sync 500 error)
+----------------------------------------------------------
+Open Supabase Dashboard → SQL Editor → run:
+  supabase/migrations/003_bigint_entity_ids.sql
+
+This fixes "integer out of range" when syncing imported records.
 
 FOLDER STRUCTURE (upload to GitHub ROOT)
 ----------------------------------------
@@ -29,7 +36,8 @@ AIRLINK_GITHUB/
   erp_backup.py
   erp_live_sync.py
   AIRLINK/
-    index.html            ← main app
+    index.html            ← main shell (loads erp-app.jsx)
+    erp-app.jsx           ← app code (required!)
     logo.png
     login-logo.png
     login-screen.png
@@ -39,6 +47,7 @@ AIRLINK_GITHUB/
   supabase/migrations/
     001_initial_schema.sql
     002_live_sync_entities.sql
+    003_bigint_entity_ids.sql
   scripts/
     SETUP_SUPABASE.bat
     seed_supabase.py

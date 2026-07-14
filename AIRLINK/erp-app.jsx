@@ -15,7 +15,9 @@
       };
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
-      const ERP_MODULES = ["dashboard", "management_report", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "ar", "ap", "vendors", "settings"];
+      const VENDOR_PO_PURPOSES = ["Project", "Inventory"];
+      const VENDOR_PO_TYPES = ["Material", "Service", "Equipment", "Subcontract", "Other"];
+      const ERP_MODULES = ["dashboard", "management_report", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "vendor_po", "ar", "ap", "vendors", "settings"];
       const QUOTATION_STATUSES = ["Draft", "Sent", "Accepted", "Rejected", "Expired"];
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
       const PAYMENT_STAGES = ["", "Deposit", "Progress", "Balance", "Retention", "Final"];
@@ -108,6 +110,9 @@
         if (!out.overview.view && perms && (perms.dashboard?.view || perms.ar?.view || perms.ap?.view)) {
           out.overview.view = true;
         }
+        if (!perms?.vendor_po && out.job) {
+          PERM_KEYS.forEach((k) => { out.vendor_po[k] = !!out.job[k]; });
+        }
         return out;
       }
 
@@ -179,6 +184,8 @@
             { header: "Job No", field: "job_no", required: true, hint: "Must match existing job" },
             { header: "Payee Type", field: "payee_type", hint: "Vendor" },
             { header: "Company Name", field: "company_name", required: true, hint: "Vendor or SI name" },
+            { header: "AIRLINK PO", field: "airlink_po", hint: "Vendor / AIRLINK PO no." },
+            { header: "PO Amount", field: "po_amount", hint: "Numeric" },
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
             { header: "Currency", field: "currency", hint: "USD / HKD / SGD / AUD" },
@@ -193,17 +200,38 @@
           filePrefix: "vendors",
           keyField: "vendor_no",
           columns: [
-            { header: "Vendor No", field: "vendor_no", required: true, hint: "Required, unique key" },
-            { header: "Name", field: "name", required: true, hint: "Required" },
-            { header: "Email", field: "email", hint: "" },
-            { header: "Phone", field: "phone", hint: "" },
-            { header: "Address", field: "address", hint: "" },
-            { header: "Bank", field: "bank", hint: "" },
-            { header: "SWIFT", field: "swift_code", hint: "" },
-            { header: "Charge", field: "charge", hint: "e.g. OUR / SHA / BEN" },
-            { header: "Contact", field: "contact", hint: "" },
-            { header: "Finance Contact", field: "finance_contact", hint: "" },
-            { header: "Finance Email", field: "finance_email", hint: "" }
+            { header: "Vendor No", field: "vendor_no", required: true, hint: "供應商編號" },
+            { header: "Company Name", field: "name", required: true, hint: "公司名稱" },
+            { header: "GST #", field: "gst_no", hint: "統一編號" },
+            { header: "Company Legal Representative", field: "legal_rep", hint: "公司負責人" },
+            { header: "Company Address", field: "address", hint: "公司地址" },
+            { header: "Postal Code", field: "postal_code", hint: "郵區" },
+            { header: "Company Phone #", field: "phone", hint: "公司電話" },
+            { header: "Main Contact", field: "contact", hint: "主要聯絡人" },
+            { header: "E-mail", field: "email", hint: "電子郵箱" },
+            { header: "Mobile Phone #", field: "mobile_phone", hint: "主要聯絡人行動電話" },
+            { header: "Job Title", field: "job_title", hint: "主要聯絡人職位" },
+            { header: "Bank Name", field: "bank", hint: "銀行名稱" },
+            { header: "Bank Branch", field: "bank_branch", hint: "開戶分行名稱" },
+            { header: "Account #", field: "account_no", hint: "帳號" },
+            { header: "SWIFT Code", field: "swift_code", hint: "銀行 SWIFT Code" },
+            { header: "Credit Term", field: "credit_term", hint: "付款方式 e.g. 30 Days" }
+          ]
+        },
+        vendor_po: {
+          sheetName: "VendorPO",
+          filePrefix: "vendor_po",
+          keyField: "airlink_po_no",
+          columns: [
+            { header: "Vendor Code", field: "vendor_code", required: true, hint: "Must match vendor no." },
+            { header: "Name", field: "name", required: true, hint: "Vendor / supplier name" },
+            { header: "For Project/ Inventory", field: "for_purpose", hint: "Project / Inventory" },
+            { header: "Type", field: "po_type", hint: "Material / Service / Equipment / ..." },
+            { header: "Airlink PO #", field: "airlink_po_no", required: true, hint: "Unique Airlink PO no." },
+            { header: "PO Date", field: "po_date", hint: "YYYY-MM-DD" },
+            { header: "Airlink PO Currency", field: "currency", hint: "USD / HKD / SGD / MYR / ..." },
+            { header: "Airlink PO Amt", field: "amount", required: true, hint: "Numeric" },
+            { header: "Airlink PO Amt Local", field: "local_amount", aliases: ["Airlink PO Amt in MYR", "Airlink PO Amt in SGD", "Airlink PO Amt in HKD", "Airlink PO Amt in TWD", "Airlink PO Amt in USD"], hint: "Converted to region currency (auto if blank)" }
           ]
         },
         quotation: {
@@ -281,6 +309,11 @@
         if (col.field === "job_no" && a === "jobno") return true;
         if (col.field === "invoice_no" && a === "invoiceno") return true;
         if (col.field === "quotation_no" && a === "quotationno") return true;
+        if (col.field === "local_amount" && (a.startsWith("airlinkpoamtin") || a === "airlinkpoamtlocal" || a.includes("localamount"))) return true;
+        if (col.field === "airlink_po_no" && (a === "airlinkpo" || a === "airlinkpono" || a === "pono")) return true;
+        if (col.field === "vendor_code" && (a === "vendorcode" || a === "vendorno")) return true;
+        if (col.field === "for_purpose" && (a.includes("forproject") || a === "purpose")) return true;
+        if (col.field === "po_type" && (a === "type" || a === "potype")) return true;
         return false;
       }
 
@@ -366,6 +399,7 @@
           quotation: t("nav_quotation"),
           job: t("nav_job"),
           ongoing: t("nav_ongoing"),
+          vendor_po: t("nav_vendor_po"),
           ar: t("nav_ar"),
           ap: t("nav_ap"),
           monthly_report: t("nav_monthly_report"),
@@ -390,7 +424,28 @@
           importStatusDismiss: "Dismiss",
           importSyncFail: "Import saved locally but cloud sync failed. Do not refresh until sync succeeds (check sync key / status bar).",
           importSyncOk: "Data synced to cloud — other users will see it shortly.",
-          appTitle: "AIRLINK ERP", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
+          appTitle: "AIRLINK ERP", companyLogoSlot: "Company logo", companyNameSlot: "Company Name", nav_dashboard: "Dashboard", nav_management_report: "Management Report", nav_overview: "Overview", nav_clients: "Clients", nav_quotation: "Quotation", nav_job: "Job List", nav_vendor_po: "Vendor PO", nav_ongoing: "Ongoing List", nav_ar: "AR List", nav_ap: "AP List", nav_monthly_report: "Monthly Report", nav_vendors: "Vendors", nav_si: "SI List", nav_settings: "Settings",
+          vendorPoPlaceholderTitle: "Vendor PO",
+          vendorPoPlaceholderHint: "Track Airlink vendor purchase orders. Local amount uses the active region currency.",
+          addVendorPo: "+ Add Vendor PO",
+          addVendorPoTitle: "Add Vendor PO",
+          editVendorPo: "Edit Vendor PO",
+          vendorPoDetail: "Vendor PO Details",
+          colVendorCode: "Vendor Code",
+          colForProjectInventory: "For Project/ Inventory",
+          colAirlinkPoNo: "Airlink PO #",
+          colPoDate: "PO Date",
+          colAirlinkPoCurrency: "Airlink PO Currency",
+          colAirlinkPoAmt: "Airlink PO Amt",
+          colAirlinkPoAmtLocal: "Airlink PO Amt in {currency}",
+          colVendorPoName: "Name",
+          duplicateVendorPoNo: "Vendor PO no. already exists: {no}",
+          selectVendorCodeHint: "Select or type vendor code / name",
+          searchHintVendorPo: "Matches vendor code, name, Airlink PO #, type, purpose, etc.",
+          colVendorPo: "Vendor PO", colAirlinkPo: "AIRLINK PO", colPoAmount: "PO Amount",
+          colLegalRep: "Company Legal Representative", colMainContact: "Main Contact",
+          colJobTitle: "Job Title", colBankName: "Bank Name", colBankBranch: "Bank Branch", colAccountNo: "Account #",
+          colCreditTerm: "Credit Term",
           baseCurrency: "Base Currency", hintClickRow: "Click a row or use View/Edit to manage records", newTransaction: "+ New Transaction",
           view: "View", edit: "Edit", save: "Save", cancel: "Cancel", all: "All", groupByClient: "Group by Client", groupByVendor: "Group by Vendor", displayMode: "Display", listView: "Flat list (all)", groupHint: "Filter Client shows only that client. Grouped view adds section headers while keeping all visible.", jobStatus: "Job Status",
           filterClient: "Filter Client", filterJob: "Filter Job", filterType: "Filter Type", filterClientHint: "Only show records for the selected client", filterJobHint: "Only show AP for the selected job",
@@ -582,6 +637,11 @@
           liveSyncEnable: "Enable live sync (auto push & pull)", liveSyncOk: "Live sync active", liveSyncReadOnly: "Live sync active (read-only)", liveSyncSyncing: "Syncing…", liveSyncError: "Sync error",
           liveSyncLast: "Last sync", liveSyncNeedKey: "Enter cloud sync key first.", liveSyncBootstrapped: "Live sync enabled. Data connected to cloud.",
           liveSyncAutoHint: "Sync starts automatically when you open the app. View-only users download only; editors upload changes.",
+          liveSyncNow: "Sync now (upload & download)",
+          liveSyncNowDone: "Synced to cloud. Other browsers will get the latest data after refresh or within a few seconds.",
+          liveSyncNowFail: "Sync failed",
+          userDeleteSynced: "User deleted and removed from cloud.",
+          userDeleteCloudFail: "User removed on this device, but cloud delete failed. Check sync key / network, then tap Sync now — otherwise a new browser may restore this user.",
           loginUsername: "Username", loginPassword: "Password", loginRemember: "Remember me", loginBtn: "Login", loginFail: "Invalid username or password.", loginInactive: "This account is disabled.", logout: "Logout",
           myAccountTitle: "My Account", changePassword: "Change Password", currentPassword: "Current password", newPassword: "New password", confirmPassword: "Confirm new password", passwordChanged: "Password updated.", passwordMismatch: "New passwords do not match.", passwordWrong: "Current password is incorrect.", userLoginId: "Username",
           noDatabaseNote: "No server database yet — Excel Import updates browser storage only. After upload, click Confirm Import in the preview dialog."
@@ -594,7 +654,28 @@
           importStatusDismiss: "關閉",
           importSyncFail: "匯入已儲存於本機，但雲端同步失敗。請勿重新整理，先確認同步金鑰及狀態列。",
           importSyncOk: "已同步至雲端，其他用戶稍後會看到。",
-          appTitle: "AIRLINK ERP", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_management_report: "管理層報表", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
+          appTitle: "AIRLINK ERP", companyLogoSlot: "公司標誌", companyNameSlot: "公司名稱", nav_dashboard: "儀表板", nav_management_report: "管理層報表", nav_overview: "總覽", nav_clients: "客戶", nav_quotation: "報價單", nav_job: "工作清單", nav_vendor_po: "供應商採購單", nav_ongoing: "進行中清單", nav_ar: "應收清單", nav_ap: "應付清單", nav_monthly_report: "月報表", nav_vendors: "供應商", nav_si: "分包商清單", nav_settings: "設定",
+          vendorPoPlaceholderTitle: "供應商採購單 (Vendor PO)",
+          vendorPoPlaceholderHint: "記錄 Airlink 供應商採購單。當地金額會依目前地區幣別自動換算。",
+          addVendorPo: "+ 新增供應商採購單",
+          addVendorPoTitle: "新增供應商採購單",
+          editVendorPo: "修改供應商採購單",
+          vendorPoDetail: "供應商採購單詳情",
+          colVendorCode: "供應商編號",
+          colForProjectInventory: "專案／庫存用途",
+          colAirlinkPoNo: "Airlink PO #",
+          colPoDate: "採購單日期",
+          colAirlinkPoCurrency: "Airlink PO 幣別",
+          colAirlinkPoAmt: "Airlink PO 金額",
+          colAirlinkPoAmtLocal: "Airlink PO 金額（{currency}）",
+          colVendorPoName: "名稱",
+          duplicateVendorPoNo: "供應商採購單號已存在：{no}",
+          selectVendorCodeHint: "可選擇或輸入供應商編號／名稱",
+          searchHintVendorPo: "可搜尋供應商編號、名稱、Airlink PO #、類型、用途等。",
+          colVendorPo: "供應商採購單", colAirlinkPo: "AIRLINK PO", colPoAmount: "採購單金額",
+          colLegalRep: "公司負責人", colMainContact: "主要聯絡人",
+          colJobTitle: "主要聯絡人職位", colBankName: "銀行名稱", colBankBranch: "開戶分行名稱", colAccountNo: "帳號",
+          colCreditTerm: "付款方式",
           baseCurrency: "本位幣", hintClickRow: "點擊列或按「查看／修改」管理資料", newTransaction: "+ 新增交易",
           view: "查看", edit: "修改", save: "儲存", cancel: "取消", all: "全部", groupByClient: "按客戶分組", groupByVendor: "按供應商分組", displayMode: "顯示方式", listView: "列表（全部）", groupHint: "篩選客戶只顯示該客戶；分組模式會加標題分區但仍可顯示全部。", jobStatus: "工作狀態",
           filterClient: "篩選客戶", filterJob: "篩選工作", filterType: "篩選類型", filterClientHint: "只顯示所選客戶的資料", filterJobHint: "只顯示所選工作的應付單",
@@ -785,6 +866,11 @@
           liveSyncEnable: "啟用即時同步（自動上傳及下載）", liveSyncOk: "即時同步運作中", liveSyncReadOnly: "即時同步運作中（唯讀）", liveSyncSyncing: "同步中…", liveSyncError: "同步錯誤",
           liveSyncLast: "上次同步", liveSyncNeedKey: "請先輸入雲端同步金鑰。", liveSyncBootstrapped: "已啟用即時同步，資料已連接雲端。",
           liveSyncAutoHint: "開啟網站即自動同步。唯讀用戶只下載；有編輯權限的用戶才會上傳變更。",
+          liveSyncNow: "立即同步（上傳及下載）",
+          liveSyncNowDone: "已同步到雲端。其他瀏覽器重新整理或數秒內會看到最新資料。",
+          liveSyncNowFail: "同步失敗",
+          userDeleteSynced: "已刪除用戶，並已從雲端移除。",
+          userDeleteCloudFail: "本機已刪除，但雲端刪除失敗。請檢查同步金鑰／網絡，然後按「立即同步」— 否則新瀏覽器可能會把用戶還原。",
           loginUsername: "用戶名稱", loginPassword: "密碼", loginRemember: "記住我", loginBtn: "登入", loginFail: "用戶名稱或密碼錯誤。", loginInactive: "此帳號已停用。", logout: "登出",
           myAccountTitle: "我的帳號", changePassword: "更改密碼", currentPassword: "現有密碼", newPassword: "新密碼", confirmPassword: "確認新密碼", passwordChanged: "密碼已更新。", passwordMismatch: "兩次輸入的新密碼不一致。", passwordWrong: "現有密碼不正確。", userLoginId: "用戶名稱",
           noDatabaseNote: "目前尚無伺服器資料庫 — Excel 匯入只會更新瀏覽器資料。上傳後請在預覽視窗按「確認匯入」。"
@@ -895,6 +981,13 @@
           <path key="4" d="M12 16h4" />,
           <path key="5" d="M8 11h.01" />,
           <path key="6" d="M8 16h.01" />
+        ],
+        vendor_po: [
+          <path key="1" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />,
+          <path key="2" d="M14 2v6h6" />,
+          <path key="3" d="M9 13h6" />,
+          <path key="4" d="M9 17h6" />,
+          <path key="5" d="M9 9h1" />
         ],
         quotation: [
           <path key="1" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />,
@@ -2006,7 +2099,31 @@
         return { quotation_no: "", client_id: "", company: "", quotation_date: "", valid_until: "", amount: "", currency: "USD", status: "Draft", description: "", job_no: "" };
       }
 
-      function emptyVendor() { return { vendor_no: "", name: "", email: "", bank: "", swift_code: "", charge: "OUR", contact: "", phone: "", address: "", finance_contact: "", finance_email: "" }; }
+      function emptyVendor() {
+        return {
+          vendor_no: "", name: "", gst_no: "", legal_rep: "", address: "", postal_code: "",
+          phone: "", contact: "", email: "", mobile_phone: "", job_title: "",
+          bank: "", bank_branch: "", account_no: "", swift_code: "", credit_term: "",
+          charge: "OUR"
+        };
+      }
+
+      function emptyVendorPo() {
+        return {
+          vendor_id: "",
+          vendor_code: "",
+          name: "",
+          for_purpose: "Project",
+          po_type: "Material",
+          airlink_po_no: "",
+          po_date: "",
+          currency: "USD",
+          amount: "",
+          local_amount: "",
+          job_no: "",
+          remarks: ""
+        };
+      }
 
       function ensureVendorNumbers(list) {
         let n = 1;
@@ -2022,6 +2139,7 @@
         quotation: { field: "quotation_no", dir: "asc" },
         job: { field: "job_no", dir: "asc" },
         vendors: { field: "vendor_no", dir: "asc" },
+        vendor_po: { field: "airlink_po_no", dir: "asc" },
         ar: { field: "invoice_no", dir: "asc" },
         ap: { field: "invoice_no", dir: "asc" },
       };
@@ -2044,7 +2162,7 @@
       }
 
       function emptyApForm() {
-        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", payment_status: "Awaiting Payment", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
+        return { job_id: "", job_no: "", payee_type: "Vendor", company_name: "", si_id: "", airlink_po: "", po_amount: "", invoice_no: "", invoice_date: "", invoice_received_date: "", due_date: "", currency: "USD", amount: "", exchange_rate: "", base_amount: "", override_reason: "", pay_date: "", payment_status: "Awaiting Payment", remarks: "", bank: "", charge: "", swift_code: "", payment_advice_email: "", payment_stage: "" };
       }
 
       function patchApFromPayeeMaster(companyName, vendorList) {
@@ -2181,13 +2299,13 @@
       }
 
       function LinkBtn({ children, onClick }) {
-        return <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }} className="text-blue-600 hover:underline font-medium">{children}</button>;
+        return <button type="button" onClick={(e) => { e.stopPropagation(); if (typeof onClick === "function") onClick(e); }} className="text-blue-600 hover:underline font-medium">{children}</button>;
       }
 
       function ListToolbar({ t, mode, clients, jobs, viewMode, setViewMode, clientFilter, setClientFilter, jobFilter, setJobFilter, statusFilter, setStatusFilter, typeFilter, setTypeFilter, searchQ, setSearchQ, lang }) {
-        const showSearch = ["job", "ar", "ap", "clients", "quotation", "vendors"].includes(mode);
+        const showSearch = ["job", "ar", "ap", "clients", "quotation", "vendors", "vendor_po"].includes(mode);
         const showDisplayMode = ["job", "ar", "ap"].includes(mode);
-        const searchHintKey = { ar: "searchHint", ap: "searchHint", job: "searchHintJob", clients: "searchHintClients", quotation: "searchHintQuotation", vendors: "searchHintVendors" }[mode] || "filterClientHint";
+        const searchHintKey = { ar: "searchHint", ap: "searchHint", job: "searchHintJob", clients: "searchHintClients", quotation: "searchHintQuotation", vendors: "searchHintVendors", vendor_po: "searchHintVendorPo" }[mode] || "filterClientHint";
         const clientOptions = useMemo(() => [
           { value: "all", label: t("all"), searchText: t("all") },
           ...sortRecords(clients || [], "customer_no", "asc").map((c) => ({
@@ -2320,7 +2438,8 @@
       }
 
       async function fetchAllCloudUsersForLogin() {
-        const batches = [];
+        // Prefer live-entity sync (respects deletes). Only fall back to cloud backup
+        // if sync has no users — otherwise an old backup can resurrect deleted accounts.
         try {
           const statusRes = await fetch("/api/sync/status");
           if (statusRes.ok) {
@@ -2330,7 +2449,7 @@
               if (fullRes.ok) {
                 const full = await fullRes.json();
                 const syncUsers = full.entities && full.entities.users;
-                if (Array.isArray(syncUsers) && syncUsers.length) batches.push(syncUsers);
+                if (Array.isArray(syncUsers) && syncUsers.length) return syncUsers;
               }
             }
           }
@@ -2346,30 +2465,26 @@
               if (backupRes.ok) {
                 const body = await backupRes.json();
                 const backupUsers = body.payload && body.payload.data && body.payload.data.users;
-                if (Array.isArray(backupUsers) && backupUsers.length) batches.push(backupUsers);
+                if (Array.isArray(backupUsers) && backupUsers.length) return backupUsers;
               }
             }
           }
         } catch { /* ignore */ }
-        if (!batches.length) return null;
-        let merged = [];
-        batches.forEach((batch) => { merged = mergeUsersForLogin(merged, batch); });
-        return merged;
+        return null;
       }
 
       function mergeUsersForLogin(localUsers, cloudUsers) {
-        const byId = new Map((normalizeStoredUsers(localUsers) || []).map((u) => [u.id, { ...u }]));
-        (cloudUsers || []).forEach((u) => {
-          if (!u || u.id == null) return;
-          byId.set(u.id, { ...u });
-        });
-        return normalizeStoredUsers(Array.from(byId.values()));
+        // When cloud returns a user list, it is authoritative (deleted users stay deleted).
+        if (Array.isArray(cloudUsers) && cloudUsers.length) {
+          return normalizeStoredUsers(cloudUsers);
+        }
+        return normalizeStoredUsers(localUsers);
       }
 
       async function getUsersForLogin() {
         const local = getErpUsers();
         const cloudUsers = await fetchAllCloudUsersForLogin();
-        if (!cloudUsers) return local;
+        if (!cloudUsers || !cloudUsers.length) return local;
         const merged = mergeUsersForLogin(local, cloudUsers);
         saveErpStorage("erp_users", merged);
         return merged;
@@ -2431,7 +2546,7 @@
       }
 
       const ERP_BUSINESS_CACHE_KEYS = [
-        "erp_clients", "erp_jobs", "erp_quotations", "erp_vendors",
+        "erp_clients", "erp_jobs", "erp_quotations", "erp_vendors", "erp_vendor_pos",
         "erp_ar", "erp_ap", "erp_monthly_po_lines", "erp_monthly_ar_lines", "erp_monthly_ar_expected"
       ];
 
@@ -3073,6 +3188,7 @@
         const [jobs, setJobs] = useState(() => initialBusinessList("erp_jobs", (rows) => ensureJobsQuotations(ensureRegionOnRecords(rows)), initialJobs));
         const [quotations, setQuotations] = useState(() => initialBusinessList("erp_quotations", ensureRegionOnRecords, initialQuotations));
         const [vendors, setVendors] = useState(() => initialBusinessList("erp_vendors", (rows) => ensureVendorNumbers(ensureRegionOnRecords(rows)), initialVendors));
+        const [vendorPos, setVendorPos] = useState(() => initialBusinessList("erp_vendor_pos", ensureRegionOnRecords, []));
         const [arInvoices, setArInvoices] = useState(() => initialBusinessList("erp_ar", ensureRegionOnRecords, initialAr));
         const [apBills, setApBills] = useState(() => initialBusinessList("erp_ap", ensureRegionOnRecords, initialAp));
         const [approvals] = useState(initialApprovals);
@@ -3091,6 +3207,7 @@
         const [clientsSearch, setClientsSearch] = useState("");
         const [quotationSearch, setQuotationSearch] = useState("");
         const [vendorsSearch, setVendorsSearch] = useState("");
+        const [vendorPoSearch, setVendorPoSearch] = useState("");
         const [mgmtClientFilter, setMgmtClientFilter] = useState("all");
         const [mgmtGroupCurrency, setMgmtGroupCurrency] = useState("HKD");
         const [mgmtCompareCurrency, setMgmtCompareCurrency] = useState("USD");
@@ -3106,6 +3223,7 @@
         const [jobModal, setJobModal] = useState(null);
         const [quotationModal, setQuotationModal] = useState(null);
         const [vendorModal, setVendorModal] = useState(null);
+        const [vendorPoModal, setVendorPoModal] = useState(null);
         const [arModal, setArModal] = useState(null);
         const [apModal, setApModal] = useState(null);
 
@@ -3142,7 +3260,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-10e";
+        const ERP_BUILD_ID = "airlink-2026-07-14d";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3186,6 +3304,7 @@
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_jobs", JSON.stringify(jobs)); }, [jobs, cloudOnlyMode]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_quotations", JSON.stringify(quotations)); }, [quotations, cloudOnlyMode]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_vendors", JSON.stringify(vendors)); }, [vendors, cloudOnlyMode]);
+        useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_vendor_pos", JSON.stringify(vendorPos)); }, [vendorPos, cloudOnlyMode]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_ar", JSON.stringify(arInvoices)); }, [arInvoices, cloudOnlyMode]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_ap", JSON.stringify(apBills)); }, [apBills, cloudOnlyMode]);
         useEffect(() => {
@@ -3250,7 +3369,7 @@
           if (!erpSyncKey.trim()) return;
           scheduleLiveSyncPush(false);
           return () => { if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current); };
-        }, [clients, jobs, quotations, vendors, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
+        }, [clients, jobs, quotations, vendors, vendorPos, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
 
         useEffect(() => {
           if (liveSyncEnabled && !liveSyncReady) {
@@ -3492,6 +3611,7 @@
         const scopedJobs = useMemo(() => jobs.filter(recordInActiveRegion), [jobs, activeRegion, users, sessionUserId]);
         const scopedQuotations = useMemo(() => quotations.filter(recordInActiveRegion), [quotations, activeRegion, users, sessionUserId]);
         const scopedVendors = useMemo(() => vendors.filter(recordInActiveRegion), [vendors, activeRegion, users, sessionUserId]);
+        const scopedVendorPos = useMemo(() => vendorPos.filter(recordInActiveRegion), [vendorPos, activeRegion, users, sessionUserId]);
         const scopedArInvoices = useMemo(() => arInvoices.filter(recordInActiveRegion), [arInvoices, activeRegion, users, sessionUserId]);
         const scopedApBills = useMemo(() => apBills.filter(recordInActiveRegion), [apBills, activeRegion, users, sessionUserId]);
         const sortedScopedClients = useMemo(() => sortRecords(scopedClients, "customer_no", "asc"), [scopedClients]);
@@ -3529,7 +3649,12 @@
         const vendorOptions = useMemo(() => sortedScopedVendors.map((v) => ({
           value: v.name || "",
           label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}`,
-          searchText: [v.vendor_no, v.name, v.contact, v.email, v.finance_contact, v.finance_email].filter(Boolean).join(" ")
+          searchText: [v.vendor_no, v.name, v.contact, v.email, v.gst_no, v.phone, v.mobile_phone, v.bank, v.swift_code].filter(Boolean).join(" ")
+        })), [sortedScopedVendors]);
+        const vendorPoVendorOptions = useMemo(() => sortedScopedVendors.map((v) => ({
+          value: String(v.id),
+          label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}`,
+          searchText: [v.vendor_no, v.name, v.contact, v.email].filter(Boolean).join(" ")
         })), [sortedScopedVendors]);
         const accessibleQuotations = useMemo(() => {
           const allowed = getUserRegions();
@@ -3788,9 +3913,14 @@
 
         const filteredVendors = useMemo(() => {
           let list = scopedVendors;
-          if (vendorsSearch.trim()) list = list.filter((v) => matchesSearch(v, vendorsSearch, ["vendor_no", "name", "email", "bank", "swift_code", "charge", "contact", "phone", "address", "finance_contact", "finance_email"]));
+          if (vendorsSearch.trim()) list = list.filter((v) => matchesSearch(v, vendorsSearch, ["vendor_no", "name", "gst_no", "legal_rep", "address", "postal_code", "phone", "contact", "email", "mobile_phone", "job_title", "bank", "bank_branch", "account_no", "swift_code", "credit_term"]));
           return applyTableSort(list, "vendors");
         }, [scopedVendors, vendorsSearch, tableSort]);
+        const filteredVendorPos = useMemo(() => {
+          let list = scopedVendorPos;
+          if (vendorPoSearch.trim()) list = list.filter((r) => matchesSearch(r, vendorPoSearch, ["vendor_code", "name", "for_purpose", "po_type", "airlink_po_no", "currency", "job_no", "remarks"]));
+          return applyTableSort(list, "vendor_po");
+        }, [scopedVendorPos, vendorPoSearch, tableSort]);
 
         const ongoingJobsList = useMemo(() => scopedJobs
           .filter((j) => !isJobCompleted(j.status))
@@ -4406,6 +4536,66 @@
           logAudit("vendors", "delete", v ? v.name : String(id), `Deleted vendor ${v ? v.name : id}`);
         }
 
+        function resolveVendorPoLocalAmount(data, regionCurrency) {
+          const amt = Number(data.amount || 0);
+          const cur = data.currency || "USD";
+          if (data.local_amount !== "" && data.local_amount != null && !Number.isNaN(Number(data.local_amount))) {
+            return Number(data.local_amount);
+          }
+          return convertCurrency(amt, cur, regionCurrency || "HKD");
+        }
+
+        function saveVendorPo(e) {
+          e.preventDefault();
+          const data = { ...vendorPoModal.data };
+          const vendor = data.vendor_id
+            ? vendors.find((v) => v.id === Number(data.vendor_id))
+            : vendors.find((v) => String(v.vendor_no || "").toLowerCase() === String(data.vendor_code || "").trim().toLowerCase());
+          const regionCurrency = currencyForRegion(regionForNewRecord(), activeBaseCurrency);
+          const payload = {
+            ...data,
+            vendor_id: vendor ? vendor.id : (data.vendor_id ? Number(data.vendor_id) : null),
+            vendor_code: vendor ? vendor.vendor_no : (data.vendor_code || ""),
+            name: vendor ? vendor.name : (data.name || ""),
+            amount: Number(data.amount || 0),
+            local_amount: resolveVendorPoLocalAmount(data, regionCurrency),
+            currency: data.currency || "USD",
+            for_purpose: data.for_purpose || "Project",
+            po_type: data.po_type || "",
+            airlink_po_no: String(data.airlink_po_no || "").trim(),
+            po_date: data.po_date || "",
+            job_no: data.job_no || "",
+            remarks: data.remarks || ""
+          };
+          if (!payload.airlink_po_no) {
+            alert(t("colAirlinkPoNo") + " required");
+            return;
+          }
+          const dup = vendorPos.find((r) => r.id !== vendorPoModal.id && String(r.airlink_po_no || "").trim().toLowerCase() === payload.airlink_po_no.toLowerCase());
+          if (dup) {
+            alert(t("duplicateVendorPoNo").replace("{no}", payload.airlink_po_no));
+            return;
+          }
+          if (vendorPoModal.mode === "add") {
+            if (!guardPermission("vendor_po", "add")) return;
+            setVendorPos([{ id: nextErpRecordId(vendorPos, vendors, jobs), region: regionForNewRecord(), ...payload }, ...vendorPos]);
+            logAudit("vendor_po", "create", payload.airlink_po_no, `Created vendor PO ${payload.airlink_po_no}`);
+          } else {
+            if (!guardPermission("vendor_po", "edit")) return;
+            setVendorPos(vendorPos.map((r) => (r.id === vendorPoModal.id ? { ...r, ...payload } : r)));
+            logAudit("vendor_po", "update", payload.airlink_po_no, `Updated vendor PO ${payload.airlink_po_no}`);
+          }
+          setVendorPoModal(null);
+        }
+
+        function deleteVendorPo(id) {
+          if (!guardPermission("vendor_po", "delete")) return;
+          const row = vendorPos.find((x) => x.id === id);
+          if (!window.confirm(t("confirmDelete"))) return;
+          setVendorPos(vendorPos.filter((x) => x.id !== id));
+          logAudit("vendor_po", "delete", row ? row.airlink_po_no : String(id), `Deleted vendor PO ${row ? row.airlink_po_no : id}`);
+        }
+
         function saveAR(e) {
           e.preventDefault();
           const f = arModal.data;
@@ -4469,6 +4659,8 @@
             payee_type: "Vendor",
             si_id: null,
             amount: Number(f.amount || 0),
+            po_amount: f.po_amount === "" || f.po_amount == null ? "" : Number(f.po_amount),
+            airlink_po: f.airlink_po || "",
             exchange_rate_locked: Number(f.exchange_rate || 0),
             base_amount_locked: baseInput,
             base_amount: baseInput,
@@ -4538,17 +4730,31 @@
           setUserModal(null);
         }
 
-        function deleteUser(userId) {
+        async function deleteUser(userId) {
           if (!isRoot()) { alert(t("rootOnly")); return; }
           const target = users.find((u) => u.id === userId);
           if (!target) return;
           if (target.role === "root") { alert(t("cannotDeleteRoot")); return; }
           if (target.id === sessionUserId) { alert(t("cannotDeleteSelf")); return; }
           if (!window.confirm(t("confirmDeleteUser"))) return;
-          setUsers((prev) => prev.filter((u) => u.id !== userId));
-          pushUserDeleteToCloud(userId);
+          const nextUsers = users.filter((u) => u.id !== userId);
+          setUsers(nextUsers);
           logAudit("settings", "user_delete", target.email, `Deleted user ${target.name} (${target.email})`);
           if (userModal && userModal.id === userId) setUserModal(null);
+          const cloudOk = await pushUserDeleteToCloud(userId);
+          if (liveSyncEnabled && canLiveSyncPush() && erpSyncKey.trim()) {
+            try {
+              await flushLiveSyncPush({
+                clients, jobs, quotations, vendors, vendorPos, arInvoices, apBills,
+                users: nextUsers, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots
+              });
+            } catch { /* status already set */ }
+          }
+          if (!cloudOk) {
+            alert(t("userDeleteCloudFail"));
+          } else {
+            alert(t("userDeleteSynced"));
+          }
         }
 
         function changeMyPassword(e) {
@@ -4623,6 +4829,11 @@
             payment_advice_email: b.payment_advice_email || ""
           }));
           if (module === "vendors") return scopedVendors.map((v) => rowFromSchema(EXCEL_SCHEMAS.vendors, v));
+          if (module === "vendor_po") return scopedVendorPos.map((r) => {
+            const row = rowFromSchema(EXCEL_SCHEMAS.vendor_po, r);
+            row.local_amount = resolveVendorPoLocalAmount(r, regionListCurrency);
+            return row;
+          });
           if (module === "quotation") return scopedQuotations.map((q) => rowFromSchema(EXCEL_SCHEMAS.quotation, q));
           if (module === "monthly_report") return monthlyReportSeries.map((m) => ({
             month: m.header,
@@ -4677,6 +4888,17 @@
                 { header: "Payment Advice email", field: "payment_advice_email" }
               ]
             };
+          } else if (module === "vendor_po") {
+            schema = {
+              sheetName: "VendorPO",
+              filePrefix: "vendor_po",
+              keyField: "airlink_po_no",
+              columns: EXCEL_SCHEMAS.vendor_po.columns.map((c) => (
+                c.field === "local_amount"
+                  ? { ...c, header: "Airlink PO Amt in " + regionListCurrency }
+                  : c
+              ))
+            };
           }
           if (module === "monthly_report") {
             schema = { sheetName: "MonthlyReport", filePrefix: "monthly_report_" + monthlyReportYear, columns: [
@@ -4700,6 +4922,7 @@
           if (module === "ar") return arInvoices.find((r) => r.invoice_no.toLowerCase() === k);
           if (module === "ap") return apBills.find((b) => b.invoice_no.toLowerCase() === k);
           if (module === "vendors") return vendors.find((v) => v.vendor_no.toLowerCase() === k);
+          if (module === "vendor_po") return vendorPos.find((r) => String(r.airlink_po_no || "").toLowerCase() === k);
           if (module === "quotation") return quotations.find((q) => q.quotation_no.toLowerCase() === k);
           return null;
         }
@@ -4737,6 +4960,23 @@
           if (module === "ap") {
             const pt = String(row.payee_type || "Vendor").trim();
             if (pt && pt !== "Vendor") row.payee_type = "Vendor";
+          }
+          if (module === "vendor_po") {
+            const code = String(row.vendor_code || "").trim();
+            const vendor = vendors.find((v) => String(v.vendor_no || "").toLowerCase() === code.toLowerCase())
+              || vendors.find((v) => String(v.name || "").toLowerCase() === String(row.name || "").trim().toLowerCase());
+            if (!vendor) errors.push("Vendor not found: " + (code || row.name || "(empty)"));
+            else {
+              row.vendor_code = vendor.vendor_no;
+              row.name = vendor.name;
+              row.vendor_id = vendor.id;
+            }
+            const purpose = String(row.for_purpose || "").trim();
+            if (purpose && !VENDOR_PO_PURPOSES.includes(purpose)) errors.push("Invalid For Project/ Inventory: " + purpose);
+            if (!purpose) row.for_purpose = "Project";
+            const poType = String(row.po_type || "").trim();
+            if (poType && !VENDOR_PO_TYPES.includes(poType)) errors.push("Invalid Type: " + poType);
+            if (!String(row.currency || "").trim()) row.currency = "USD";
           }
         }
 
@@ -4854,6 +5094,7 @@
           if (snapshot.jobs != null) { localStorage.setItem("erp_jobs", JSON.stringify(snapshot.jobs)); }
           if (snapshot.quotations != null) { localStorage.setItem("erp_quotations", JSON.stringify(snapshot.quotations)); }
           if (snapshot.vendors != null) { localStorage.setItem("erp_vendors", JSON.stringify(snapshot.vendors)); }
+          if (snapshot.vendorPos != null) { localStorage.setItem("erp_vendor_pos", JSON.stringify(snapshot.vendorPos)); }
           if (snapshot.arInvoices != null) { localStorage.setItem("erp_ar", JSON.stringify(snapshot.arInvoices)); }
           if (snapshot.apBills != null) { localStorage.setItem("erp_ap", JSON.stringify(snapshot.apBills)); }
         }
@@ -4864,7 +5105,7 @@
             exportedAt: new Date().toISOString(),
             app: "ERP System",
             data: {
-              users, auditLogs, clients, jobs, quotations, vendors,
+              users, auditLogs, clients, jobs, quotations, vendors, vendorPos,
               arInvoices, apBills, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots,
               settings: buildSharedSettings()
             }
@@ -4879,6 +5120,7 @@
           setJobs(ensureJobsQuotations(ensureRegionOnRecords(d.jobs)));
           setQuotations(ensureRegionOnRecords(d.quotations || []));
           setVendors(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || [])));
+          setVendorPos(ensureRegionOnRecords(d.vendorPos || []));
           setArInvoices(ensureRegionOnRecords(d.arInvoices || []));
           setApBills(ensureRegionOnRecords(d.apBills || []));
           setMonthlyPoLines(d.monthlyPoLines || []);
@@ -4890,6 +5132,7 @@
           localStorage.setItem("erp_jobs", JSON.stringify(ensureJobsQuotations(ensureRegionOnRecords(d.jobs))));
           localStorage.setItem("erp_quotations", JSON.stringify(ensureRegionOnRecords(d.quotations || [])));
           localStorage.setItem("erp_vendors", JSON.stringify(ensureVendorNumbers(ensureRegionOnRecords(d.vendors || []))));
+          localStorage.setItem("erp_vendor_pos", JSON.stringify(ensureRegionOnRecords(d.vendorPos || [])));
           localStorage.setItem("erp_ar", JSON.stringify(ensureRegionOnRecords(d.arInvoices || [])));
           localStorage.setItem("erp_ap", JSON.stringify(ensureRegionOnRecords(d.apBills || [])));
           saveErpStorage("erp_monthly_po_lines", d.monthlyPoLines || []);
@@ -4944,18 +5187,18 @@
         }
 
         async function pushUserRecordToCloud(userRecord) {
-          if (!userRecord || userRecord.id == null) return;
+          if (!userRecord || userRecord.id == null) return false;
           let key = erpSyncKey.trim();
           if (!key) {
             try {
               const cfgRes = await fetch("/api/sync/client-config");
               const cfg = cfgRes.ok ? await cfgRes.json() : {};
               key = cfg.sync_key || "";
-            } catch { return; }
+            } catch { return false; }
           }
-          if (!key) return;
+          if (!key) return false;
           try {
-            await fetch("/api/sync/push", {
+            const res = await fetch("/api/sync/push", {
               method: "POST",
               headers: { "Content-Type": "application/json", "X-ERP-Sync-Key": key },
               body: JSON.stringify({
@@ -4969,22 +5212,23 @@
                 updated_by: sessionUserId
               })
             });
-          } catch { /* ignore */ }
+            return res.ok;
+          } catch { return false; }
         }
 
         async function pushUserDeleteToCloud(userId) {
-          if (userId == null) return;
+          if (userId == null) return false;
           let key = erpSyncKey.trim();
           if (!key) {
             try {
               const cfgRes = await fetch("/api/sync/client-config");
               const cfg = cfgRes.ok ? await cfgRes.json() : {};
               key = cfg.sync_key || "";
-            } catch { return; }
+            } catch { return false; }
           }
-          if (!key) return;
+          if (!key) return false;
           try {
-            await fetch("/api/sync/push", {
+            const res = await fetch("/api/sync/push", {
               method: "POST",
               headers: { "Content-Type": "application/json", "X-ERP-Sync-Key": key },
               body: JSON.stringify({
@@ -4998,7 +5242,8 @@
                 updated_by: sessionUserId
               })
             });
-          } catch { /* ignore */ }
+            return res.ok;
+          } catch { return false; }
         }
 
         function stripSyncMeta(rec) {
@@ -5049,6 +5294,7 @@
           markSyncedArray("jobs", jobs);
           markSyncedArray("quotations", quotations);
           markSyncedArray("vendors", vendors);
+          markSyncedArray("vendor_pos", vendorPos);
           markSyncedArray("ar_invoices", arInvoices);
           markSyncedArray("ap_bills", apBills);
           markSyncedArray("users", users);
@@ -5065,8 +5311,14 @@
           if (snap.jobs) markSyncedArray("jobs", snap.jobs);
           if (snap.quotations) markSyncedArray("quotations", snap.quotations);
           if (snap.vendors) markSyncedArray("vendors", snap.vendors);
+          if (snap.vendorPos) markSyncedArray("vendor_pos", snap.vendorPos);
           if (snap.arInvoices) markSyncedArray("ar_invoices", snap.arInvoices);
           if (snap.apBills) markSyncedArray("ap_bills", snap.apBills);
+          if (snap.users) markSyncedArray("users", snap.users);
+          if (snap.auditLogs) markSyncedArray("audit_logs", snap.auditLogs);
+          if (snap.monthlyPoLines) markSyncedArray("monthly_po_lines", snap.monthlyPoLines);
+          if (snap.monthlyArLines) markSyncedArray("monthly_ar_lines", snap.monthlyArLines);
+          if (snap.monthlyArExpectedSnapshots) markSyncedSingleton("monthly_ar_expected", snap.monthlyArExpectedSnapshots);
         }
 
         function collectChangesFromSnapshot(snap) {
@@ -5076,8 +5328,13 @@
           if (snap.jobs) changes.push(...computeChangesForArray("jobs", snap.jobs));
           if (snap.quotations) changes.push(...computeChangesForArray("quotations", snap.quotations));
           if (snap.vendors) changes.push(...computeChangesForArray("vendors", snap.vendors));
+          if (snap.vendorPos) changes.push(...computeChangesForArray("vendor_pos", snap.vendorPos));
           if (snap.arInvoices) changes.push(...computeChangesForArray("ar_invoices", snap.arInvoices));
           if (snap.apBills) changes.push(...computeChangesForArray("ap_bills", snap.apBills));
+          if (snap.users) changes.push(...computeChangesForArray("users", snap.users));
+          if (snap.auditLogs) changes.push(...computeChangesForArray("audit_logs", snap.auditLogs));
+          if (snap.monthlyPoLines) changes.push(...computeChangesForArray("monthly_po_lines", snap.monthlyPoLines));
+          if (snap.monthlyArLines) changes.push(...computeChangesForArray("monthly_ar_lines", snap.monthlyArLines));
           return changes;
         }
 
@@ -5087,6 +5344,7 @@
           changes.push(...computeChangesForArray("jobs", jobs));
           changes.push(...computeChangesForArray("quotations", quotations));
           changes.push(...computeChangesForArray("vendors", vendors));
+          changes.push(...computeChangesForArray("vendor_pos", vendorPos));
           changes.push(...computeChangesForArray("ar_invoices", arInvoices));
           changes.push(...computeChangesForArray("ap_bills", apBills));
           changes.push(...computeChangesForArray("users", users));
@@ -5115,6 +5373,7 @@
           pushArr("jobs", jobs);
           pushArr("quotations", quotations);
           pushArr("vendors", vendors);
+          pushArr("vendor_pos", vendorPos);
           pushArr("ar_invoices", arInvoices);
           pushArr("ap_bills", apBills);
           pushArr("users", users);
@@ -5175,6 +5434,7 @@
           if (byType.jobs) setJobs((prev) => ensureJobsQuotations(ensureRegionOnRecords(mergeArrayByRemote(prev, byType.jobs))));
           if (byType.quotations) setQuotations((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.quotations)));
           if (byType.vendors) setVendors((prev) => ensureVendorNumbers(ensureRegionOnRecords(mergeArrayByRemote(prev, byType.vendors))));
+          if (byType.vendor_pos) setVendorPos((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.vendor_pos)));
           if (byType.ar_invoices) setArInvoices((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.ar_invoices)));
           if (byType.ap_bills) setApBills((prev) => ensureRegionOnRecords(mergeArrayByRemote(prev, byType.ap_bills)));
           if (byType.users) setUsers((prev) => mergeArrayByRemote(prev, byType.users));
@@ -5204,6 +5464,12 @@
           return mergeArrayByRemote(local || [], remoteArrayToChanges(remoteArr));
         }
 
+        function mergeFullUsersFromCloud(remoteArr) {
+          // Full sync users: cloud active set replaces seed/demo users (e.g. deleted Finance stays gone).
+          if (!Array.isArray(remoteArr) || !remoteArr.length) return normalizeStoredUsers(null);
+          return normalizeStoredUsers(remoteArr).map((u) => ({ ...u, _syncAt: u._syncAt || u.updated_at || nowIso() }));
+        }
+
         function applyFullLiveEntities(body) {
           const e = body.entities || {};
           const singletons = body.singletons || {};
@@ -5212,9 +5478,10 @@
           setJobs((prev) => ensureJobsQuotations(ensureRegionOnRecords(mergeFullWithLocal(prev, e.jobs))));
           setQuotations((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.quotations)));
           setVendors((prev) => ensureVendorNumbers(ensureRegionOnRecords(mergeFullWithLocal(prev, e.vendors))));
+          setVendorPos((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.vendor_pos)));
           setArInvoices((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.ar_invoices)));
           setApBills((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.ap_bills)));
-          if (e.users) setUsers((prev) => mergeFullWithLocal(prev, e.users));
+          if (e.users) setUsers(mergeFullUsersFromCloud(e.users));
           setAuditLogs((prev) => mergeFullWithLocal(prev, e.audit_logs));
           setMonthlyPoLines((prev) => mergeFullWithLocal(prev, e.monthly_po_lines));
           setMonthlyArLines((prev) => mergeFullWithLocal(prev, e.monthly_ar_lines));
@@ -5222,6 +5489,32 @@
           if (singletons.settings) applySharedSettings(singletons.settings);
           liveServerVersionRef.current = body.server_version || 0;
           setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
+        }
+
+        async function syncNowToCloud() {
+          if (!liveSyncEnabled) {
+            alert(t("liveSyncNeedKey"));
+            return;
+          }
+          if (!erpSyncKey.trim()) {
+            alert(t("liveSyncNeedKey"));
+            return;
+          }
+          if (!canLiveSyncPush()) {
+            alert(t("liveSyncReadOnly"));
+            return;
+          }
+          try {
+            setLiveSyncStatus("syncing");
+            await flushLiveSyncPush();
+            await pollLiveSync();
+            setLiveSyncLastAt(new Date());
+            setLiveSyncStatus("ok");
+            alert(t("liveSyncNowDone"));
+          } catch (err) {
+            setLiveSyncStatus("error");
+            alert(t("liveSyncNowFail") + (err && err.message ? ": " + err.message : ""));
+          }
         }
 
         async function flushLiveSyncPush(snapshotOverride) {
@@ -5350,7 +5643,7 @@
           if (!valid.length) { alert(t("importNoRows")); return; }
 
           resetErpIdAllocator();
-          const idSources = () => [clients, jobs, quotations, vendors, arInvoices, apBills, auditLogs, monthlyPoLines, monthlyArLines];
+          const idSources = () => [clients, jobs, quotations, vendors, vendorPos, arInvoices, apBills, auditLogs, monthlyPoLines, monthlyArLines];
 
           let created = 0;
           let updated = 0;
@@ -5358,6 +5651,7 @@
           let nextJobs = jobs;
           let nextQuotations = quotations;
           let nextVendors = vendors;
+          let nextVendorPos = vendorPos;
           let nextAr = arInvoices;
           let nextAp = apBills;
           let nextQuotationsFromJobs = quotations;
@@ -5485,6 +5779,8 @@
                 payee_type: p.data.payee_type || "Vendor",
                 si_id: null,
                 company_name: p.data.company_name,
+                airlink_po: p.data.airlink_po || "",
+                po_amount: p.data.po_amount === "" || p.data.po_amount == null ? "" : Number(p.data.po_amount),
                 invoice_no: p.data.invoice_no,
                 invoice_date: p.data.invoice_date || "",
                 invoice_received_date: "",
@@ -5520,12 +5816,55 @@
           } else if (module === "vendors") {
             nextVendors = [...vendors];
             valid.forEach((p) => {
-              const payload = { vendor_no: p.data.vendor_no, name: p.data.name, email: p.data.email || "", phone: p.data.phone || "", address: p.data.address || "", bank: p.data.bank || "", swift_code: p.data.swift_code || "", charge: p.data.charge || "OUR", contact: p.data.contact || "", finance_contact: p.data.finance_contact || "", finance_email: p.data.finance_email || "" };
+              const payload = {
+                vendor_no: p.data.vendor_no,
+                name: p.data.name,
+                gst_no: p.data.gst_no || "",
+                legal_rep: p.data.legal_rep || "",
+                address: p.data.address || "",
+                postal_code: p.data.postal_code || "",
+                phone: p.data.phone || "",
+                contact: p.data.contact || "",
+                email: p.data.email || "",
+                mobile_phone: p.data.mobile_phone || "",
+                job_title: p.data.job_title || "",
+                bank: p.data.bank || "",
+                bank_branch: p.data.bank_branch || "",
+                account_no: p.data.account_no || "",
+                swift_code: p.data.swift_code || "",
+                credit_term: p.data.credit_term || "",
+                charge: p.data.charge || "OUR"
+              };
               const existing = nextVendors.find((v) => v.vendor_no.toLowerCase() === p.key.toLowerCase());
               if (existing) { nextVendors = nextVendors.map((v) => (v.id === existing.id ? { ...v, ...payload } : v)); updated++; }
               else { nextVendors = [{ id: nextErpRecordId(nextVendors, ...idSources()), region: regionForNewRecord(), ...payload }, ...nextVendors]; created++; }
             });
             setVendors(nextVendors);
+          } else if (module === "vendor_po") {
+            nextVendorPos = [...vendorPos];
+            valid.forEach((p) => {
+              const vendor = vendors.find((v) => v.id === Number(p.data.vendor_id))
+                || vendors.find((v) => String(v.vendor_no || "").toLowerCase() === String(p.data.vendor_code || "").trim().toLowerCase());
+              const regionCurrency = currencyForRegion(regionForNewRecord(), activeBaseCurrency);
+              const payload = {
+                vendor_id: vendor ? vendor.id : null,
+                vendor_code: vendor ? vendor.vendor_no : (p.data.vendor_code || ""),
+                name: vendor ? vendor.name : (p.data.name || ""),
+                for_purpose: p.data.for_purpose || "Project",
+                po_type: p.data.po_type || "",
+                airlink_po_no: String(p.data.airlink_po_no || "").trim(),
+                po_date: p.data.po_date || "",
+                currency: p.data.currency || "USD",
+                amount: Number(p.data.amount || 0),
+                local_amount: resolveVendorPoLocalAmount(p.data, regionCurrency),
+                job_no: p.data.job_no || "",
+                remarks: p.data.remarks || ""
+              };
+              const existing = nextVendorPos.find((r) => String(r.airlink_po_no || "").toLowerCase() === p.key.toLowerCase());
+              if (existing) { nextVendorPos = nextVendorPos.map((r) => (r.id === existing.id ? { ...r, ...payload } : r)); updated++; }
+              else { nextVendorPos = [{ id: nextErpRecordId(nextVendorPos, ...idSources()), region: regionForNewRecord(), ...payload }, ...nextVendorPos]; created++; }
+            });
+            setVendorPos(nextVendorPos);
           } else if (module === "quotation") {
             nextQuotations = [...quotations];
             valid.forEach((p) => {
@@ -5556,6 +5895,7 @@
             jobs: nextJobs,
             quotations: module === "job" ? nextQuotationsFromJobs : (module === "quotation" ? nextQuotations : quotations),
             vendors: nextVendors,
+            vendorPos: nextVendorPos,
             arInvoices: nextAr,
             apBills: nextAp
           };
@@ -5790,11 +6130,11 @@
                         <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-left">{t("type")}</th><th className="p-2 text-left">{t("colCustomerPo")}</th><th className="p-2 text-left">{t("status")}</th><th className="p-2 text-left"></th></tr></thead>
                         <tbody>{relatedJobs.map((j) => (
                           <tr key={j.id} className="border-t">
-                            <td className="p-2"><LinkBtn onClick={() => navigateTo("job", { client: c.company, highlightId: j.id })}>{j.job_no}</LinkBtn></td>
+                            <td className="p-2"><LinkBtn onClick={() => setDetailPanel({ type: "job", id: j.id })}>{j.job_no}</LinkBtn></td>
                             <td className="p-2">{j.job_type}</td>
                             <td className="p-2">{j.customer_po ? <LinkBtn onClick={() => navigateToJobByPo(c.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</td>
                             <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></td>
-                            <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("job", { client: c.company, highlightId: j.id })}>{t("goToJob")}</button></td>
+                            <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => setDetailPanel({ type: "job", id: j.id })}>{t("goToJob")}</button></td>
                           </tr>
                         ))}</tbody>
                       </table>
@@ -5807,11 +6147,11 @@
                         <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{t("colAmt")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left"></th></tr></thead>
                         <tbody>{relatedAr.map((r) => (
                           <tr key={r.id} className="border-t">
-                            <td className="p-2"><LinkBtn onClick={() => navigateTo("ar", { client: c.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></td>
-                            <td className="p-2">{r.job_no ? <LinkBtn onClick={() => { const job = jobs.find((j) => j.job_no === r.job_no); navigateTo("job", { client: c.company, highlightId: job ? job.id : null }); }}>{r.job_no}</LinkBtn> : "-"}</td>
+                            <td className="p-2"><LinkBtn onClick={() => setDetailPanel({ type: "ar", id: r.id })}>{r.invoice_no}</LinkBtn></td>
+                            <td className="p-2">{r.job_no ? <LinkBtn onClick={() => { const job = jobs.find((j) => j.job_no === r.job_no); if (job) setDetailPanel({ type: "job", id: job.id }); }}>{r.job_no}</LinkBtn> : "-"}</td>
                             <td className="p-2 text-right">{money(r.invoice_amt)} {r.invoice_currency}</td>
                             <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
-                            <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ar", { client: c.company, highlightId: r.id })}>{t("goToAr")}</button></td>
+                            <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => setDetailPanel({ type: "ar", id: r.id })}>{t("goToAr")}</button></td>
                           </tr>
                         ))}</tbody>
                       </table>
@@ -5871,24 +6211,78 @@
             if (!j) return null;
             const relatedAr = getArByJob(j.job_no);
             const relatedAp = getApByJob(j.job_no);
-            const client = clients.find((c) => c.id === j.client_id);
+            const client = clients.find((c) => c.id === j.client_id) || clients.find((c) => c.company === j.company);
             const linkedQuotations = findLinkedQuotationsForJob(j, quotations);
             const jobCurrency = j.currency || "USD";
             const quotationTotal = sumLinkedQuotationAmounts(j, quotations, jobCurrency);
             const poTotal = sumJobPoAmount(j);
             const invoiceTotal = sumJobArInvoiceAmount(j.job_no, arInvoices, regionListCurrency);
+            const linkedVendorPos = vendorPos.filter((r) => String(r.job_no || "").trim().toLowerCase() === String(j.job_no || "").trim().toLowerCase());
+            const vendorPoFromAp = relatedAp.map((b) => String(b.airlink_po || "").trim()).filter(Boolean);
+            const vendorPoEntries = [];
+            const seenPo = new Set();
+            linkedVendorPos.forEach((r) => {
+              const no = String(r.airlink_po_no || "").trim();
+              if (!no || seenPo.has(no.toLowerCase())) return;
+              seenPo.add(no.toLowerCase());
+              vendorPoEntries.push({ no, id: r.id, source: "vendor_po" });
+            });
+            vendorPoFromAp.forEach((po) => {
+              if (seenPo.has(po.toLowerCase())) return;
+              seenPo.add(po.toLowerCase());
+              const match = vendorPos.find((r) => String(r.airlink_po_no || "").trim().toLowerCase() === po.toLowerCase());
+              const apMatch = relatedAp.find((b) => String(b.airlink_po || "").trim() === po);
+              vendorPoEntries.push({ no: po, id: match ? match.id : (apMatch ? apMatch.id : null), source: match ? "vendor_po" : "ap" });
+            });
+            const relatedVendorsMap = new Map();
+            linkedVendorPos.forEach((r) => {
+              const v = vendors.find((x) => x.id === r.vendor_id)
+                || vendors.find((x) => String(x.vendor_no || "").toLowerCase() === String(r.vendor_code || "").toLowerCase())
+                || vendors.find((x) => String(x.name || "").toLowerCase() === String(r.name || "").toLowerCase());
+              if (v) relatedVendorsMap.set(v.id, v);
+            });
+            relatedAp.forEach((b) => {
+              const v = vendors.find((x) => String(x.name || "").toLowerCase() === String(b.company_name || "").toLowerCase());
+              if (v) relatedVendorsMap.set(v.id, v);
+            });
+            const relatedVendors = Array.from(relatedVendorsMap.values());
             return (
               <Modal title={t("jobDetail") + " - " + j.job_no} onClose={() => setDetailPanel(null)} wide>
                 <p className="text-xs text-slate-500 mb-4">{t("jobFlowHint")}</p>
                 <div className="grid grid-cols-2 gap-6 text-sm mb-6">
                   <div className="space-y-4">
-                    <div><p className="text-slate-500">Client</p><p className="font-medium">{j.company}</p></div>
-                    <div><p className="text-slate-500">{t("colCustomerPo")}</p><p>{j.customer_po ? <LinkBtn onClick={() => navigateToArByPo(j.company, j.customer_po)}>{j.customer_po}</LinkBtn> : "-"}</p></div>
+                    <div>
+                      <p className="text-slate-500">Client</p>
+                      <p className="font-medium">
+                        {client ? (
+                          <LinkBtn onClick={() => setDetailPanel({ type: "client", id: client.id })}>
+                            {client.customer_no ? client.customer_no + " · " : ""}{j.company}
+                            {client.bu_no ? " · BU " + client.bu_no : ""}
+                          </LinkBtn>
+                        ) : j.company}
+                      </p>
+                    </div>
+                    {(client?.is_bu || client?.bu_no) && (
+                      <div><p className="text-slate-500">{t("colBuNo")}</p><p className="font-medium">{client.bu_no || "-"}</p></div>
+                    )}
+                    <div><p className="text-slate-500">{t("nav_vendors")}</p><p>{relatedVendors.length ? relatedVendors.map((v, i) => (
+                      <span key={v.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>{v.vendor_no ? v.vendor_no + " · " : ""}{v.name}</LinkBtn></span>
+                    )) : "-"}</p></div>
+                    <div><p className="text-slate-500">{t("colCustomerPo")}</p><p>{j.customer_po ? String(j.customer_po).split(",").map((po, i) => {
+                      const poTrim = po.trim();
+                      const arMatch = arInvoices.find((r) => r.customer_po === poTrim || (r.customer_po && String(r.customer_po).includes(poTrim)));
+                      return <span key={poTrim + i}>{i > 0 ? ", " : ""}{arMatch ? <LinkBtn onClick={() => setDetailPanel({ type: "ar", id: arMatch.id })}>{poTrim}</LinkBtn> : poTrim}</span>;
+                    }) : "-"}</p></div>
+                    <div><p className="text-slate-500">{t("colVendorPo")}</p><p>{vendorPoEntries.length ? vendorPoEntries.map((entry, i) => (
+                      <span key={entry.no + i}>{i > 0 ? ", " : ""}{entry.id ? (
+                        <LinkBtn onClick={() => setDetailPanel({ type: entry.source === "vendor_po" ? "vendor_po" : "ap", id: entry.id })}>{entry.no}</LinkBtn>
+                      ) : entry.no}</span>
+                    )) : "-"}</p></div>
                     <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotations.length ? linkedQuotations.map((q, i) => (
                       <span key={q.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>{q.quotation_no}</LinkBtn></span>
                     )) : (j.quotation_no || "-")}</p></div>
                     <div><p className="text-slate-500">{t("colInvoiceNo")}</p><p>{relatedAr.length ? relatedAr.map((r, i) => (
-                      <span key={r.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => navigateTo("ar", { client: j.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></span>
+                      <span key={r.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "ar", id: r.id })}>{r.invoice_no}</LinkBtn></span>
                     )) : "-"}</p></div>
                     <div><p className="text-slate-500">{t("status")}</p><p><span className={"inline-block px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></p></div>
                   </div>
@@ -5918,7 +6312,12 @@
                 {client && (
                   <div className="mb-4 p-3 bg-slate-50 rounded-lg text-sm">
                     <p className="font-medium">{t("ownedClient")}</p>
-                    <p><LinkBtn onClick={() => { setPage("clients"); setDetailPanel({ type: "client", id: client.id }); }}>{client.customer_no} · {client.company}</LinkBtn> · {client.primary_contact}</p>
+                    <p>
+                      <LinkBtn onClick={() => setDetailPanel({ type: "client", id: client.id })}>
+                        {client.customer_no} · {client.company}{client.bu_no ? " · BU " + client.bu_no : ""}
+                      </LinkBtn>
+                      {client.primary_contact ? " · " + client.primary_contact : ""}
+                    </p>
                   </div>
                 )}
                 <h4 className="font-semibold mb-2">{t("relatedInvoices")} ({relatedAr.length})</h4>
@@ -5927,7 +6326,7 @@
                     <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("paymentStage")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
                     <tbody>{relatedAr.map((r) => (
                       <tr key={r.id} className="border-t">
-                        <td className="p-2"><LinkBtn onClick={() => navigateTo("ar", { client: j.company, highlightId: r.id })}>{r.invoice_no}</LinkBtn></td>
+                        <td className="p-2"><LinkBtn onClick={() => setDetailPanel({ type: "ar", id: r.id })}>{r.invoice_no}</LinkBtn></td>
                         <td className="p-2">{paymentStageLabel(r.payment_stage, t)}</td>
                         <td className="p-2 text-right">{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</td>
                         <td className="p-2">{r.due_date}</td>
@@ -5939,15 +6338,16 @@
                 <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
                 {relatedAp.length ? (
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("payeeType")}</th><th className="p-2 text-left">{t("colPayee")}</th><th className="p-2 text-right">{t("amount")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colAirlinkPo")}</th><th className="p-2 text-left">{t("payeeType")}</th><th className="p-2 text-left">{t("colPayee")}</th><th className="p-2 text-right">{t("colPoAmount")}</th><th className="p-2 text-right">{t("amount")}</th><th className="p-2 text-left">{t("paymentStatus")}</th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
                       <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/50" : "")}>
-                        <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { client: j.company, jobId: j.id, highlightId: b.id })}>{b.invoice_no}</LinkBtn></td>
+                        <td className="p-2"><LinkBtn onClick={() => setDetailPanel({ type: "ap", id: b.id })}>{b.invoice_no}</LinkBtn></td>
+                        <td className="p-2">{b.airlink_po || "-"}</td>
                         <td className="p-2">{b.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</td>
                         <td className="p-2">{b.company_name}</td>
+                        <td className="p-2 text-right">{b.po_amount !== "" && b.po_amount != null ? money(b.po_amount) : "-"}</td>
                         <td className="p-2 text-right">{money(b.amount)} {b.currency}</td>
                         <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></td>
-                        <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ap", { client: j.company, jobId: j.id, highlightId: b.id })}>{t("goToAp")}</button></td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -5975,21 +6375,48 @@
             const v = vendors.find((x) => x.id === id);
             if (!v) return null;
             const relatedAp = getApByVendor(v.name);
+            const relatedVendorPos = vendorPos.filter((r) => r.vendor_id === v.id || String(r.vendor_code || "").toLowerCase() === String(v.vendor_no || "").toLowerCase());
             return (
               <Modal title={t("vendorDetail") + " - " + (v.vendor_no ? v.vendor_no + " · " : "") + v.name} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                   <div><p className="text-slate-500">{t("vendorNo")}</p><p className="font-medium">{v.vendor_no || "-"}</p></div>
-                  <div><p className="text-slate-500">Name</p><p className="font-medium">{v.name}</p></div>
-                  <div><p className="text-slate-500">Email</p><p>{v.email}</p></div>
-                  <div><p className="text-slate-500">{t("phoneNo")}</p><p>{v.phone || "-"}</p></div>
-                  <div><p className="text-slate-500">{t("address")}</p><p>{v.address || "-"}</p></div>
-                  <div><p className="text-slate-500">Bank</p><p>{v.bank}</p></div>
-                  <div><p className="text-slate-500">Charge</p><p>{v.charge || "OUR"}</p></div>
-                  <div><p className="text-slate-500">SWIFT</p><p>{v.swift_code || "-"}</p></div>
-                  <div><p className="text-slate-500">Contact</p><p>{v.contact || "-"}</p></div>
-                  <div><p className="text-slate-500">{t("colFinanceContact")}</p><p>{v.finance_contact || "-"}</p></div>
-                  <div><p className="text-slate-500">{t("colFinanceEmail")}</p><p>{v.finance_email || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colCompanyName")}</p><p className="font-medium">{v.name}</p></div>
+                  <div><p className="text-slate-500">{t("colGstNo")}</p><p>{v.gst_no || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colLegalRep")}</p><p>{v.legal_rep || "-"}</p></div>
+                  <div className="col-span-2"><p className="text-slate-500">{t("address")}</p><p>{v.address || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colPostalCode")}</p><p>{v.postal_code || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colCompanyPhone")}</p><p>{v.phone || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colMainContact")}</p><p>{v.contact || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colEmail")}</p><p>{v.email || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colMobilePhone")}</p><p>{v.mobile_phone || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colJobTitle")}</p><p>{v.job_title || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colBankName")}</p><p>{v.bank || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colBankBranch")}</p><p>{v.bank_branch || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colAccountNo")}</p><p>{v.account_no || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colSwiftCode")}</p><p>{v.swift_code || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colCreditTerm")}</p><p>{v.credit_term || "-"}</p></div>
                 </div>
+                {relatedVendorPos.length > 0 && (
+                  <>
+                    <h4 className="font-semibold mb-2">{t("nav_vendor_po")} ({relatedVendorPos.length})</h4>
+                    <table className="w-full text-sm border rounded-lg overflow-hidden mb-4">
+                      <thead className="bg-slate-50"><tr>
+                        <th className="p-2 text-left">{t("colAirlinkPoNo")}</th>
+                        <th className="p-2 text-left">{t("colPoDate")}</th>
+                        <th className="p-2 text-right">{t("colAirlinkPoAmt")}</th>
+                        <th className="p-2 text-left">{t("type")}</th>
+                      </tr></thead>
+                      <tbody>{relatedVendorPos.map((r) => (
+                        <tr key={r.id} className="border-t cursor-pointer hover:bg-blue-50/50" onClick={() => setDetailPanel({ type: "vendor_po", id: r.id })}>
+                          <td className="p-2"><LinkBtn onClick={() => setDetailPanel({ type: "vendor_po", id: r.id })}>{r.airlink_po_no}</LinkBtn></td>
+                          <td className="p-2">{r.po_date || "-"}</td>
+                          <td className="p-2 text-right tabular-nums">{money(r.amount)} {r.currency || ""}</td>
+                          <td className="p-2">{r.po_type || "-"}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </>
+                )}
                 <h4 className="font-semibold mb-2">{t("relatedAp")} ({relatedAp.length})</h4>
                 {relatedAp.length ? (
                   <>
@@ -5997,17 +6424,17 @@
                       {relatedAp.filter((b) => isApPaid(b)).length} {t("apPaid")} · {relatedAp.filter((b) => !isApPaid(b)).length} {t("apUnpaid")}
                     </p>
                   <table className="w-full text-sm border rounded-lg overflow-hidden">
-                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">{t("colPayDate")}</th><th className="p-2 text-left">{t("colRemarks")}</th><th className="p-2 text-left"></th></tr></thead>
+                    <thead className="bg-slate-50"><tr><th className="p-2 text-left">{t("colInvoiceNo")}</th><th className="p-2 text-left">{t("colAirlinkPo")}</th><th className="p-2 text-left">{t("colJobNo")}</th><th className="p-2 text-right">{amtInLabel}</th><th className="p-2 text-left">{t("colDueDate")}</th><th className="p-2 text-left">{t("paymentStatus")}</th><th className="p-2 text-left">{t("colPayDate")}</th><th className="p-2 text-left">{t("colRemarks")}</th></tr></thead>
                     <tbody>{relatedAp.map((b) => (
                       <tr key={b.id} className={"border-t " + (isApPaid(b) ? "bg-green-50/70" : "")}>
-                        <td className="p-2"><LinkBtn onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{b.invoice_no}</LinkBtn></td>
-                        <td className="p-2">{b.job_no || "-"}</td>
+                        <td className="p-2"><LinkBtn onClick={() => setDetailPanel({ type: "ap", id: b.id })}>{b.invoice_no}</LinkBtn></td>
+                        <td className="p-2">{b.airlink_po || "-"}</td>
+                        <td className="p-2">{b.job_no ? <LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === b.job_no || x.id === b.job_id); if (j) setDetailPanel({ type: "job", id: j.id }); }}>{b.job_no}</LinkBtn> : "-"}</td>
                         <td className="p-2 text-right">{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</td>
                         <td className="p-2">{b.due_date}</td>
                         <td className="p-2"><span className={"px-2 py-0.5 rounded text-xs " + apPaymentClass(b)}>{apPaymentLabel(b, t)}</span></td>
                         <td className="p-2">{b.pay_date || "-"}</td>
                         <td className="p-2">{b.remarks || "-"}</td>
-                        <td className="p-2"><button type="button" className="text-xs text-blue-600 hover:underline" onClick={() => navigateTo("ap", { highlightId: b.id, jobId: b.job_id })}>{t("goToAp")}</button></td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -6018,8 +6445,55 @@
                   deleteLabel={t("delete")}
                   canEdit={can("vendors", "edit")}
                   canDelete={can("vendors", "delete")}
-                  onEdit={() => { setDetailPanel(null); setVendorModal({ mode: "edit", id: v.id, data: { ...v } }); }}
+                  onEdit={() => { setDetailPanel(null); setVendorModal({ mode: "edit", id: v.id, data: { ...emptyVendor(), ...v } }); }}
                   onDelete={() => { deleteVendor(v.id); setDetailPanel(null); }}
+                />
+              </Modal>
+            );
+          }
+
+          if (type === "vendor_po") {
+            const r = vendorPos.find((x) => x.id === id);
+            if (!r) return null;
+            const vendor = vendors.find((v) => v.id === r.vendor_id) || vendors.find((v) => String(v.vendor_no || "").toLowerCase() === String(r.vendor_code || "").toLowerCase());
+            const job = r.job_no ? jobs.find((j) => String(j.job_no || "").toLowerCase() === String(r.job_no || "").toLowerCase()) : null;
+            const localAmt = resolveVendorPoLocalAmount(r, regionListCurrency);
+            const localLabel = t("colAirlinkPoAmtLocal").replace("{currency}", regionListCurrency);
+            return (
+              <Modal title={t("vendorPoDetail") + " - " + (r.airlink_po_no || "")} onClose={() => setDetailPanel(null)} wide>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-6">
+                  <div><p className="text-slate-500">{t("colVendorCode")}</p><p className="font-medium">{vendor ? <LinkBtn onClick={() => setDetailPanel({ type: "vendor", id: vendor.id })}>{r.vendor_code || vendor.vendor_no}</LinkBtn> : (r.vendor_code || "-")}</p></div>
+                  <div><p className="text-slate-500">{t("colVendorPoName")}</p><p className="font-medium">{vendor ? <LinkBtn onClick={() => setDetailPanel({ type: "vendor", id: vendor.id })}>{r.name}</LinkBtn> : (r.name || "-")}</p></div>
+                  <div><p className="text-slate-500">{t("colForProjectInventory")}</p><p>{r.for_purpose || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("type")}</p><p>{r.po_type || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colAirlinkPoNo")}</p><p className="font-medium">{r.airlink_po_no || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colPoDate")}</p><p>{r.po_date || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colAirlinkPoCurrency")}</p><p>{r.currency || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colAirlinkPoAmt")}</p><p className="font-medium tabular-nums">{money(r.amount)} {r.currency || ""}</p></div>
+                  <div><p className="text-slate-500">{localLabel}</p><p className="font-medium tabular-nums">{money(localAmt)} {regionListCurrency}</p></div>
+                  <div><p className="text-slate-500">{t("colJobNo")}</p><p>{job ? <LinkBtn onClick={() => setDetailPanel({ type: "job", id: job.id })}>{r.job_no}</LinkBtn> : (r.job_no || "-")}</p></div>
+                  <div className="md:col-span-2"><p className="text-slate-500">{t("colRemarks")}</p><p>{r.remarks || "-"}</p></div>
+                </div>
+                <DetailActions
+                  editLabel={t("edit")}
+                  deleteLabel={t("delete")}
+                  canEdit={can("vendor_po", "edit")}
+                  canDelete={can("vendor_po", "delete")}
+                  onEdit={() => {
+                    setDetailPanel(null);
+                    setVendorPoModal({
+                      mode: "edit",
+                      id: r.id,
+                      data: {
+                        ...emptyVendorPo(),
+                        ...r,
+                        vendor_id: String(r.vendor_id || ""),
+                        amount: String(r.amount ?? ""),
+                        local_amount: r.local_amount === "" || r.local_amount == null ? "" : String(r.local_amount)
+                      }
+                    });
+                  }}
+                  onDelete={() => { deleteVendorPo(r.id); setDetailPanel(null); }}
                 />
               </Modal>
             );
@@ -6028,20 +6502,20 @@
           if (type === "ar") {
             const r = arInvoices.find((x) => x.id === id);
             if (!r) return null;
-            const job = jobs.find((j) => j.job_no === r.job_no);
+            const job = jobs.find((j) => j.job_no === r.job_no) || (r.job_id ? jobs.find((j) => j.id === r.job_id) : null);
             const arStatus = deriveArPaymentStatus(r);
             return (
               <Modal title={t("arDetail") + " - " + r.invoice_no} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                  <div><p className="text-slate-500">{t("colJobNo")}</p><p>{r.job_no ? <LinkBtn onClick={() => { const j = jobs.find((x) => x.job_no === r.job_no); navigateTo("job", { client: r.customer, highlightId: j ? j.id : null }); }}>{r.job_no}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colJobNo")}</p><p>{job ? <LinkBtn onClick={() => setDetailPanel({ type: "job", id: job.id })}>{r.job_no}</LinkBtn> : (r.job_no || "-")}</p></div>
                   <div><p className="text-slate-500">Customer</p><p>{r.customer}</p></div>
-                  <div><p className="text-slate-500">{t("colCustomerPo")}</p><p>{r.customer_po ? <LinkBtn onClick={() => navigateToArByPo(r.customer, r.customer_po)}>{r.customer_po}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colCustomerPo")}</p><p>{r.customer_po || "-"}</p></div>
                   <div><p className="text-slate-500">{t("jobStatus")}</p><p>{getJobForAr(r) ? <span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(getJobForAr(r).status)}>{getJobForAr(r).status}</span> : "-"}</p></div>
                   <div><p className="text-slate-500">Invoice Amt</p><p>{money(r.invoice_amt)} {r.invoice_currency}</p></div>
                   <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(r.invoice_amt, r.invoice_currency, regionListCurrency))}</p></div>
                   <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(arStatus)}>{paymentStatusLabel(arStatus, t)}</span></p></div>
                 </div>
-                {job && <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm"><p className="font-medium">{t("linkedJob")}</p><p><LinkBtn onClick={() => navigateTo("job", { client: r.customer, highlightId: job.id })}>{job.job_no}</LinkBtn> · {job.job_type} · <span className={"px-1.5 py-0.5 rounded text-xs " + jobStatusClass(job.status)}>{job.status}</span></p></div>}
+                {job && <div className="mt-4 p-3 bg-slate-50 rounded-lg text-sm"><p className="font-medium">{t("linkedJob")}</p><p><LinkBtn onClick={() => setDetailPanel({ type: "job", id: job.id })}>{job.job_no}</LinkBtn> · {job.job_type} · <span className={"px-1.5 py-0.5 rounded text-xs " + jobStatusClass(job.status)}>{job.status}</span></p></div>}
                 <DetailActions
                   editLabel={t("edit")}
                   deleteLabel={t("delete")}
@@ -6061,13 +6535,16 @@
             const b = apBills.find((x) => x.id === id);
             if (!b) return null;
             const job = jobs.find((j) => j.id === b.job_id || j.job_no === b.job_no);
+            const vendor = vendors.find((v) => v.name === b.company_name);
             const apStatus = deriveApPaymentStatus(b);
             return (
               <Modal title={t("apDetail") + " - " + b.invoice_no} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                  <div><p className="text-slate-500">{t("colJobNo")}</p><p>{b.job_no ? <LinkBtn onClick={() => navigateTo("job", { client: job ? job.company : "all", highlightId: job ? job.id : null })}>{b.job_no}</LinkBtn> : "-"}</p></div>
+                  <div><p className="text-slate-500">{t("linkedJob")}</p><p>{job ? <LinkBtn onClick={() => setDetailPanel({ type: "job", id: job.id })}>{b.job_no}</LinkBtn> : (b.job_no || "-")}</p></div>
+                  <div><p className="text-slate-500">{t("colAirlinkPo")}</p><p className="font-medium">{b.airlink_po || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colPoAmount")}</p><p className="font-medium">{b.po_amount !== "" && b.po_amount != null ? money(b.po_amount) + (b.currency ? " " + b.currency : "") : "-"}</p></div>
                   <div><p className="text-slate-500">{t("payeeType")}</p><p>{b.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</p></div>
-                  <div><p className="text-slate-500">Company</p><p>{b.company_name}</p></div>
+                  <div><p className="text-slate-500">Company</p><p>{vendor ? <LinkBtn onClick={() => setDetailPanel({ type: "vendor", id: vendor.id })}>{b.company_name}</LinkBtn> : b.company_name}</p></div>
                   <div><p className="text-slate-500">{t("amount")}</p><p>{money(b.amount)} {b.currency}</p></div>
                   <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</p></div>
                   <div><p className="text-slate-500">{t("colDueDate")}</p><p>{b.due_date}</p></div>
@@ -6081,7 +6558,7 @@
                   deleteLabel={t("delete")}
                   canEdit={can("ap", "edit")}
                   canDelete={can("ap", "delete")}
-                  onEdit={() => { setDetailPanel(null); setApModal({ mode: "edit", id: b.id, data: { ...b, job_id: String(b.job_id || ""), si_id: String(b.si_id || ""), payee_type: b.payee_type || "Vendor", amount: String(b.amount ?? ""), exchange_rate: String(b.exchange_rate_locked || ""), base_amount: String(b.base_amount_locked || b.base_amount || ""), payment_stage: b.payment_stage || "" } }); }}
+                  onEdit={() => { setDetailPanel(null); setApModal({ mode: "edit", id: b.id, data: { ...emptyApForm(), ...b, job_id: String(b.job_id || ""), si_id: String(b.si_id || ""), payee_type: b.payee_type || "Vendor", amount: String(b.amount ?? ""), po_amount: b.po_amount === "" || b.po_amount == null ? "" : String(b.po_amount), exchange_rate: String(b.exchange_rate_locked || ""), base_amount: String(b.base_amount_locked || b.base_amount || ""), payment_stage: b.payment_stage || "", airlink_po: b.airlink_po || "" } }); }}
                   onDelete={() => { deleteAp(b.id); setDetailPanel(null); }}
                   extra={apStatus !== "Paid" && can("ap", "edit") ? (
                     <button type="button" onClick={() => markApPaid(b.id)} className="px-3 py-1.5 text-xs rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium">{t("markApPaid")}</button>
@@ -6094,10 +6571,13 @@
         }
 
         function renderJobRows(list) {
-          return list.map((j) => (
+          return list.map((j) => {
+            const client = clients.find((c) => c.id === j.client_id) || clients.find((c) => c.company === j.company);
+            const buLabel = client?.bu_no ? " · BU " + client.bu_no : "";
+            return (
             <tr key={j.id} className={"hover:bg-blue-50/50 cursor-pointer " + (isJobCompleted(j.status) ? "bg-green-50/70 " : "") + rowHighlightClass(j.id)} onClick={() => setDetailPanel({ type: "job", id: j.id })}>
               <td className="p-3 font-medium">{j.job_no}</td>
-              <td className="p-3"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs">{j.company}</span></td>
+              <td className="p-3"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs">{j.company}{buLabel}</span></td>
               <td className="p-3 max-w-[12rem] erp-cell-truncate" title={j.description || ""}>{j.description || "-"}</td>
               <td className="p-3">{j.job_type}</td>
               <td className="p-3">{j.quotation_no || "-"}</td>
@@ -6110,7 +6590,8 @@
               <td className="p-3">{getArByJob(j.job_no).length}</td>
               <td className="p-3">{getApByJob(j.job_no).length}</td>
             </tr>
-          ));
+            );
+          });
         }
 
         function renderArRows(list) {
@@ -6236,6 +6717,7 @@
                 <SidebarItem id="clients" label={t("nav_clients")} module="clients" collapsed={sidebarCollapsed} />
                 <SidebarItem id="quotation" label={t("nav_quotation")} module="quotation" collapsed={sidebarCollapsed} />
                 <SidebarItem id="job" label={t("nav_job")} module="job" collapsed={sidebarCollapsed} />
+                <SidebarItem id="vendor_po" label={t("nav_vendor_po")} module="vendor_po" collapsed={sidebarCollapsed} />
                 <SidebarItem id="ar" label={t("nav_ar")} module="ar" collapsed={sidebarCollapsed} />
                 <SidebarItem id="ap" label={t("nav_ap")} module="ap" collapsed={sidebarCollapsed} />
                 <SidebarItem id="vendors" label={t("nav_vendors")} module="vendors" collapsed={sidebarCollapsed} />
@@ -6285,6 +6767,7 @@
                     {page === "clients" && t("nav_clients")}
                     {page === "quotation" && t("nav_quotation")}
                     {page === "job" && t("nav_job")}
+                    {page === "vendor_po" && t("nav_vendor_po")}
                     {page === "ongoing" && t("nav_ongoing")}
                     {page === "ar" && t("nav_ar")}
                     {page === "ap" && t("nav_ap")}
@@ -6968,6 +7451,57 @@
                 </section>
               )}
 
+              {page === "vendor_po" && can("vendor_po", "view") && (
+                <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b flex justify-between items-center gap-2 flex-wrap">
+                    <div>
+                      <h3 className="font-semibold">{t("nav_vendor_po")}</h3>
+                      <p className="text-xs text-slate-500 mt-1">{t("vendorPoPlaceholderHint")}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <ListImportExportBar module="vendor_po" />
+                      {can("vendor_po", "add") && <button onClick={() => setVendorPoModal({ mode: "add", data: { ...emptyVendorPo(), currency: regionListCurrency === "MYR" ? "MYR" : "USD" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendorPo")}</button>}
+                    </div>
+                  </div>
+                  <ListToolbar t={t} mode="vendor_po" searchQ={vendorPoSearch} setSearchQ={setVendorPoSearch} lang={lang} />
+                  <div className="erp-list-scroll erp-list-scroll--compact">
+                    <table className="w-full text-sm min-w-[1200px]">
+                      <thead className="bg-slate-50 text-slate-500">
+                        <tr>
+                          <SortableTh module="vendor_po" field="vendor_code" label={t("colVendorCode")} />
+                          <SortableTh module="vendor_po" field="name" label={t("colVendorPoName")} />
+                          <SortableTh module="vendor_po" field="for_purpose" label={t("colForProjectInventory")} />
+                          <SortableTh module="vendor_po" field="po_type" label={t("type")} />
+                          <SortableTh module="vendor_po" field="airlink_po_no" label={t("colAirlinkPoNo")} />
+                          <SortableTh module="vendor_po" field="po_date" label={t("colPoDate")} />
+                          <th className="p-3 text-left">{t("colAirlinkPoCurrency")}</th>
+                          <th className="p-3 text-right">{t("colAirlinkPoAmt")}</th>
+                          <th className="p-3 text-right">{t("colAirlinkPoAmtLocal").replace("{currency}", regionListCurrency)}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {filteredVendorPos.map((r) => (
+                          <tr key={r.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor_po", id: r.id })}>
+                            <td className="p-3 whitespace-nowrap">{r.vendor_code || "-"}</td>
+                            <td className="p-3 font-medium whitespace-nowrap">{r.name || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{r.for_purpose || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{r.po_type || "-"}</td>
+                            <td className="p-3 whitespace-nowrap font-medium">{r.airlink_po_no || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{r.po_date || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{r.currency || "-"}</td>
+                            <td className="p-3 text-right tabular-nums whitespace-nowrap">{money(r.amount)}</td>
+                            <td className="p-3 text-right tabular-nums whitespace-nowrap">{money(resolveVendorPoLocalAmount(r, regionListCurrency))}</td>
+                          </tr>
+                        ))}
+                        {!filteredVendorPos.length && (
+                          <tr><td colSpan={9} className="p-8 text-center text-slate-400 text-sm">{t("hintClickRow")}</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
               {page === "ongoing" && can("ongoing", "view") && (
                 <section className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                     <div className="p-4 border-b flex flex-wrap items-start justify-between gap-3">
@@ -7121,14 +7655,46 @@
                   </div>
                   <ListToolbar t={t} mode="vendors" searchQ={vendorsSearch} setSearchQ={setVendorsSearch} lang={lang} />
                   <div className="erp-list-scroll erp-list-scroll--compact">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm min-w-[1400px]">
                       <thead className="bg-slate-50 text-slate-500">
-                        <tr><SortableTh module="vendors" field="vendor_no" label={t("vendorNo")} /><SortableTh module="vendors" field="name" label={t("colName")} /><th className="p-3 text-left">{t("phoneNo")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("colFinanceContact")}</th><th className="p-3 text-left">{t("colFinanceEmail")}</th><th className="p-3 text-left">{t("colBank")}</th><th className="p-3 text-left">{t("colSwift")}</th><th className="p-3 text-left">{t("colContact")}</th></tr>
+                        <tr>
+                          <SortableTh module="vendors" field="vendor_no" label={t("vendorNo")} />
+                          <SortableTh module="vendors" field="name" label={t("colCompanyName")} />
+                          <th className="p-3 text-left">{t("colGstNo")}</th>
+                          <th className="p-3 text-left">{t("colLegalRep")}</th>
+                          <th className="p-3 text-left">{t("address")}</th>
+                          <th className="p-3 text-left">{t("colPostalCode")}</th>
+                          <th className="p-3 text-left">{t("colCompanyPhone")}</th>
+                          <th className="p-3 text-left">{t("colMainContact")}</th>
+                          <th className="p-3 text-left">{t("colEmail")}</th>
+                          <th className="p-3 text-left">{t("colMobilePhone")}</th>
+                          <th className="p-3 text-left">{t("colJobTitle")}</th>
+                          <th className="p-3 text-left">{t("colBankName")}</th>
+                          <th className="p-3 text-left">{t("colBankBranch")}</th>
+                          <th className="p-3 text-left">{t("colAccountNo")}</th>
+                          <th className="p-3 text-left">{t("colSwiftCode")}</th>
+                          <th className="p-3 text-left">{t("colCreditTerm")}</th>
+                        </tr>
                       </thead>
                       <tbody className="divide-y">
                         {filteredVendors.map((v) => (
                           <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
-                            <td className="p-3 whitespace-nowrap">{v.vendor_no || "-"}</td><td className="p-3 font-medium">{v.name}</td><td className="p-3 whitespace-nowrap">{v.phone || "-"}</td><td className="p-3 erp-cell-truncate" title={v.address || ""}>{v.address || "-"}</td><td className="p-3 erp-cell-truncate" title={v.email}>{v.email}</td><td className="p-3">{v.finance_contact || "-"}</td><td className="p-3 erp-cell-truncate" title={v.finance_email || ""}>{v.finance_email || "-"}</td><td className="p-3 erp-cell-truncate" title={v.bank}>{v.bank}</td><td className="p-3">{v.swift_code || "-"}</td><td className="p-3">{v.contact || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.vendor_no || "-"}</td>
+                            <td className="p-3 font-medium whitespace-nowrap">{v.name}</td>
+                            <td className="p-3 whitespace-nowrap">{v.gst_no || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.legal_rep || "-"}</td>
+                            <td className="p-3 erp-cell-truncate" title={v.address || ""}>{v.address || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.postal_code || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.phone || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.contact || "-"}</td>
+                            <td className="p-3 erp-cell-truncate" title={v.email || ""}>{v.email || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.mobile_phone || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.job_title || "-"}</td>
+                            <td className="p-3 erp-cell-truncate" title={v.bank || ""}>{v.bank || "-"}</td>
+                            <td className="p-3 erp-cell-truncate" title={v.bank_branch || ""}>{v.bank_branch || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.account_no || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.swift_code || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{v.credit_term || "-"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -7442,6 +8008,9 @@
                             {liveSyncStatus === "syncing" ? t("liveSyncSyncing") : liveSyncStatus === "error" ? t("liveSyncError") : (canLiveSyncPush() ? t("liveSyncOk") : t("liveSyncReadOnly"))}
                             {liveSyncLastAt ? " · " + t("liveSyncLast") + " " + liveSyncLastAt.toLocaleTimeString() : ""}
                           </p>
+                        )}
+                        {liveSyncEnabled && canLiveSyncPush() && (
+                          <button type="button" onClick={syncNowToCloud} className="px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">{t("liveSyncNow")}</button>
                         )}
                       </div>
 
@@ -7960,20 +8529,95 @@
               )}
 
               {vendorModal && (
-                <Modal title={vendorModal.mode === "add" ? t("addVendorTitle") : t("editVendor")} onClose={() => setVendorModal(null)}>
+                <Modal title={vendorModal.mode === "add" ? t("addVendorTitle") : t("editVendor")} onClose={() => setVendorModal(null)} wide>
                   <form onSubmit={saveVendor} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Field label={t("vendorNo")}><Input required value={vendorModal.data.vendor_no} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, vendor_no: e.target.value } })} /></Field>
-                    <Field label="Vendor Name"><Input required value={vendorModal.data.name} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, name: e.target.value } })} /></Field>
-                    <Field label="Email"><Input type="email" value={vendorModal.data.email} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, email: e.target.value } })} /></Field>
-                    <Field label="Bank"><Input value={vendorModal.data.bank} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bank: e.target.value } })} /></Field>
-                    <Field label="Charge"><Input value={vendorModal.data.charge || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, charge: e.target.value } })} placeholder="OUR" /></Field>
-                    <Field label="SWIFT CODE"><Input value={vendorModal.data.swift_code} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, swift_code: e.target.value } })} /></Field>
-                    <Field label="Contact"><Input value={vendorModal.data.contact} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, contact: e.target.value } })} /></Field>
-                    <Field label={t("colFinanceContact")}><Input value={vendorModal.data.finance_contact || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, finance_contact: e.target.value } })} /></Field>
-                    <Field label={t("colFinanceEmail")}><Input type="email" value={vendorModal.data.finance_email || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, finance_email: e.target.value } })} /></Field>
-                    <Field label={t("phoneNo")}><Input value={vendorModal.data.phone} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, phone: e.target.value } })} /></Field>
+                    <Field label={t("colCompanyName")}><Input required value={vendorModal.data.name} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, name: e.target.value } })} /></Field>
+                    <Field label={t("colGstNo")}><Input value={vendorModal.data.gst_no || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, gst_no: e.target.value } })} /></Field>
+                    <Field label={t("colLegalRep")}><Input value={vendorModal.data.legal_rep || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, legal_rep: e.target.value } })} /></Field>
                     <div className="md:col-span-2"><Field label={t("address")}><Input value={vendorModal.data.address || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, address: e.target.value } })} /></Field></div>
+                    <Field label={t("colPostalCode")}><Input value={vendorModal.data.postal_code || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, postal_code: e.target.value } })} /></Field>
+                    <Field label={t("colCompanyPhone")}><Input value={vendorModal.data.phone || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, phone: e.target.value } })} /></Field>
+                    <Field label={t("colMainContact")}><Input value={vendorModal.data.contact || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, contact: e.target.value } })} /></Field>
+                    <Field label={t("colEmail")}><Input type="email" value={vendorModal.data.email || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, email: e.target.value } })} /></Field>
+                    <Field label={t("colMobilePhone")}><Input value={vendorModal.data.mobile_phone || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, mobile_phone: e.target.value } })} /></Field>
+                    <Field label={t("colJobTitle")}><Input value={vendorModal.data.job_title || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, job_title: e.target.value } })} /></Field>
+                    <Field label={t("colBankName")}><Input value={vendorModal.data.bank || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bank: e.target.value } })} /></Field>
+                    <Field label={t("colBankBranch")}><Input value={vendorModal.data.bank_branch || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bank_branch: e.target.value } })} /></Field>
+                    <Field label={t("colAccountNo")}><Input value={vendorModal.data.account_no || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, account_no: e.target.value } })} /></Field>
+                    <Field label={t("colSwiftCode")}><Input value={vendorModal.data.swift_code || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, swift_code: e.target.value } })} /></Field>
+                    <Field label={t("colCreditTerm")}><Input value={vendorModal.data.credit_term || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, credit_term: e.target.value } })} placeholder="30 Days" /></Field>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setVendorModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
+                  </form>
+                </Modal>
+              )}
+
+              {vendorPoModal && (
+                <Modal title={vendorPoModal.mode === "add" ? t("addVendorPoTitle") : t("editVendorPo")} onClose={() => setVendorPoModal(null)} wide>
+                  <form onSubmit={saveVendorPo} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Field label={t("colVendorCode")}>
+                      <SearchableSelect
+                        required
+                        value={String(vendorPoModal.data.vendor_id || "")}
+                        options={vendorPoVendorOptions}
+                        placeholder={t("selectVendorCodeHint")}
+                        noResultsText={t("noMatchFound")}
+                        onChange={(nextValue) => {
+                          const vendor = vendors.find((v) => v.id === Number(nextValue));
+                          setVendorPoModal({
+                            ...vendorPoModal,
+                            data: {
+                              ...vendorPoModal.data,
+                              vendor_id: nextValue,
+                              vendor_code: vendor ? vendor.vendor_no : "",
+                              name: vendor ? vendor.name : vendorPoModal.data.name
+                            }
+                          });
+                        }}
+                      />
+                    </Field>
+                    <Field label={t("colVendorPoName")}>
+                      <Input required value={vendorPoModal.data.name || ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, name: e.target.value } })} />
+                    </Field>
+                    <Field label={t("colForProjectInventory")}>
+                      <Select value={vendorPoModal.data.for_purpose || "Project"} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, for_purpose: e.target.value } })}>
+                        {VENDOR_PO_PURPOSES.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label={t("type")}>
+                      <Select value={vendorPoModal.data.po_type || "Material"} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, po_type: e.target.value } })}>
+                        {VENDOR_PO_TYPES.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label={t("colAirlinkPoNo")}>
+                      <Input required value={vendorPoModal.data.airlink_po_no || ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, airlink_po_no: e.target.value } })} />
+                    </Field>
+                    <Field label={t("colPoDate")}>
+                      <Input type="date" value={vendorPoModal.data.po_date || ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, po_date: e.target.value } })} />
+                    </Field>
+                    <Field label={t("colAirlinkPoCurrency")}>
+                      <Select value={vendorPoModal.data.currency || "USD"} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, currency: e.target.value, local_amount: "" } })}>
+                        {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label={t("colAirlinkPoAmt")}>
+                      <Input type="number" step="0.01" required value={vendorPoModal.data.amount} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, amount: e.target.value, local_amount: "" } })} />
+                    </Field>
+                    <Field label={t("colAirlinkPoAmtLocal").replace("{currency}", regionListCurrency)}>
+                      <Input type="number" step="0.01" value={vendorPoModal.data.local_amount ?? ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, local_amount: e.target.value } })} placeholder={String(resolveVendorPoLocalAmount(vendorPoModal.data, regionListCurrency))} />
+                      <p className="text-[10px] text-slate-400 mt-1">{t("vendorPoPlaceholderHint")}</p>
+                    </Field>
+                    <Field label={t("colJobNo")}>
+                      <SearchableSelect
+                        value={vendorPoModal.data.job_no || ""}
+                        options={[{ value: "", label: "—", searchText: "" }, ...quotationJobOptions]}
+                        placeholder={t("selectJobHint")}
+                        noResultsText={t("noMatchFound")}
+                        onChange={(nextValue) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, job_no: nextValue } })}
+                      />
+                    </Field>
+                    <div className="md:col-span-2"><Field label={t("colRemarks")}><Input value={vendorPoModal.data.remarks || ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, remarks: e.target.value } })} /></Field></div>
+                    <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setVendorPoModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
               )}
@@ -8063,6 +8707,12 @@
                           setApModal({ ...apModal, data: { ...apModal.data, job_id: nextValue, job_no: job ? job.job_no : "" } });
                         }}
                       />
+                    </Field>
+                    <Field label={t("colAirlinkPo")}>
+                      <Input value={apModal.data.airlink_po || ""} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, airlink_po: e.target.value } })} />
+                    </Field>
+                    <Field label={t("colPoAmount")}>
+                      <Input type="number" step="0.01" value={apModal.data.po_amount ?? ""} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, po_amount: e.target.value } })} />
                     </Field>
                     <Field label={t("colCompanyName")}>
                       <SearchableSelect
