@@ -2214,6 +2214,70 @@
         return <select {...props} className={"w-full rounded-lg border border-slate-300 px-3 py-2 text-sm " + (props.className || "")} />;
       }
 
+      /** Stable region picker (defined outside App so live clock / sync re-renders do not remount it mid-open). */
+      function RegionMoveField({ label, hint, value, options, onChange }) {
+        const [open, setOpen] = useState(false);
+        const rootRef = useRef(null);
+        const selected = (options || []).find((o) => String(o.id) === String(value)) || (options || [])[0];
+
+        useEffect(() => {
+          if (!open) return;
+          function onDoc(e) {
+            if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+          }
+          document.addEventListener("mousedown", onDoc);
+          return () => document.removeEventListener("mousedown", onDoc);
+        }, [open]);
+
+        return (
+          <div className="block" ref={rootRef}>
+            <span className="block mb-1 text-xs font-medium text-slate-600">{label}</span>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-left bg-white hover:bg-slate-50 flex items-center justify-between gap-2"
+                aria-expanded={open}
+                onClick={() => setOpen((v) => !v)}
+              >
+                <span>{selected ? selected.label : (value || "—")}</span>
+                <span className="text-slate-400 text-xs">{open ? "▲" : "▼"}</span>
+              </button>
+              {open && (
+                <ul className="absolute z-[60] left-0 right-0 mt-1 max-h-56 overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg py-1">
+                  {(options || []).map((opt) => {
+                    const active = String(opt.id) === String(value);
+                    return (
+                      <li key={opt.id}>
+                        <button
+                          type="button"
+                          className={"w-full text-left px-3 py-2 text-sm hover:bg-blue-50 " + (active ? "bg-blue-50 font-medium text-blue-800" : "")}
+                          onClick={() => {
+                            onChange(opt.id);
+                            setOpen(false);
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+            {hint ? <p className="text-[10px] text-slate-400 mt-1">{hint}</p> : null}
+          </div>
+        );
+      }
+
+      function WorldClockLabel({ timeZone, lang, className }) {
+        const [now, setNow] = useState(() => new Date());
+        useEffect(() => {
+          const timer = setInterval(() => setNow(new Date()), 1000);
+          return () => clearInterval(timer);
+        }, []);
+        return <span className={className}>{formatWorldTime(now, timeZone, lang)}</span>;
+      }
+
       function SearchableSelect({ value, options, onChange, placeholder, required, noResultsText }) {
         const listId = React.useMemo(() => "erp-searchable-" + Math.random().toString(36).slice(2), []);
         const selected = options.find((opt) => String(opt.value) === String(value));
@@ -3238,7 +3302,6 @@
         const sessionUserId = authUserId;
         const [auditLogs, setAuditLogs] = useState(() => (isCloudOnlyPreferred() ? [] : loadJson("erp_audit_logs", initialAuditLogs)));
         const [worldTimeZone, setWorldTimeZone] = useState(() => localStorage.getItem("erp_world_timezone") || "Asia/Taipei");
-        const [worldClock, setWorldClock] = useState(() => new Date());
         const [settingsTab, setSettingsTab] = useState("general");
         const [companyName, setCompanyName] = useState(() => localStorage.getItem("erp_company_name") || AIRLINK_BRAND.name);
         const sidebarLogo = AIRLINK_BRAND.logo;
@@ -3259,6 +3322,7 @@
         const liveApplyingRemoteRef = useRef(false);
         const livePushTimerRef = useRef(null);
         const livePollRef = useRef(null);
+        const modalOpenRef = useRef(false);
         const importModuleRef = useRef(null);
         const importFileInputRef = useRef(null);
         const [userModal, setUserModal] = useState(null);
@@ -3266,7 +3330,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-14e";
+        const ERP_BUILD_ID = "airlink-2026-07-14f";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3298,11 +3362,6 @@
           const next = applyArDueDate(data, clients, jobs);
           return { ...next, payment_status: deriveArPaymentStatus(next) };
         }
-
-        useEffect(() => {
-          const timer = setInterval(() => setWorldClock(new Date()), 1000);
-          return () => clearInterval(timer);
-        }, []);
 
         useEffect(() => { localStorage.setItem("erp_users", JSON.stringify(users)); }, [users]);
         useEffect(() => { if (!cloudOnlyMode) localStorage.setItem("erp_audit_logs", JSON.stringify(auditLogs)); }, [auditLogs, cloudOnlyMode]);
@@ -3353,9 +3412,16 @@
         }, []);
 
         useEffect(() => {
+          modalOpenRef.current = !!(clientModal || jobModal || quotationModal || vendorModal || vendorPoModal || arModal || apModal || detailPanel || userModal || importPreview);
+        }, [clientModal, jobModal, quotationModal, vendorModal, vendorPoModal, arModal, apModal, detailPanel, userModal, importPreview]);
+
+        useEffect(() => {
           if (!liveSyncEnabled || !liveSyncReady) return;
           if (livePollRef.current) clearInterval(livePollRef.current);
-          livePollRef.current = setInterval(() => { pollLiveSync(); }, 3000);
+          livePollRef.current = setInterval(() => {
+            if (modalOpenRef.current) return;
+            pollLiveSync();
+          }, 3000);
           return () => { if (livePollRef.current) clearInterval(livePollRef.current); };
         }, [liveSyncEnabled, liveSyncReady]);
 
@@ -3453,18 +3519,11 @@
           );
         }
 
-        function RegionMoveField({ value, onChange, showHint }) {
-          const options = editableDataRegions();
-          return (
-            <Field label={t("moveToRegion")}>
-              <Select value={value || regionForNewRecord()} onChange={(e) => onChange(e.target.value)}>
-                {options.map((id) => (
-                  <option key={id} value={id}>{REGION_FLAGS[id] || ""} {regionLabel(id, lang)} ({id})</option>
-                ))}
-              </Select>
-              {showHint !== false && <p className="text-[10px] text-slate-400 mt-1">{t("moveToRegionHint")}</p>}
-            </Field>
-          );
+        function regionMoveOptions() {
+          return editableDataRegions().map((id) => ({
+            id,
+            label: (REGION_FLAGS[id] || "") + " " + regionLabel(id, lang) + " (" + id + ")"
+          }));
         }
 
         function matchesSearch(row, q, keys) {
@@ -6845,7 +6904,7 @@
                     <span className="text-[10px] uppercase tracking-wide text-slate-400 whitespace-nowrap">{t("worldTime")}</span>
                     <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">{timezoneLabel(worldTimeZone, lang)}</span>
                     <span className="text-slate-300">|</span>
-                    <span className="text-xs font-mono font-semibold text-slate-700 tabular-nums whitespace-nowrap">{formatWorldTime(worldClock, worldTimeZone, lang)}</span>
+                    <WorldClockLabel timeZone={worldTimeZone} lang={lang} className="text-xs font-mono font-semibold text-slate-700 tabular-nums whitespace-nowrap" />
                   </div>
                   <div className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg border border-slate-200 bg-white">
                     <span className="text-[10px] text-slate-400 whitespace-nowrap">{t("currentUser")}</span>
@@ -7987,7 +8046,7 @@
                         </Select>
                       </Field>
                       <p className="text-sm text-slate-500">{t("worldTimeHint")}</p>
-                      <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{timezoneLabel(worldTimeZone, lang)} · {formatWorldTime(worldClock, worldTimeZone, lang)}</p>
+                      <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{timezoneLabel(worldTimeZone, lang)} · <WorldClockLabel timeZone={worldTimeZone} lang={lang} /></p>
                       <p className="text-sm text-slate-500">{t("regionDataHint")}</p>
                       <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("noDatabaseNote")}</p>
                       <div className="pt-4 mt-4 border-t border-slate-200 space-y-3">
@@ -8355,7 +8414,10 @@
                 <Modal title={clientModal.mode === "add" ? t("addClientTitle") : t("editClient")} onClose={() => setClientModal(null)}>
                   <form onSubmit={saveClient} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <RegionMoveField
+                      label={t("moveToRegion")}
+                      hint={t("moveToRegionHint")}
                       value={clientModal.data.region || regionForNewRecord()}
+                      options={regionMoveOptions()}
                       onChange={(region) => setClientModal({ ...clientModal, data: { ...clientModal.data, region } })}
                     />
                     <Field label={t("colCustomerNo")}><Input required value={clientModal.data.customer_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, customer_no: e.target.value } })} /></Field>
@@ -8416,7 +8478,10 @@
                 <Modal title={quotationModal.mode === "add" ? t("addQuotationTitle") : t("editQuotation")} onClose={() => setQuotationModal(null)}>
                   <form onSubmit={saveQuotation} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <RegionMoveField
+                      label={t("moveToRegion")}
+                      hint={t("moveToRegionHint")}
                       value={quotationModal.data.region || quotationFormRegion}
+                      options={regionMoveOptions()}
                       onChange={(region) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, region, client_id: "", company: "" } })}
                     />
                     <Field label={t("quotationNo")}><Input required value={quotationModal.data.quotation_no} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_no: e.target.value } })} /></Field>
@@ -8465,7 +8530,10 @@
                 <Modal title={jobModal.mode === "add" ? t("addJobTitle") : t("editJob")} onClose={() => setJobModal(null)}>
                   <form onSubmit={saveJob} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <RegionMoveField
+                      label={t("moveToRegion")}
+                      hint={t("moveToRegionHint")}
                       value={jobModal.data.region || jobFormRegion}
+                      options={regionMoveOptions()}
                       onChange={(region) => setJobModal({ ...jobModal, data: { ...jobModal.data, region, client_id: "", company: "" } })}
                     />
                     <Field label={t("colJobNo")}><Input required value={jobModal.data.job_no} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, job_no: e.target.value } })} /></Field>
@@ -8605,7 +8673,10 @@
                 <Modal title={vendorModal.mode === "add" ? t("addVendorTitle") : t("editVendor")} onClose={() => setVendorModal(null)} wide>
                   <form onSubmit={saveVendor} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <RegionMoveField
+                      label={t("moveToRegion")}
+                      hint={t("moveToRegionHint")}
                       value={vendorModal.data.region || regionForNewRecord()}
+                      options={regionMoveOptions()}
                       onChange={(region) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, region } })}
                     />
                     <Field label={t("vendorNo")}><Input required value={vendorModal.data.vendor_no} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, vendor_no: e.target.value } })} /></Field>
@@ -8633,7 +8704,10 @@
                 <Modal title={vendorPoModal.mode === "add" ? t("addVendorPoTitle") : t("editVendorPo")} onClose={() => setVendorPoModal(null)} wide>
                   <form onSubmit={saveVendorPo} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <RegionMoveField
+                      label={t("moveToRegion")}
+                      hint={t("moveToRegionHint")}
                       value={vendorPoModal.data.region || regionForNewRecord()}
+                      options={regionMoveOptions()}
                       onChange={(region) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, region, local_amount: "" } })}
                     />
                     <Field label={t("colVendorCode")}>
