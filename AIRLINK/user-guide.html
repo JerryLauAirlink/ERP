@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AIRLINK ERP 使用教學</title>
+  <title>AIRLINK ERP User Guide / 使用教學</title>
   <style>
-    body { font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif; line-height: 1.65; color: #1e293b; max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; background: #f8fafc; }
+    body { font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", "Segoe UI", sans-serif; line-height: 1.65; color: #1e293b; max-width: 54rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; background: #f8fafc; }
     h1 { font-size: 1.75rem; margin-bottom: 0.25rem; }
-    .sub { color: #64748b; font-size: 0.95rem; margin-bottom: 2rem; }
+    .sub { color: #64748b; font-size: 0.95rem; margin-bottom: 1rem; }
     h2 { font-size: 1.2rem; margin-top: 2rem; padding-bottom: 0.35rem; border-bottom: 2px solid #2563eb; color: #1d4ed8; }
     h3 { font-size: 1rem; margin-top: 1.25rem; color: #334155; }
     ol, ul { padding-left: 1.35rem; }
@@ -16,114 +16,255 @@
     .warn { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 0.75rem; padding: 1rem 1.25rem; margin: 1rem 0; }
     .ok { background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 0.75rem; padding: 1rem 1.25rem; margin: 1rem 0; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; background: #fff; margin: 1rem 0; }
-    th, td { border: 1px solid #e2e8f0; padding: 0.5rem 0.65rem; text-align: left; }
+    th, td { border: 1px solid #e2e8f0; padding: 0.5rem 0.65rem; text-align: left; vertical-align: top; }
     th { background: #f1f5f9; }
     code { background: #f1f5f9; padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-size: 0.88em; }
-    @media print { body { background: #fff; } }
+    .lang-bar { display: flex; gap: 0.5rem; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
+    .lang-bar button { border: 1px solid #cbd5e1; background: #fff; padding: 0.4rem 0.9rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.9rem; }
+    .lang-bar button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .lang-panel { display: none; }
+    .lang-panel.active { display: block; }
+    @media print {
+      body { background: #fff; }
+      .lang-bar { display: none; }
+      .lang-panel { display: block !important; page-break-after: always; }
+    }
   </style>
 </head>
 <body>
-  <h1>AIRLINK ERP 使用教學</h1>
-  <p class="sub">繁體中文（台灣）· 建議操作順序與常見錯誤說明</p>
+  <h1>AIRLINK ERP</h1>
+  <p class="sub">User Guide / 使用教學 · build <code>airlink-2026-07-14e</code>+</p>
 
-  <div class="flow">
-    <strong>標準業務流程（請依序進行）</strong><br />
-    客戶 → 報價單（Accepted）→ 工作 → 客戶 PO → 應付（付供應商）→ 工作完成 → 應收（向客戶開立發票）
+  <div class="lang-bar">
+    <button type="button" id="btn-zh" class="active" onclick="setLang('zh')">繁體中文</button>
+    <button type="button" id="btn-en" onclick="setLang('en')">English</button>
   </div>
 
-  <h2>零、開始之前（管理員／Root）</h2>
-  <ol>
-    <li>登入後，確認右上角 <strong>地區</strong> 是否正確（HK／TW／SG 等）。新增資料會標記在目前地區。</li>
-    <li>前往 <strong>設定 → 一般</strong>：選擇介面語言、時區。</li>
-    <li>前往 <strong>設定 → 備份與還原</strong>：輸入雲端同步金鑰，啟用即時同步（與 Vercel 環境變數 <code>ERP_SYNC_SECRET</code> 相同）。</li>
-    <li>Root 管理員在 <strong>設定 → 用戶管理</strong> 建立帳號，並設定各模組的檢視／新增／修改／刪除／匯入／匯出權限及地區權限。</li>
-  </ol>
+  <!-- ========== ZH ========== -->
+  <div id="panel-zh" class="lang-panel active" lang="zh-TW">
+    <div class="flow">
+      <strong>標準業務流程</strong><br />
+      客戶 → 報價單（Accepted）→ 工作 → 客戶 PO → 供應商採購單 Vendor PO → 應付（付供應商）→ 工作完成 → 應收（向客戶開立發票）
+    </div>
 
-  <h2>一、主檔資料（第一步）</h2>
-  <p>主檔必須先建立，後續報價、工作、應收應付才能正確連結。</p>
+    <h2>零、開始之前（管理員／Root）</h2>
+    <ol>
+      <li>確認右上角 <strong>地區</strong>（HK／TW／SG／MY／ID）。新增資料會標記在目前地區。</li>
+      <li><strong>設定 → 一般</strong>：介面語言、時區、公司名稱。</li>
+      <li><strong>設定 → 備份與還原</strong>：確認雲端金鑰／即時同步。重要操作後可按 <strong>立即同步</strong>。</li>
+      <li><strong>設定 → 用戶管理</strong>：帳號、模組權限、地區權限。刪用戶須等到「已從雲端移除」。</li>
+    </ol>
 
-  <h3>1. 客戶（最優先）</h3>
-  <ul>
-    <li>路徑：<strong>客戶 → + 新增客戶</strong></li>
-    <li>系統會自動建議下一個客戶編號（例如 SC056 之後為 SC057），仍可手動修改。</li>
-    <li><strong>BU 勾選</strong>：同一公司名稱、不同聯絡人或不同工作時，可勾選 BU 並填寫 BU 編號；每筆仍須有獨立的客戶編號。</li>
-  </ul>
-
-  <h3>2. 供應商（可與客戶並行建立）</h3>
-  <ul>
-    <li>路徑：<strong>供應商 → + 新增供應商</strong></li>
-    <li>應付單（AP）的付款對象。建議先建立常用供應商，並填寫銀行、SWIFT、財務聯絡人及電子郵件。</li>
-  </ul>
-
-  <div class="ok">
-    <strong>可並行：</strong>客戶與供應商可同時建立，但<strong>一定要先有任何一筆客戶</strong>，才能建立報價單與工作。
-  </div>
-
-  <h2>二、業務流程（嚴格順序）</h2>
-  <table>
-    <thead>
-      <tr><th>步驟</th><th>模組</th><th>說明</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>①</td><td>報價單</td><td>選擇客戶、填寫金額與幣別。要連結至工作時，狀態須為 <strong>Accepted</strong>。</td></tr>
-      <tr><td>②</td><td>工作</td><td>選擇客戶，可連結一張或多張 Accepted 報價單。填寫客戶 PO 明細（PO 編號、金額、收單日期）。</td></tr>
-      <tr><td>③</td><td>應付 AP</td><td>連結工作 → 選擇<strong>供應商</strong> → 記錄供應商發票。可分期（Deposit／Progress／Balance 等）。輸入付款日期即標記已付款。</td></tr>
-      <tr><td>④</td><td>工作狀態</td><td>完成交付後，將工作狀態改為 <strong>Completed</strong>。</td></tr>
-      <tr><td>⑤</td><td>應收 AR</td><td>連結工作 → 向客戶開立發票。建議在工作完成後開立；系統亦允許進行中開立分期發票。</td></tr>
-    </tbody>
-  </table>
-
-  <h2>三、報表與追蹤</h2>
-  <ul>
-    <li><strong>進行中清單</strong>：追蹤未結案工作與 PO 餘額。</li>
-    <li><strong>儀表板／總覽</strong>：自動從應收、應付彙總現金狀況。</li>
-    <li><strong>月報表</strong>：修改工作或應收後，須點擊 <strong>同步月報</strong>（或於 PO 收單／AR 發票分頁分別同步），報表數字才會更新。</li>
-    <li><strong>管理層報表</strong>：依已完成工作與 Accepted 報價分析毛利（需有對應應收／應付資料）。</li>
-  </ul>
-
-  <h2>四、Excel 匯入順序</h2>
-  <p>若使用匯入功能，請依下列順序匯入，否則會出現「找不到客戶／工作」等錯誤：</p>
-  <ol>
-    <li>客戶</li>
-    <li>供應商</li>
-    <li>報價單</li>
-    <li>工作</li>
-    <li>應收 AR</li>
-    <li>應付 AP</li>
-  </ol>
-  <p>匯入前請確認右上角地區正確；匯入後若已啟用雲端同步，請等待狀態列顯示同步成功。</p>
-
-  <h2>五、常見錯誤順序（請避免）</h2>
-  <div class="warn">
+    <h2>一、主檔資料</h2>
+    <h3>1. 客戶</h3>
     <ul>
-      <li><strong>未建客戶就建工作或報價</strong> → 無法選擇客戶，匯入亦會失敗。</li>
-      <li><strong>報價單狀態非 Accepted 就連結工作</strong> → 系統會拒絕連結。</li>
-      <li><strong>未建供應商就建應付</strong> → 可手動輸入公司名稱，但無法自動帶入銀行與 SWIFT。</li>
-      <li><strong>應付未連結工作</strong> → 工作詳情與月報無法正確歸集成本。</li>
-      <li><strong>修改資料後未同步月報</strong> → 月報表數字停留在舊資料。</li>
-      <li><strong>地區選錯</strong> → 資料存在其他地區，切換至 ALL 或正確地區才看得到。</li>
-      <li><strong>兩台電腦使用不同瀏覽器設定</strong> → 請確認已啟用雲端同步，不要只依賴本機瀏覽器快取。</li>
+      <li><strong>客戶 → + 新增客戶</strong>；系統會建議下一個客戶編號。</li>
+      <li><strong>Invoice Title</strong>、付款條件（30／45／60／90 Days 或自訂）、<strong>BU</strong> 可選填。</li>
     </ul>
+    <h3>2. 供應商</h3>
+    <ul>
+      <li>欄位對齊 Excel：編號、公司、GST、負責人、地址、郵遞區號、電話、聯絡人、電郵、手機、職稱、銀行、分行、帳號、SWIFT、信用條件。</li>
+    </ul>
+    <h3>3. 搬去其他地區</h3>
+    <div class="ok">
+      加錯地區時：開啟記錄 → <strong>修改</strong> → 表單最上方 <strong>「搬去其他地區」</strong> → 選正確地區 → 儲存。<br />
+      搬 Client <strong>不會</strong>自動搬 Job／Invoice／PO，那些要各自改。
+    </div>
+
+    <h2>二、業務流程</h2>
+    <table>
+      <thead><tr><th>步驟</th><th>模組</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>①</td><td>報價單</td><td>選客戶；要連工作須 <strong>Accepted</strong>。Accepted 可自動開「新增工作」。</td></tr>
+        <tr><td>②</td><td>工作</td><td>選客戶、連報價、填客戶 PO。詳情可見 BU、Vendor、Vendor PO。</td></tr>
+        <tr><td>③</td><td>供應商採購單</td><td>見下一節欄位說明。</td></tr>
+        <tr><td>④</td><td>應付 AP</td><td>連工作 → 選供應商 → 可填 <strong>AIRLINK PO</strong>／<strong>PO Amount</strong>。</td></tr>
+        <tr><td>⑤</td><td>工作完成</td><td>狀態 <strong>Completed</strong>。</td></tr>
+        <tr><td>⑥</td><td>應收 AR</td><td>連工作 → 向客戶開票。</td></tr>
+      </tbody>
+    </table>
+    <p>詳情頁的藍色連結可直接開相關詳情（報價／工作／發票／Vendor PO／供應商）。</p>
+
+    <h2>三、供應商採購單（Vendor PO）</h2>
+    <p>路徑：<strong>供應商採購單 → + 新增</strong>。欄位與 Excel 一致：</p>
+    <table>
+      <thead><tr><th>欄位</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>Vendor Code</td><td>供應商編號</td></tr>
+        <tr><td>Name</td><td>供應商名稱</td></tr>
+        <tr><td>For Project/ Inventory</td><td>Project 或 Inventory</td></tr>
+        <tr><td>Type</td><td>Material／Service／Equipment／Subcontract／Other</td></tr>
+        <tr><td>Airlink PO #</td><td>唯一採購單號</td></tr>
+        <tr><td>PO Date</td><td>日期</td></tr>
+        <tr><td>Airlink PO Currency</td><td>原幣</td></tr>
+        <tr><td>Airlink PO Amt</td><td>原幣金額</td></tr>
+        <tr><td>Airlink PO Amt in {當地幣}</td><td>依目前地區本位幣（如 MY→MYR、SG→SGD）；可手動覆寫</td></tr>
+      </tbody>
+    </table>
+
+    <h2>四、報表</h2>
+    <ul>
+      <li><strong>進行中清單</strong>：PO 餘額與開票進度。</li>
+      <li><strong>月報表</strong>：改資料後須按 <strong>同步月報</strong>。</li>
+      <li><strong>儀表板／總覽／管理層報表</strong>：依應收應付與已完成工作彙總。</li>
+    </ul>
+
+    <h2>五、Excel 匯入順序</h2>
+    <ol>
+      <li>客戶</li><li>供應商</li><li>報價單</li><li>工作</li><li>供應商採購單</li><li>應收</li><li>應付</li>
+    </ol>
+    <p>匯入前確認地區；建議使用各模組的 Download Template。</p>
+
+    <h2>六、常見錯誤</h2>
+    <div class="warn">
+      <ul>
+        <li>未建客戶就建工作／報價</li>
+        <li>報價未 Accepted 就連工作</li>
+        <li>未建供應商就建 AP／Vendor PO</li>
+        <li>地區選錯 → 用「搬去其他地區」，勿重複建檔</li>
+        <li>改資料後未同步月報</li>
+        <li>刪用戶後未「立即同步」→ 新瀏覽器可能還原</li>
+        <li>未開雲端同步，只靠本機瀏覽器</li>
+      </ul>
+    </div>
+
+    <h2>七、檢查清單</h2>
+    <ol>
+      <li>地區正確；加錯已用「搬去其他地區」修正？</li>
+      <li>客戶／供應商主檔齊全？</li>
+      <li>報價 Accepted、工作／PO 完整？</li>
+      <li>Vendor PO 與 AP 的 AIRLINK PO 已填？</li>
+      <li>月報與雲端同步正常？</li>
+    </ol>
   </div>
 
-  <h2>六、權限與多人使用</h2>
-  <ul>
-    <li>僅有<strong>新增／修改／刪除／匯入</strong>權限的帳號，變更才會上傳至雲端。</li>
-    <li>唯讀帳號只能下載資料，不會覆寫他人修改。</li>
-    <li>同一帳號可在多台電腦登入；請以雲端資料為準，並在兩台電腦都執行強制重新整理（Ctrl+Shift+R）。</li>
-  </ul>
+  <!-- ========== EN ========== -->
+  <div id="panel-en" class="lang-panel" lang="en">
+    <div class="flow">
+      <strong>Standard workflow</strong><br />
+      Client → Quotation (Accepted) → Job → Customer PO → Vendor PO → AP (pay vendor) → Job Completed → AR (invoice client)
+    </div>
 
-  <h2>七、快速檢查清單</h2>
-  <ol>
-    <li>客戶已建立？客戶編號是否唯一？</li>
-    <li>報價單是否 Accepted（若要連結工作）？</li>
-    <li>工作是否已選客戶、PO 明細是否完整？</li>
-    <li>應付是否連結工作與供應商？</li>
-    <li>工作完成後是否已開應收發票？</li>
-    <li>月報是否已按「同步月報」？</li>
-    <li>雲端同步狀態是否正常？</li>
-  </ol>
+    <h2>0. Before you start (Admin / Root)</h2>
+    <ol>
+      <li>Set the top-right <strong>Region</strong> (HK / TW / SG / MY / ID). New records are tagged to the current region.</li>
+      <li><strong>Settings → General</strong>: language, time zone, company name.</li>
+      <li><strong>Settings → Backup</strong>: confirm sync key / live sync. After critical changes, use <strong>Sync now</strong>.</li>
+      <li><strong>Settings → Users</strong>: accounts, module permissions, region access. After deleting a user, wait for “removed from cloud”.</li>
+    </ol>
 
-  <p class="sub" style="margin-top: 2.5rem;">AIRLINK ERP · 如有疑問請聯絡系統管理員</p>
+    <h2>1. Master data</h2>
+    <h3>1. Clients</h3>
+    <ul>
+      <li><strong>Clients → + Add Client</strong>; next customer number is suggested.</li>
+      <li>Optional: <strong>Invoice Title</strong>, payment terms (30/45/60/90 Days or custom), <strong>BU</strong>.</li>
+    </ul>
+    <h3>2. Vendors</h3>
+    <ul>
+      <li>Columns match Excel: Vendor No, Company Name, GST #, Legal Rep, Address, Postal Code, Company Phone, Main Contact, E-mail, Mobile, Job Title, Bank Name, Branch, Account #, SWIFT, Credit Term.</li>
+    </ul>
+    <h3>3. Move to another region</h3>
+    <div class="ok">
+      If a record was created under the wrong region: open it → <strong>Edit</strong> → change <strong>Move to region</strong> at the top → Save.<br />
+      Moving a Client does <strong>not</strong> auto-move related Jobs / Invoices / POs — edit those separately.
+    </div>
+
+    <h2>2. Transaction flow</h2>
+    <table>
+      <thead><tr><th>Step</th><th>Module</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Quotation</td><td>Pick client; must be <strong>Accepted</strong> to link a job. Accepting can auto-open Add Job.</td></tr>
+        <tr><td>2</td><td>Job</td><td>Client, quotation(s), customer PO lines. Detail shows BU, Vendor, Vendor PO.</td></tr>
+        <tr><td>3</td><td>Vendor PO</td><td>See column table below.</td></tr>
+        <tr><td>4</td><td>AP</td><td>Link job → vendor → optional <strong>AIRLINK PO</strong> / <strong>PO Amount</strong>.</td></tr>
+        <tr><td>5</td><td>Complete job</td><td>Status <strong>Completed</strong>.</td></tr>
+        <tr><td>6</td><td>AR</td><td>Link job → invoice client.</td></tr>
+      </tbody>
+    </table>
+    <p>Blue links in Detail panels open related details (quotation / job / invoice / Vendor PO / vendor).</p>
+
+    <h2>3. Vendor PO</h2>
+    <p>Path: <strong>Vendor PO → + Add Vendor PO</strong>. Columns (Excel order):</p>
+    <table>
+      <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>Vendor Code</td><td>Vendor number</td></tr>
+        <tr><td>Name</td><td>Supplier name</td></tr>
+        <tr><td>For Project/ Inventory</td><td>Project or Inventory</td></tr>
+        <tr><td>Type</td><td>Material / Service / Equipment / Subcontract / Other</td></tr>
+        <tr><td>Airlink PO #</td><td>Unique PO number</td></tr>
+        <tr><td>PO Date</td><td>Date</td></tr>
+        <tr><td>Airlink PO Currency</td><td>Document currency</td></tr>
+        <tr><td>Airlink PO Amt</td><td>Amount in document currency</td></tr>
+        <tr><td>Airlink PO Amt in {local}</td><td>Converted to active region currency (e.g. MY→MYR, SG→SGD); can override</td></tr>
+      </tbody>
+    </table>
+
+    <h2>4. Reports</h2>
+    <ul>
+      <li><strong>Ongoing List</strong>: PO balance and billing progress.</li>
+      <li><strong>Monthly Report</strong>: after changes, click <strong>Sync monthly</strong>.</li>
+      <li><strong>Dashboard / Overview / Management Report</strong>: AR/AP and completed-job margins.</li>
+    </ul>
+
+    <h2>5. Excel import order</h2>
+    <ol>
+      <li>Clients</li><li>Vendors</li><li>Quotations</li><li>Jobs</li><li>Vendor PO</li><li>AR</li><li>AP</li>
+    </ol>
+    <p>Confirm region first; use each module’s Download Template for headers.</p>
+
+    <h2>6. Common mistakes</h2>
+    <div class="warn">
+      <ul>
+        <li>Creating jobs/quotations before the client exists</li>
+        <li>Linking a job before quotation is Accepted</li>
+        <li>Creating AP / Vendor PO before the vendor master exists</li>
+        <li>Wrong region → use <strong>Move to region</strong>; do not duplicate the record</li>
+        <li>Forgetting to sync the monthly report</li>
+        <li>Deleting a user without Sync now → may reappear in a new browser</li>
+        <li>Relying only on local browser storage without live sync</li>
+      </ul>
+    </div>
+
+    <h2>7. Checklist</h2>
+    <ol>
+      <li>Correct region (or moved with Move to region)?</li>
+      <li>Client / vendor masters complete?</li>
+      <li>Quotation Accepted; job / PO lines complete?</li>
+      <li>Vendor PO and AP AIRLINK PO filled where needed?</li>
+      <li>Monthly report + cloud sync healthy?</li>
+    </ol>
+  </div>
+
+  <p class="sub" style="margin-top: 2.5rem;">AIRLINK ERP · Contact your system administrator if you need help.</p>
+
+  <script>
+    function setLang(lang) {
+      var zh = document.getElementById("panel-zh");
+      var en = document.getElementById("panel-en");
+      var bz = document.getElementById("btn-zh");
+      var be = document.getElementById("btn-en");
+      var isZh = lang === "zh";
+      zh.classList.toggle("active", isZh);
+      en.classList.toggle("active", !isZh);
+      bz.classList.toggle("active", isZh);
+      be.classList.toggle("active", !isZh);
+      document.documentElement.lang = isZh ? "zh-TW" : "en";
+      try { localStorage.setItem("erp_user_guide_lang", lang); } catch (e) {}
+    }
+    (function () {
+      var pref = "";
+      try { pref = localStorage.getItem("erp_user_guide_lang") || ""; } catch (e) {}
+      if (!pref) {
+        try {
+          var erpLang = localStorage.getItem("erp_lang") || "";
+          if (/zh/i.test(erpLang)) pref = "zh";
+          else if (erpLang) pref = "en";
+        } catch (e) {}
+      }
+      if (!pref) pref = (navigator.language || "").toLowerCase().indexOf("zh") === 0 ? "zh" : "en";
+      setLang(pref === "en" ? "en" : "zh");
+    })();
+  </script>
 </body>
 </html>

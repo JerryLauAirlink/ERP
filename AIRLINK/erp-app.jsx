@@ -625,6 +625,9 @@
           searchHintSi: "Matches SI no., name, email, bank, SWIFT, contact, phone, etc.",
           region: "Region", regionAccess: "Region Access", regionScopeHint: "Data you create is tagged to the active region. ALL shows every region you can access.",
           regionDataHint: "New records are saved under the currently selected region (not ALL).",
+          moveToRegion: "Move to region",
+          moveToRegionHint: "Created under the wrong region? Change it here. Related jobs / invoices / POs are NOT moved automatically — move those separately if needed.",
+          confirmMoveRegion: "Move this record from {from} to {to}?",
           importRegionHint: "Imported under region: {region}. Switch region (top-right) or set ALL to see records.",
           settingsBackup: "Backup & Restore", backupTitle: "Backup & Restore", backupHint: "All lists are stored in this browser only (localStorage). Download a backup file to move data to another PC or browser. Restore replaces all current data.",
           backupDownload: "Download Backup", restoreUpload: "Restore from Backup", restoreConfirm: "Restore will REPLACE all current ERP data in this browser. Continue?",
@@ -854,6 +857,9 @@
           searchHintVendors: "可搜尋供應商編號、名稱、電子郵件、銀行、SWIFT、聯絡人等。",
           region: "地區", regionAccess: "地區權限",           regionScopeHint: "您新增的資料會標記為目前地區；ALL 顯示您有權限的所有地區。",
           regionDataHint: "新增資料會儲存於目前所選地區（選 ALL 時使用您有權限的第一個地區）。",
+          moveToRegion: "搬去其他地區",
+          moveToRegionHint: "加錯地區？可在此改。相關 Job／Invoice／PO 不會自動跟住搬，如有需要請另外改那些記錄。",
+          confirmMoveRegion: "確定將此筆記錄由 {from} 搬去 {to}？",
           importRegionHint: "已匯入至地區：{region}。請確認右上角「地區」設為 ALL 或正確地區後才會看到資料。",
           settingsBackup: "備份與還原", backupTitle: "備份與還原", backupHint: "所有清單資料儲存在此瀏覽器。下載備份檔可搬移至另一台電腦或瀏覽器。還原會覆蓋目前所有資料。",
           backupDownload: "下載備份", restoreUpload: "還原備份", restoreConfirm: "還原會覆蓋此瀏覽器內所有 ERP 資料，確定繼續？",
@@ -3260,7 +3266,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-14d";
+        const ERP_BUILD_ID = "airlink-2026-07-14e";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3423,6 +3429,42 @@
           if (activeRegion !== "ALL") return activeRegion;
           const allowed = getUserRegions().filter((x) => x !== "ALL");
           return allowed[0] || "HK";
+        }
+
+        function editableDataRegions() {
+          const allowed = getUserRegions();
+          if (allowed.includes("ALL")) return DATA_REGION_IDS;
+          return DATA_REGION_IDS.filter((id) => allowed.includes(id));
+        }
+
+        function resolveRecordRegion(value, fallback) {
+          const rg = String(value || fallback || regionForNewRecord()).trim();
+          return DATA_REGION_IDS.includes(rg) ? rg : regionForNewRecord();
+        }
+
+        function confirmRegionChange(oldRegion, nextRegion) {
+          const from = oldRegion || regionForNewRecord();
+          const to = nextRegion;
+          if (!to || from === to) return true;
+          return window.confirm(
+            t("confirmMoveRegion")
+              .replace("{from}", regionLabel(from, lang) + " (" + from + ")")
+              .replace("{to}", regionLabel(to, lang) + " (" + to + ")")
+          );
+        }
+
+        function RegionMoveField({ value, onChange, showHint }) {
+          const options = editableDataRegions();
+          return (
+            <Field label={t("moveToRegion")}>
+              <Select value={value || regionForNewRecord()} onChange={(e) => onChange(e.target.value)}>
+                {options.map((id) => (
+                  <option key={id} value={id}>{REGION_FLAGS[id] || ""} {regionLabel(id, lang)} ({id})</option>
+                ))}
+              </Select>
+              {showHint !== false && <p className="text-[10px] text-slate-400 mt-1">{t("moveToRegionHint")}</p>}
+            </Field>
+          );
         }
 
         function matchesSearch(row, q, keys) {
@@ -3618,10 +3660,12 @@
         const sortedScopedJobs = useMemo(() => sortRecords(scopedJobs, "job_no", "asc"), [scopedJobs]);
         const sortedScopedVendors = useMemo(() => sortRecords(scopedVendors, "vendor_no", "asc"), [scopedVendors]);
         const newRecordRegion = regionForNewRecord();
-        const jobFormRegion = jobModal?.mode === "edit"
-          ? (jobs.find((j) => j.id === jobModal.id)?.region || newRecordRegion)
-          : (jobModal?.data?.region || newRecordRegion);
-        const quotationFormRegion = quotationModal?.mode === "edit" ? (quotations.find((q) => q.id === quotationModal.id)?.region || newRecordRegion) : newRecordRegion;
+        const jobFormRegion = jobModal
+          ? resolveRecordRegion(jobModal.data?.region, jobModal.mode === "edit" ? jobs.find((j) => j.id === jobModal.id)?.region : newRecordRegion)
+          : newRecordRegion;
+        const quotationFormRegion = quotationModal
+          ? resolveRecordRegion(quotationModal.data?.region, quotationModal.mode === "edit" ? quotations.find((q) => q.id === quotationModal.id)?.region : newRecordRegion)
+          : newRecordRegion;
         const clientOptionsForJob = useMemo(() => sortedScopedClients
           .filter((c) => c.region === jobFormRegion)
           .map((c) => ({
@@ -4131,14 +4175,17 @@
           };
           if (clientModal.mode === "add") {
             if (!guardPermission("clients", "add")) return;
-            setClients([{ id: nextErpRecordId(clients), region: regionForNewRecord(), ...data }, ...clients]);
-            logAudit("clients", "create", data.company, `Created client ${data.customer_no} · ${data.company}`);
+            const region = resolveRecordRegion(data.region, regionForNewRecord());
+            setClients([{ id: nextErpRecordId(clients), region, ...data, region }, ...clients]);
+            logAudit("clients", "create", data.company, `Created client ${data.customer_no} · ${data.company} [${region}]`);
           } else {
             if (!guardPermission("clients", "edit")) return;
             const old = clients.find((c) => c.id === clientModal.id);
-            setClients(clients.map((c) => (c.id === clientModal.id ? { ...c, ...data } : c)));
+            const region = resolveRecordRegion(data.region, old?.region);
+            if (!confirmRegionChange(old?.region, region)) return;
+            setClients(clients.map((c) => (c.id === clientModal.id ? { ...c, ...data, region } : c)));
             if (old) syncCompanyName(old.company, data.company);
-            logAudit("clients", "update", data.company, `Updated client ${data.customer_no} · ${data.company}`);
+            logAudit("clients", "update", data.company, `Updated client ${data.customer_no} · ${data.company}` + (old && old.region !== region ? ` · moved ${old.region}→${region}` : ""));
           }
           setClientModal(null);
         }
@@ -4179,14 +4226,17 @@
               alert(t("duplicateJobNo").replace("{no}", payload.job_no));
               return;
             }
+            const region = resolveRecordRegion(payload.region, regionForNewRecord());
             const newId = nextErpRecordId(jobs, quotations);
-            setJobs([{ id: newId, region: payload.region || regionForNewRecord(), ...payload }, ...jobs]);
+            setJobs([{ id: newId, ...payload, region }, ...jobs]);
             syncQuotationsForJob(newId, payload.job_no, newQuotationNos, []);
-            logAudit("job", "create", payload.job_no, `Created job ${payload.job_no} for ${payload.company}`);
+            logAudit("job", "create", payload.job_no, `Created job ${payload.job_no} for ${payload.company} [${region}]`);
           } else {
             if (!guardPermission("job", "edit")) return;
             const old = jobs.find((j) => j.id === jobModal.id);
-            setJobs(jobs.map((j) => (j.id === jobModal.id ? { ...j, ...payload } : j)));
+            const region = resolveRecordRegion(payload.region, old?.region);
+            if (!confirmRegionChange(old?.region, region)) return;
+            setJobs(jobs.map((j) => (j.id === jobModal.id ? { ...j, ...payload, region } : j)));
             if (old && old.job_no !== payload.job_no) {
               setArInvoices((prev) => prev.map((r) => (r.job_no === old.job_no ? { ...r, job_no: payload.job_no, job_id: jobModal.id } : r)));
             }
@@ -4466,18 +4516,21 @@
           if (quotationModal.mode === "add") {
             if (!guardPermission("quotation", "add")) return;
             const newId = nextErpRecordId(jobs, quotations);
-            let qRec = { id: newId, region: regionForNewRecord(), ...payload };
+            const region = resolveRecordRegion(payload.region, regionForNewRecord());
+            let qRec = { id: newId, ...payload, region };
             if (payload.job_id && payload.job_no) qRec = addJobToQuotation(qRec, payload.job_id, payload.job_no);
             setQuotations([qRec, ...quotations]);
             setJobs((prev) => syncJobsOnQuotationSave(prev, payload.job_id, payload.job_no, payload.quotation_no, "", ""));
-            logAudit("quotation", "create", payload.quotation_no, `Created quotation ${payload.quotation_no}`);
+            logAudit("quotation", "create", payload.quotation_no, `Created quotation ${payload.quotation_no} [${region}]`);
           } else {
             if (!guardPermission("quotation", "edit")) return;
-            let qRec = { ...quotations.find((q) => q.id === quotationModal.id), ...payload };
+            const region = resolveRecordRegion(payload.region, currentQuotation?.region);
+            if (!confirmRegionChange(currentQuotation?.region, region)) return;
+            let qRec = { ...quotations.find((q) => q.id === quotationModal.id), ...payload, region };
             if (payload.job_id && payload.job_no) qRec = addJobToQuotation(qRec, payload.job_id, payload.job_no);
             setQuotations(quotations.map((q) => (q.id === quotationModal.id ? qRec : q)));
             setJobs((prev) => syncJobsOnQuotationSave(prev, payload.job_id, payload.job_no, payload.quotation_no, oldJobNo, oldQuotationNo));
-            logAudit("quotation", "update", payload.quotation_no, `Updated quotation ${payload.quotation_no}`);
+            logAudit("quotation", "update", payload.quotation_no, `Updated quotation ${payload.quotation_no}` + (currentQuotation && currentQuotation.region !== region ? ` · moved ${currentQuotation.region}→${region}` : ""));
           }
           const shouldAutoOpenJob = payload.status === "Accepted" && oldStatus !== "Accepted" && !String(payload.job_no || "").trim();
           if (shouldAutoOpenJob && can("job", "add")) {
@@ -4514,16 +4567,19 @@
           const data = vendorModal.data;
           if (vendorModal.mode === "add") {
             if (!guardPermission("vendors", "add")) return;
-            setVendors([{ id: nextErpRecordId(vendors), region: regionForNewRecord(), ...data }, ...vendors]);
-            logAudit("vendors", "create", data.vendor_no, `Created vendor ${data.vendor_no} · ${data.name}`);
+            const region = resolveRecordRegion(data.region, regionForNewRecord());
+            setVendors([{ id: nextErpRecordId(vendors), ...data, region }, ...vendors]);
+            logAudit("vendors", "create", data.vendor_no, `Created vendor ${data.vendor_no} · ${data.name} [${region}]`);
           } else {
             if (!guardPermission("vendors", "edit")) return;
             const old = vendors.find((v) => v.id === vendorModal.id);
-            setVendors(vendors.map((v) => (v.id === vendorModal.id ? { ...v, ...data } : v)));
+            const region = resolveRecordRegion(data.region, old?.region);
+            if (!confirmRegionChange(old?.region, region)) return;
+            setVendors(vendors.map((v) => (v.id === vendorModal.id ? { ...v, ...data, region } : v)));
             if (old && old.name !== data.name) {
               setApBills((prev) => prev.map((b) => (b.company_name === old.name && b.payee_type === "Vendor" ? { ...b, company_name: data.name } : b)));
             }
-            logAudit("vendors", "update", data.vendor_no, `Updated vendor ${data.vendor_no} · ${data.name}`);
+            logAudit("vendors", "update", data.vendor_no, `Updated vendor ${data.vendor_no} · ${data.name}` + (old && old.region !== region ? ` · moved ${old.region}→${region}` : ""));
           }
           setVendorModal(null);
         }
@@ -4551,9 +4607,13 @@
           const vendor = data.vendor_id
             ? vendors.find((v) => v.id === Number(data.vendor_id))
             : vendors.find((v) => String(v.vendor_no || "").toLowerCase() === String(data.vendor_code || "").trim().toLowerCase());
-          const regionCurrency = currencyForRegion(regionForNewRecord(), activeBaseCurrency);
+          const existing = vendorPoModal.mode === "edit" ? vendorPos.find((r) => r.id === vendorPoModal.id) : null;
+          const region = resolveRecordRegion(data.region, existing?.region || regionForNewRecord());
+          if (vendorPoModal.mode === "edit" && !confirmRegionChange(existing?.region, region)) return;
+          const regionCurrency = currencyForRegion(region, activeBaseCurrency);
           const payload = {
             ...data,
+            region,
             vendor_id: vendor ? vendor.id : (data.vendor_id ? Number(data.vendor_id) : null),
             vendor_code: vendor ? vendor.vendor_no : (data.vendor_code || ""),
             name: vendor ? vendor.name : (data.name || ""),
@@ -4578,12 +4638,12 @@
           }
           if (vendorPoModal.mode === "add") {
             if (!guardPermission("vendor_po", "add")) return;
-            setVendorPos([{ id: nextErpRecordId(vendorPos, vendors, jobs), region: regionForNewRecord(), ...payload }, ...vendorPos]);
-            logAudit("vendor_po", "create", payload.airlink_po_no, `Created vendor PO ${payload.airlink_po_no}`);
+            setVendorPos([{ id: nextErpRecordId(vendorPos, vendors, jobs), ...payload }, ...vendorPos]);
+            logAudit("vendor_po", "create", payload.airlink_po_no, `Created vendor PO ${payload.airlink_po_no} [${region}]`);
           } else {
             if (!guardPermission("vendor_po", "edit")) return;
             setVendorPos(vendorPos.map((r) => (r.id === vendorPoModal.id ? { ...r, ...payload } : r)));
-            logAudit("vendor_po", "update", payload.airlink_po_no, `Updated vendor PO ${payload.airlink_po_no}`);
+            logAudit("vendor_po", "update", payload.airlink_po_no, `Updated vendor PO ${payload.airlink_po_no}` + (existing && existing.region !== region ? ` · moved ${existing.region}→${region}` : ""));
           }
           setVendorPoModal(null);
         }
@@ -6114,6 +6174,7 @@
               <Modal title={t("clientDetail") + " - " + c.company} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-slate-500">{t("colCustomerNo")}</p><p className="font-medium">{c.customer_no}</p></div>
+                  <div><p className="text-slate-500">{t("region")}</p><p className="font-medium">{REGION_FLAGS[c.region] || ""} {regionLabel(c.region || "HK", lang)} ({c.region || "HK"})</p></div>
                   <div><p className="text-slate-500">{t("colCompany")}</p><p className="font-medium">{c.company}</p></div>
                   <div><p className="text-slate-500">Invoice Title</p><p>{c.invoice_title || "-"}</p></div>
                   {c.is_bu && <div><p className="text-slate-500">{t("colBuNo")}</p><p>{c.bu_no || "-"}</p></div>}
@@ -7324,7 +7385,7 @@
                     <h3 className="font-semibold">{t("nav_clients")}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="clients" />
-                      {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: { ...emptyClient(), customer_no: nextCustomerNo(scopedClients) } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
+                      {can("clients", "add") && <button onClick={() => setClientModal({ mode: "add", data: { ...emptyClient(), customer_no: nextCustomerNo(scopedClients), region: regionForNewRecord() } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addClient")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="clients" searchQ={clientsSearch} setSearchQ={setClientsSearch} lang={lang} />
@@ -7364,7 +7425,7 @@
                     <h3 className="font-semibold">{t("nav_quotation")}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="quotation" />
-                      {can("quotation", "add") && <button onClick={() => setQuotationModal({ mode: "add", data: emptyQuotation() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addQuotation")}</button>}
+                      {can("quotation", "add") && <button onClick={() => setQuotationModal({ mode: "add", data: { ...emptyQuotation(), region: regionForNewRecord() } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addQuotation")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="quotation" searchQ={quotationSearch} setSearchQ={setQuotationSearch} lang={lang} />
@@ -7406,7 +7467,7 @@
                       <h3 className="font-semibold">{t("nav_job")}</h3>
                       <div className="flex items-center gap-2 flex-wrap">
                         <ListImportExportBar module="job" />
-                        {can("job", "add") && <button onClick={() => setJobModal({ mode: "add", data: { ...emptyJob(), po_lines: [emptyPoLine()] } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>}
+                        {can("job", "add") && <button onClick={() => setJobModal({ mode: "add", data: { ...emptyJob(), po_lines: [emptyPoLine()], region: regionForNewRecord() } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addJob")}</button>}
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-2">{t("jobFlowHint")}</p>
@@ -7460,7 +7521,7 @@
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="vendor_po" />
-                      {can("vendor_po", "add") && <button onClick={() => setVendorPoModal({ mode: "add", data: { ...emptyVendorPo(), currency: regionListCurrency === "MYR" ? "MYR" : "USD" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendorPo")}</button>}
+                      {can("vendor_po", "add") && <button onClick={() => setVendorPoModal({ mode: "add", data: { ...emptyVendorPo(), currency: regionListCurrency === "MYR" ? "MYR" : "USD", region: regionForNewRecord() } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendorPo")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="vendor_po" searchQ={vendorPoSearch} setSearchQ={setVendorPoSearch} lang={lang} />
@@ -7650,7 +7711,7 @@
                     <h3 className="font-semibold">{t("nav_vendors")}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="vendors" />
-                      {can("vendors", "add") && <button onClick={() => setVendorModal({ mode: "add", data: emptyVendor() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>}
+                      {can("vendors", "add") && <button onClick={() => setVendorModal({ mode: "add", data: { ...emptyVendor(), region: regionForNewRecord() } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendor")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="vendors" searchQ={vendorsSearch} setSearchQ={setVendorsSearch} lang={lang} />
@@ -8293,6 +8354,10 @@
               {clientModal && (
                 <Modal title={clientModal.mode === "add" ? t("addClientTitle") : t("editClient")} onClose={() => setClientModal(null)}>
                   <form onSubmit={saveClient} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <RegionMoveField
+                      value={clientModal.data.region || regionForNewRecord()}
+                      onChange={(region) => setClientModal({ ...clientModal, data: { ...clientModal.data, region } })}
+                    />
                     <Field label={t("colCustomerNo")}><Input required value={clientModal.data.customer_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, customer_no: e.target.value } })} /></Field>
                     <Field label={t("colCompany")}><Input required value={clientModal.data.company} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company: e.target.value } })} /></Field>
                     <Field label="Invoice Title"><Input value={clientModal.data.invoice_title || ""} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, invoice_title: e.target.value } })} /></Field>
@@ -8350,6 +8415,10 @@
               {quotationModal && (
                 <Modal title={quotationModal.mode === "add" ? t("addQuotationTitle") : t("editQuotation")} onClose={() => setQuotationModal(null)}>
                   <form onSubmit={saveQuotation} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <RegionMoveField
+                      value={quotationModal.data.region || quotationFormRegion}
+                      onChange={(region) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, region, client_id: "", company: "" } })}
+                    />
                     <Field label={t("quotationNo")}><Input required value={quotationModal.data.quotation_no} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_no: e.target.value } })} /></Field>
                     <Field label={t("clientGroup")}>
                       <SearchableSelect
@@ -8395,6 +8464,10 @@
               {jobModal && (
                 <Modal title={jobModal.mode === "add" ? t("addJobTitle") : t("editJob")} onClose={() => setJobModal(null)}>
                   <form onSubmit={saveJob} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <RegionMoveField
+                      value={jobModal.data.region || jobFormRegion}
+                      onChange={(region) => setJobModal({ ...jobModal, data: { ...jobModal.data, region, client_id: "", company: "" } })}
+                    />
                     <Field label={t("colJobNo")}><Input required value={jobModal.data.job_no} onChange={(e) => setJobModal({ ...jobModal, data: { ...jobModal.data, job_no: e.target.value } })} /></Field>
                     <Field label={t("clientGroup")}>
                       <SearchableSelect
@@ -8531,6 +8604,10 @@
               {vendorModal && (
                 <Modal title={vendorModal.mode === "add" ? t("addVendorTitle") : t("editVendor")} onClose={() => setVendorModal(null)} wide>
                   <form onSubmit={saveVendor} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <RegionMoveField
+                      value={vendorModal.data.region || regionForNewRecord()}
+                      onChange={(region) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, region } })}
+                    />
                     <Field label={t("vendorNo")}><Input required value={vendorModal.data.vendor_no} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, vendor_no: e.target.value } })} /></Field>
                     <Field label={t("colCompanyName")}><Input required value={vendorModal.data.name} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, name: e.target.value } })} /></Field>
                     <Field label={t("colGstNo")}><Input value={vendorModal.data.gst_no || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, gst_no: e.target.value } })} /></Field>
@@ -8555,6 +8632,10 @@
               {vendorPoModal && (
                 <Modal title={vendorPoModal.mode === "add" ? t("addVendorPoTitle") : t("editVendorPo")} onClose={() => setVendorPoModal(null)} wide>
                   <form onSubmit={saveVendorPo} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <RegionMoveField
+                      value={vendorPoModal.data.region || regionForNewRecord()}
+                      onChange={(region) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, region, local_amount: "" } })}
+                    />
                     <Field label={t("colVendorCode")}>
                       <SearchableSelect
                         required
