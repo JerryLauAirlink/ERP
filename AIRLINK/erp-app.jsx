@@ -16,7 +16,7 @@
 
       const JOB_TYPES = ["Project", "Service", "Maintenance", "Trading(Buy)", "Trading(Sell)"];
       const VENDOR_PO_PURPOSES = ["Project", "Inventory"];
-      const VENDOR_PO_TYPES = ["Material", "Service", "Equipment", "Subcontract", "Other"];
+      const VENDOR_PO_TYPES = ["Material", "Labour", "Material and Labour", "Service", "Equipment", "Subcontract", "Other"];
       const ERP_MODULES = ["dashboard", "management_report", "overview", "ongoing", "monthly_report", "clients", "quotation", "job", "vendor_po", "ar", "ap", "vendors", "settings"];
       const QUOTATION_STATUSES = ["Draft", "Sent", "Accepted", "Rejected", "Expired"];
       const JOB_STATUSES = ["Open", "In Progress", "Completed", "On Hold"];
@@ -227,7 +227,7 @@
             { header: "Vendor Code", field: "vendor_code", required: true, hint: "Must match vendor no." },
             { header: "Name", field: "name", required: true, hint: "Vendor / supplier name" },
             { header: "For Project/ Inventory", field: "for_purpose", hint: "Project / Inventory" },
-            { header: "Type", field: "po_type", hint: "Material / Service / Equipment / ..." },
+            { header: "Type", field: "po_type", hint: "Material / Labour / Material and Labour / Service / Equipment / ..." },
             { header: "Airlink PO #", field: "airlink_po_no", required: true, hint: "Unique Airlink PO no." },
             { header: "PO Date", field: "po_date", hint: "YYYY-MM-DD" },
             { header: "Airlink PO Currency", field: "currency", hint: "USD / HKD / SGD / MYR / ..." },
@@ -3366,7 +3366,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-15b";
+        const ERP_BUILD_ID = "airlink-2026-07-15c";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -5240,8 +5240,14 @@
             const purpose = String(row.for_purpose || "").trim();
             if (purpose && !VENDOR_PO_PURPOSES.includes(purpose)) errors.push("Invalid For Project/ Inventory: " + purpose);
             if (!purpose) row.for_purpose = "Project";
-            const poType = String(row.po_type || "").trim();
-            if (poType && !VENDOR_PO_TYPES.includes(poType)) errors.push("Invalid Type: " + poType);
+            let poType = String(row.po_type || "").trim();
+            if (poType) {
+              const ptKey = poType.toLowerCase().replace(/\s+/g, " ").replace(/&/g, "and");
+              if (ptKey === "labor") poType = "Labour";
+              else if (ptKey === "material and labor" || ptKey === "material and labour" || ptKey === "material+labour" || ptKey === "material+labor") poType = "Material and Labour";
+              row.po_type = poType;
+              if (!VENDOR_PO_TYPES.includes(poType)) errors.push("Invalid Type: " + poType);
+            }
             if (!String(row.currency || "").trim()) row.currency = "USD";
           }
         }
