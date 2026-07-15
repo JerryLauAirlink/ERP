@@ -64,6 +64,8 @@ Vendor Code → Name → For Project/ Inventory → Type → Airlink PO # → PO
 
 - Monthly Report: click **Sync monthly** after changes.
 - Import order: Clients → Vendors → Quotations → Jobs → **Vendor PO** → AR → AP.
+- **Job import:** fill **Customer No** only — Client Company is optional and auto-mapped from the client master. Export includes Customer No. Fix company name later on the client record if needed.
+- **No formal quotation:** on Add/Edit Job, tick **No quotation** to auto-assign HK00001 / TW00001 / SG00001… for that region and create an Accepted placeholder quotation on Save.
 
 ---
 

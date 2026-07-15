@@ -76,7 +76,7 @@
       <thead><tr><th>步驟</th><th>模組</th><th>說明</th></tr></thead>
       <tbody>
         <tr><td>①</td><td>報價單</td><td>選客戶；要連工作須 <strong>Accepted</strong>。Accepted 可自動開「新增工作」。</td></tr>
-        <tr><td>②</td><td>工作</td><td>選客戶、連報價、填客戶 PO。詳情可見 BU、Vendor、Vendor PO。</td></tr>
+        <tr><td>②</td><td>工作</td><td>選客戶、連報價（或勾「無報價單」自動編號如 HK00001）、填客戶 PO。詳情可見 BU、Vendor、Vendor PO。</td></tr>
         <tr><td>③</td><td>供應商採購單</td><td>見下一節欄位說明。</td></tr>
         <tr><td>④</td><td>應付 AP</td><td>連工作 → 選供應商 → 可填 <strong>AIRLINK PO</strong>／<strong>PO Amount</strong>。</td></tr>
         <tr><td>⑤</td><td>工作完成</td><td>狀態 <strong>Completed</strong>。</td></tr>
@@ -114,6 +114,8 @@
       <li>客戶</li><li>供應商</li><li>報價單</li><li>工作</li><li>供應商採購單</li><li>應收</li><li>應付</li>
     </ol>
     <p>匯入前確認地區；建議使用各模組的 Download Template。</p>
+    <p><strong>工作匯入：</strong>填 <strong>Customer No</strong> 即可，Client Company 可留空（依客戶主檔自動對應）。匯出亦會帶 Customer No。</p>
+    <p><strong>無正式報價：</strong>新增／修改工作 → 勾「無報價單」→ 依地區自動編號（HK00001／TW00001／SG00001…），儲存時建立 Accepted 佔位報價單。</p>
 
     <h2>六、常見錯誤</h2>
     <div class="warn">
@@ -174,7 +176,7 @@
       <thead><tr><th>Step</th><th>Module</th><th>Notes</th></tr></thead>
       <tbody>
         <tr><td>1</td><td>Quotation</td><td>Pick client; must be <strong>Accepted</strong> to link a job. Accepting can auto-open Add Job.</td></tr>
-        <tr><td>2</td><td>Job</td><td>Client, quotation(s), customer PO lines. Detail shows BU, Vendor, Vendor PO.</td></tr>
+        <tr><td>2</td><td>Job</td><td>Client, quotation(s) — or tick <strong>No quotation</strong> for auto nos like HK00001 — and customer PO lines. Detail shows BU, Vendor, Vendor PO.</td></tr>
         <tr><td>3</td><td>Vendor PO</td><td>See column table below.</td></tr>
         <tr><td>4</td><td>AP</td><td>Link job → vendor → optional <strong>AIRLINK PO</strong> / <strong>PO Amount</strong>.</td></tr>
         <tr><td>5</td><td>Complete job</td><td>Status <strong>Completed</strong>.</td></tr>
@@ -212,6 +214,8 @@
       <li>Clients</li><li>Vendors</li><li>Quotations</li><li>Jobs</li><li>Vendor PO</li><li>AR</li><li>AP</li>
     </ol>
     <p>Confirm region first; use each module’s Download Template for headers.</p>
+    <p><strong>Job import:</strong> fill <strong>Customer No</strong> only — Client Company is optional and auto-mapped. Export includes Customer No.</p>
+    <p><strong>No formal quotation:</strong> on Add/Edit Job, tick <strong>No quotation</strong> to auto-assign HK00001 / TW00001 / SG00001… and create an Accepted placeholder on Save.</p>
 
     <h2>6. Common mistakes</h2>
     <div class="warn">
