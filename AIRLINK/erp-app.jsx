@@ -546,6 +546,7 @@
           apDueAutoHint: "Due date is calculated from Invoice Date + vendor payment terms (editable).",
           apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise Awaiting Payment.",
           paymentTermsHint: "Pick a preset or type your own terms.",
+          deleteDupPrompt: "Found {n} records with the same key {key}. Delete ALL duplicates?\nOK = delete all / Cancel = delete this one only",
           deleteSynced: "Deleted and synced to cloud.",
           deleteCloudFail: "Deleted locally, but cloud sync failed. Press Sync now, or the record may reappear after refresh.",
           importReading: "Reading file…",
@@ -788,6 +789,7 @@
           apPaidStatus: "已付款", apAwaitingStatus: "待付款",
           apDueAutoHint: "到期日依發票日期 + 供應商付款方式自動計算（可改）。",
           paymentTermsHint: "可選預設，亦可自行輸入。",
+          deleteDupPrompt: "發現 {n} 筆相同編號 {key}。要一次刪除全部重複？\n確定 = 全部刪除／取消 = 只刪這一筆",
           deleteSynced: "已刪除並同步至雲端。",
           deleteCloudFail: "本機已刪除，但雲端同步失敗。請按「立即同步」，否則重新整理後可能再出現。",
           importReading: "正在讀取檔案…",
@@ -3468,7 +3470,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-16a";
+        const ERP_BUILD_ID = "airlink-2026-07-16c";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -4411,14 +4413,19 @@
           setClientModal(null);
         }
 
-        function deleteClient(id) {
+        async function deleteClient(id) {
           if (!guardPermission("clients", "delete")) return;
           const c = clients.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          const nextClients = clients.filter((x) => x.id !== id);
+          const nextClients = clients.filter((x) => String(x.id) !== String(id));
           setClients(nextClients);
-          logAudit("clients", "delete", c ? c.company : String(id), `Deleted client ${c ? c.company : id}`);
-          flushEntityDeleteToCloud({ clients: nextClients });
+          markSyncedArray("clients", nextClients);
+          logAudit("clients", "delete", c ? c.company : String(id), `Deleted client ${c ? c.customer_no + " · " + c.company : id}`);
+          const cloudOk = await pushEntityTombstoneToCloud("clients", id);
+          if (liveSyncEnabled) {
+            if (!cloudOk) alert(t("deleteCloudFail"));
+            else alert(t("deleteSynced"));
+          }
         }
 
         function saveJob(e) {
@@ -4635,7 +4642,7 @@
           setJobModal({ ...jobModal, data: { ...jobModal.data, ...patch } });
         }
 
-        function deleteJob(id) {
+        async function deleteJob(id) {
           if (!guardPermission("job", "delete")) return;
           const j = jobs.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
@@ -4648,11 +4655,14 @@
               });
             });
             setQuotations(nextQuotations);
+            markSyncedArray("quotations", nextQuotations);
           }
           const nextJobs = jobs.filter((x) => x.id !== id);
           setJobs(nextJobs);
+          markSyncedArray("jobs", nextJobs);
           logAudit("job", "delete", j ? j.job_no : String(id), `Deleted job ${j ? j.job_no : id}`);
-          flushEntityDeleteToCloud({ jobs: nextJobs, quotations: nextQuotations });
+          const cloudOk = await pushEntityTombstoneToCloud("jobs", id);
+          if (liveSyncEnabled && !cloudOk) alert(t("deleteCloudFail"));
         }
 
         function startOngoingEdit(job) {
@@ -4872,7 +4882,7 @@
           setQuotationModal(null);
         }
 
-        function deleteQuotation(id) {
+        async function deleteQuotation(id) {
           if (!guardPermission("quotation", "delete")) return;
           const q = quotations.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
@@ -4883,11 +4893,14 @@
               nextJobs = nextJobs.map((j) => (j.job_no === jno ? removeQuotationFromJob(j, qNo) : j));
             });
             setJobs(nextJobs);
+            markSyncedArray("jobs", nextJobs);
           }
           const nextQuotations = quotations.filter((x) => x.id !== id);
           setQuotations(nextQuotations);
+          markSyncedArray("quotations", nextQuotations);
           logAudit("quotation", "delete", q ? q.quotation_no : String(id), `Deleted quotation ${q ? q.quotation_no : id}`);
-          flushEntityDeleteToCloud({ quotations: nextQuotations, jobs: nextJobs });
+          const cloudOk = await pushEntityTombstoneToCloud("quotations", id);
+          if (liveSyncEnabled && !cloudOk) alert(t("deleteCloudFail"));
         }
 
         function saveVendor(e) {
@@ -4912,14 +4925,19 @@
           setVendorModal(null);
         }
 
-        function deleteVendor(id) {
+        async function deleteVendor(id) {
           if (!guardPermission("vendors", "delete")) return;
           const v = vendors.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          const nextVendors = vendors.filter((x) => x.id !== id);
+          const nextVendors = vendors.filter((x) => String(x.id) !== String(id));
           setVendors(nextVendors);
+          markSyncedArray("vendors", nextVendors);
           logAudit("vendors", "delete", v ? v.name : String(id), `Deleted vendor ${v ? v.name : id}`);
-          flushEntityDeleteToCloud({ vendors: nextVendors });
+          const cloudOk = await pushEntityTombstoneToCloud("vendors", id);
+          if (liveSyncEnabled) {
+            if (!cloudOk) alert(t("deleteCloudFail"));
+            else alert(t("deleteSynced"));
+          }
         }
 
         function resolveVendorPoLocalAmount(data, regionCurrency) {
@@ -4979,14 +4997,16 @@
           setVendorPoModal(null);
         }
 
-        function deleteVendorPo(id) {
+        async function deleteVendorPo(id) {
           if (!guardPermission("vendor_po", "delete")) return;
           const row = vendorPos.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
           const nextVendorPos = vendorPos.filter((x) => x.id !== id);
           setVendorPos(nextVendorPos);
+          markSyncedArray("vendor_pos", nextVendorPos);
           logAudit("vendor_po", "delete", row ? row.airlink_po_no : String(id), `Deleted vendor PO ${row ? row.airlink_po_no : id}`);
-          flushEntityDeleteToCloud({ vendorPos: nextVendorPos });
+          const cloudOk = await pushEntityTombstoneToCloud("vendor_pos", id);
+          if (liveSyncEnabled && !cloudOk) alert(t("deleteCloudFail"));
         }
 
         function saveAR(e) {
@@ -5031,14 +5051,16 @@
           setArModal(null);
         }
 
-        function deleteAr(id) {
+        async function deleteAr(id) {
           if (!guardPermission("ar", "delete")) return;
           const r = arInvoices.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
           const nextAr = arInvoices.filter((x) => x.id !== id);
           setArInvoices(nextAr);
+          markSyncedArray("ar_invoices", nextAr);
           logAudit("ar", "delete", r ? r.invoice_no : String(id), `Deleted AR ${r ? r.invoice_no : id}`);
-          flushEntityDeleteToCloud({ arInvoices: nextAr });
+          const cloudOk = await pushEntityTombstoneToCloud("ar_invoices", id);
+          if (liveSyncEnabled && !cloudOk) alert(t("deleteCloudFail"));
         }
 
         function saveAP(e) {
@@ -5084,14 +5106,16 @@
           setApModal(null);
         }
 
-        function deleteAp(id) {
+        async function deleteAp(id) {
           if (!guardPermission("ap", "delete")) return;
           const b = apBills.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
           const nextAp = apBills.filter((x) => x.id !== id);
           setApBills(nextAp);
+          markSyncedArray("ap_bills", nextAp);
           logAudit("ap", "delete", b ? b.invoice_no : String(id), `Deleted AP ${b ? b.invoice_no : id}`);
-          flushEntityDeleteToCloud({ apBills: nextAp });
+          const cloudOk = await pushEntityTombstoneToCloud("ap_bills", id);
+          if (liveSyncEnabled && !cloudOk) alert(t("deleteCloudFail"));
         }
 
         function emptyUserForm() {
@@ -5634,8 +5658,8 @@
           } catch { return false; }
         }
 
-        async function pushUserDeleteToCloud(userId) {
-          if (userId == null) return false;
+        async function pushEntityTombstoneToCloud(entityType, entityId) {
+          if (entityId == null || entityId === "") return false;
           let key = erpSyncKey.trim();
           if (!key) {
             try {
@@ -5651,8 +5675,8 @@
               headers: { "Content-Type": "application/json", "X-ERP-Sync-Key": key },
               body: JSON.stringify({
                 changes: [{
-                  entity_type: "users",
-                  entity_id: userId,
+                  entity_type: entityType,
+                  entity_id: entityId,
                   payload: {},
                   is_deleted: true,
                   region: null
@@ -5660,8 +5684,20 @@
                 updated_by: sessionUserId
               })
             });
+            if (res.ok) {
+              const snap = { ...(liveSyncedSnapshotRef.current[entityType] || {}) };
+              delete snap[entityId];
+              delete snap[String(entityId)];
+              liveSyncedSnapshotRef.current[entityType] = snap;
+            }
             return res.ok;
-          } catch { return false; }
+          } catch {
+            return false;
+          }
+        }
+
+        async function pushUserDeleteToCloud(userId) {
+          return pushEntityTombstoneToCloud("users", userId);
         }
 
         function stripSyncMeta(rec) {
@@ -5681,14 +5717,17 @@
           const changes = [];
           (records || []).forEach((r) => {
             if (!r || r.id == null) return;
-            nextIds[r.id] = recordSnapshot(r);
-            if (prev[r.id] !== nextIds[r.id]) {
+            const idKey = String(r.id);
+            nextIds[idKey] = recordSnapshot(r);
+            if (prev[idKey] !== nextIds[idKey]) {
               changes.push({ entity_type: entityType, entity_id: r.id, payload: stripSyncMeta(r), is_deleted: false, region: r.region || null });
             }
           });
-          Object.keys(prev).forEach((id) => {
-            if (!nextIds[id]) {
-              changes.push({ entity_type: entityType, entity_id: Number(id), payload: {}, is_deleted: true, region: null });
+          Object.keys(prev).forEach((idKey) => {
+            if (!nextIds[idKey]) {
+              const asNum = Number(idKey);
+              const entityId = Number.isSafeInteger(asNum) ? asNum : idKey;
+              changes.push({ entity_type: entityType, entity_id: entityId, payload: {}, is_deleted: true, region: null });
             }
           });
           return changes;
@@ -5698,7 +5737,7 @@
           const next = {};
           (records || []).forEach((r) => {
             if (!r || r.id == null) return;
-            next[r.id] = recordSnapshot(r);
+            next[String(r.id)] = recordSnapshot(r);
           });
           liveSyncedSnapshotRef.current[entityType] = next;
         }
@@ -5896,22 +5935,47 @@
         function applyFullLiveEntities(body) {
           const e = body.entities || {};
           const singletons = body.singletons || {};
+          const nextClients = ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.clients));
+          const nextJobs = ensureJobsQuotations(ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.jobs)));
+          const nextQuotations = ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.quotations));
+          const nextVendors = ensureVendorNumbers(ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.vendors)));
+          const nextVendorPos = ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.vendor_pos));
+          const nextAr = ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.ar_invoices));
+          const nextAp = ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.ap_bills));
+          const nextAudit = mergeFullEntitiesFromCloud(e.audit_logs);
+          const nextMonthlyPo = mergeFullEntitiesFromCloud(e.monthly_po_lines);
+          const nextMonthlyAr = mergeFullEntitiesFromCloud(e.monthly_ar_lines);
+          const nextExpected = singletons.monthly_ar_expected || {};
           liveApplyingRemoteRef.current = true;
-          setClients(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.clients)));
-          setJobs(() => ensureJobsQuotations(ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.jobs))));
-          setQuotations(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.quotations)));
-          setVendors(() => ensureVendorNumbers(ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.vendors))));
-          setVendorPos(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.vendor_pos)));
-          setArInvoices(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.ar_invoices)));
-          setApBills(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.ap_bills)));
+          setClients(() => nextClients);
+          setJobs(() => nextJobs);
+          setQuotations(() => nextQuotations);
+          setVendors(() => nextVendors);
+          setVendorPos(() => nextVendorPos);
+          setArInvoices(() => nextAr);
+          setApBills(() => nextAp);
           if (e.users) setUsers(mergeFullUsersFromCloud(e.users));
-          setAuditLogs(() => mergeFullEntitiesFromCloud(e.audit_logs));
-          setMonthlyPoLines(() => mergeFullEntitiesFromCloud(e.monthly_po_lines));
-          setMonthlyArLines(() => mergeFullEntitiesFromCloud(e.monthly_ar_lines));
-          setMonthlyArExpectedSnapshots(singletons.monthly_ar_expected || {});
+          setAuditLogs(() => nextAudit);
+          setMonthlyPoLines(() => nextMonthlyPo);
+          setMonthlyArLines(() => nextMonthlyAr);
+          setMonthlyArExpectedSnapshots(nextExpected);
           if (singletons.settings) applySharedSettings(singletons.settings);
           liveServerVersionRef.current = body.server_version || 0;
-          setTimeout(() => { liveApplyingRemoteRef.current = false; markAllSyncedFromState(); }, 0);
+          // Mark synced from the arrays we just applied (not stale React state).
+          markSyncedArray("clients", nextClients);
+          markSyncedArray("jobs", nextJobs);
+          markSyncedArray("quotations", nextQuotations);
+          markSyncedArray("vendors", nextVendors);
+          markSyncedArray("vendor_pos", nextVendorPos);
+          markSyncedArray("ar_invoices", nextAr);
+          markSyncedArray("ap_bills", nextAp);
+          if (e.users) markSyncedArray("users", mergeFullUsersFromCloud(e.users));
+          markSyncedArray("audit_logs", nextAudit);
+          markSyncedArray("monthly_po_lines", nextMonthlyPo);
+          markSyncedArray("monthly_ar_lines", nextMonthlyAr);
+          markSyncedSingleton("monthly_ar_expected", nextExpected);
+          markSyncedSingleton("settings", buildSharedSettings());
+          setTimeout(() => { liveApplyingRemoteRef.current = false; }, 0);
         }
 
         async function syncNowToCloud() {
