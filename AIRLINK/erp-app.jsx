@@ -132,7 +132,8 @@
             { header: "Address", field: "address", hint: "" },
             { header: "Postal Code", field: "postal_code", hint: "" },
             { header: "Account Dept Contact", field: "account_dept_contact", hint: "" },
-            { header: "Payment Terms", field: "payment_terms", hint: "e.g. 30 Days" },
+            { header: "Account Dept Email", field: "account_dept_email", hint: "" },
+            { header: "Payment Terms", field: "payment_terms", hint: "30 Days / 45 Days / 60 Days / 90 Days / COD / Payment before delivery" },
             { header: "Invoice Title", field: "invoice_title", hint: "Optional — shown on invoices/AR" },
             { header: "BU", field: "is_bu", hint: "Y if same company, different contact/job" },
             { header: "BU No", field: "bu_no", hint: "Business unit no. when BU is Y" }
@@ -190,7 +191,7 @@
             { header: "Invoice Date", field: "invoice_date", hint: "YYYY-MM-DD" },
             { header: "Due Date", field: "due_date", hint: "YYYY-MM-DD" },
             { header: "Currency", field: "currency", hint: "USD / HKD / SGD / AUD" },
-            { header: "Amount", field: "amount", required: true, hint: "Numeric" },
+            { header: "Received Goods Amount", field: "amount", required: true, hint: "Numeric — amount of goods received", aliases: ["Amount", "Invoice Amt"] },
             { header: "Payment Stage", field: "payment_stage", hint: "Deposit / Progress / Balance / Retention / Final" },
             { header: "Pay Date", field: "pay_date", hint: "YYYY-MM-DD" },
             { header: "Remarks", field: "remarks", hint: "" }
@@ -215,8 +216,8 @@
             { header: "Bank Name", field: "bank", hint: "銀行名稱" },
             { header: "Bank Branch", field: "bank_branch", hint: "開戶分行名稱" },
             { header: "Account #", field: "account_no", hint: "帳號" },
-            { header: "SWIFT Code", field: "swift_code", hint: "銀行 SWIFT Code" },
-            { header: "Credit Term", field: "credit_term", hint: "付款方式 e.g. 30 Days" }
+            { header: "SWIFT/Bank Code", field: "swift_code", hint: "SWIFT or Bank Code", aliases: ["SWIFT Code", "SWIFT CODE", "Bank Code"] },
+            { header: "Credit Term", field: "credit_term", hint: "30 Days / 45 Days / 60 Days / 90 Days / COD / Payment before delivery" }
           ]
         },
         vendor_po: {
@@ -232,7 +233,10 @@
             { header: "PO Date", field: "po_date", hint: "YYYY-MM-DD" },
             { header: "Airlink PO Currency", field: "currency", hint: "USD / HKD / SGD / MYR / ..." },
             { header: "Airlink PO Amt", field: "amount", required: true, hint: "Numeric" },
-            { header: "Airlink PO Amt Local", field: "local_amount", aliases: ["Airlink PO Amt in MYR", "Airlink PO Amt in SGD", "Airlink PO Amt in HKD", "Airlink PO Amt in TWD", "Airlink PO Amt in USD"], hint: "Converted to region currency (auto if blank)" }
+            { header: "Airlink PO Amt Local", field: "local_amount", aliases: ["Airlink PO Amt in MYR", "Airlink PO Amt in SGD", "Airlink PO Amt in HKD", "Airlink PO Amt in TWD", "Airlink PO Amt in USD"], hint: "Converted to region currency (auto if blank)" },
+            { header: "Requested Delivery Date", field: "requested_delivery_date", hint: "YYYY-MM-DD" },
+            { header: "Job No", field: "job_no", hint: "Optional linked job" },
+            { header: "Remarks", field: "remarks", hint: "" }
           ]
         },
         quotation: {
@@ -491,7 +495,7 @@
           customerPoAmountTotal: "Customer PO Amount (Total)",
           jobCompleteCol: "Job Complete",
           arPaymentStatusAutoHint: "Status is automatic: Paid when payment date is entered; Overdue after due date; otherwise Awaiting Payment.",
-          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; Overdue after due date; otherwise Awaiting Payment.",
+          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise Awaiting Payment.",
           jobPoLinesTitle: "Customer PO lines",
           jobPoAddLine: "+ Add PO",
           jobPoColNo: "PO No.",
@@ -532,11 +536,18 @@
           colInvoiceCurrency: "Invoice Currency", colInvoiceAmt: "Invoice Amt", colDueDate: "Due Date", colPayDate: "Pay Date",
           colCompanyName: "Company Name", colPaymentTerms: "Payment Terms", colStartDate: "Start Date", colProjectName: "Project Name",
           colPayee: "Payee", colRemarks: "Remarks", colOverdueDays: "Overdue Days", colDays: "Days", colAmt: "Amt", colDate: "Date",
-          colAccountDeptContact: "Account Dept Contact", colBankCharge: "Bank Charge", colSwiftCode: "SWIFT CODE",
+          colAccountDeptContact: "Account Dept Contact", colAccountDeptEmail: "Account Dept Email", colBankCharge: "Bank Charge", colSwiftCode: "SWIFT/Bank Code",
           colPaymentAdviceEmail: "Payment Advice email", colCustomerNo: "Customer No.", colBu: "BU", colBuNo: "BU No.", clientBuHint: "Same company, different contact/job — enter BU No.", colFinanceContact: "Finance Contact", colFinanceEmail: "Finance Email",
           colCompany: "Company", colGstNo: "GST#", colPrimaryContact: "Primary Contact",
           colCompanyPhone: "Company Phone #", colMobilePhone: "Mobile Phone #", colEmail: "E-mail", colPostalCode: "Postal Code",
-          colName: "Name", colBank: "Bank", colSwift: "SWIFT", colContact: "Contact",
+          colName: "Name", colBank: "Bank", colSwift: "SWIFT/Bank Code", colContact: "Contact",
+          colReceivedGoodsAmt: "Received Goods Amount", colPoBalance: "Balance", colRequestedDeliveryDate: "Requested Delivery Date",
+          apPaidStatus: "Paid", apAwaitingStatus: "Awaiting Payment",
+          apDueAutoHint: "Due date is calculated from Invoice Date + vendor payment terms (editable).",
+          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise Awaiting Payment.",
+          paymentTermsHint: "Pick a preset or type your own terms.",
+          deleteSynced: "Deleted and synced to cloud.",
+          deleteCloudFail: "Deleted locally, but cloud sync failed. Press Sync now, or the record may reappear after refresh.",
           importReading: "Reading file…",
           importPreviewReady: "Import preview ready — please confirm.",
           storageSaveFailed: "Could not save to browser storage. Check privacy settings or disk space.",
@@ -727,7 +738,7 @@
           customerPoAmountTotal: "客戶 PO 金額（總計）",
           jobCompleteCol: "工作完成",
           arPaymentStatusAutoHint: "狀態自動更新：有收款日期 = 已收款；過 due date = 逾期；否則 = 待收款。",
-          apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；過 due date = 逾期；否則 = 待付款。",
+          apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；否則 = 待付款。",
           jobPoLinesTitle: "客戶 PO 明細",
           jobPoAddLine: "+ 新增 PO",
           jobPoColNo: "PO 編號",
@@ -768,11 +779,17 @@
           colInvoiceCurrency: "發票幣別", colInvoiceAmt: "發票金額", colDueDate: "到期日", colPayDate: "付款日期",
           colCompanyName: "公司名稱", colPaymentTerms: "付款條件", colStartDate: "開始日期", colProjectName: "專案名稱",
           colPayee: "付款對象", colRemarks: "備註", colOverdueDays: "逾期天數", colDays: "天數", colAmt: "金額", colDate: "日期",
-          colAccountDeptContact: "會計聯絡人", colBankCharge: "銀行手續費", colSwiftCode: "SWIFT 代碼",
+          colAccountDeptContact: "會計聯絡人", colAccountDeptEmail: "會計聯絡人 Email", colBankCharge: "銀行手續費", colSwiftCode: "SWIFT/Bank Code",
           colPaymentAdviceEmail: "付款通知電子郵件", colCustomerNo: "客戶編號", colBu: "BU", colBuNo: "BU 編號", clientBuHint: "同一公司、不同聯絡人或不同工作時可勾選，並填寫 BU 編號。", colFinanceContact: "財務聯絡人", colFinanceEmail: "財務電子郵件",
           colCompany: "公司名稱", colGstNo: "GST／統一編號", colPrimaryContact: "主要聯絡人",
           colCompanyPhone: "公司電話", colMobilePhone: "手機", colEmail: "電子郵件", colPostalCode: "郵遞區號",
-          colName: "名稱", colBank: "銀行", colSwift: "SWIFT", colContact: "聯絡人",
+          colName: "名稱", colBank: "銀行", colSwift: "SWIFT/Bank Code", colContact: "聯絡人",
+          colReceivedGoodsAmt: "已收貨金額", colPoBalance: "餘額", colRequestedDeliveryDate: "要求交貨日期",
+          apPaidStatus: "已付款", apAwaitingStatus: "待付款",
+          apDueAutoHint: "到期日依發票日期 + 供應商付款方式自動計算（可改）。",
+          paymentTermsHint: "可選預設，亦可自行輸入。",
+          deleteSynced: "已刪除並同步至雲端。",
+          deleteCloudFail: "本機已刪除，但雲端同步失敗。請按「立即同步」，否則重新整理後可能再出現。",
           importReading: "正在讀取檔案…",
           importPreviewReady: "匯入預覽已準備好，請確認。",
           storageSaveFailed: "無法儲存到瀏覽器，請檢查隱私權設定或儲存空間。",
@@ -941,7 +958,6 @@
         const stored = String(b.payment_status || "").trim();
         if (stored === "Cancel" || stored === "Cancelled" || stored === "Canceled") return "Cancel";
         if (b.pay_date) return "Paid";
-        if (b.due_date && calcOverdueDays(b.due_date) > 0) return "Overdue";
         return "Awaiting Payment";
       }
 
@@ -950,12 +966,14 @@
       }
 
       function isApUnpaid(bill) {
-        const s = deriveApPaymentStatus(bill);
-        return s === "Awaiting Payment" || s === "Overdue";
+        return deriveApPaymentStatus(bill) === "Awaiting Payment";
       }
 
       function apPaymentLabel(bill, t) {
-        return paymentStatusLabel(deriveApPaymentStatus(bill), t);
+        const s = deriveApPaymentStatus(bill);
+        if (s === "Paid") return t("apPaidStatus");
+        if (s === "Cancel" || s === "Cancelled" || s === "Canceled") return t("paymentCancel");
+        return t("apAwaitingStatus");
       }
 
       function apPaymentClass(bill) {
@@ -1091,9 +1109,13 @@
         return diff > 0 ? diff : 0;
       }
 
+      const PAYMENT_TERMS_PRESETS = ["30 Days", "45 Days", "60 Days", "90 Days", "COD", "Payment before delivery"];
+
       function parsePaymentTermsDays(terms) {
-        if (!terms || !String(terms).trim()) return 30;
-        const m = String(terms).match(/(\d+)/);
+        const s = String(terms || "").trim().toLowerCase();
+        if (!s) return 30;
+        if (s === "cod" || s.includes("before delivery") || s.includes("payment before")) return 0;
+        const m = s.match(/(\d+)/);
         return m ? Math.max(0, parseInt(m[1], 10)) : 30;
       }
 
@@ -1125,6 +1147,48 @@
 
       function applyArDueDate(data, clients, jobs) {
         return { ...data, due_date: computeArDueDate(data, clients, jobs) };
+      }
+
+      function findVendorForAp(data, vendorList) {
+        const name = String(data && data.company_name || "").trim().toLowerCase();
+        if (!name) return null;
+        return (vendorList || []).find((v) => String(v.name || "").trim().toLowerCase() === name) || null;
+      }
+
+      function computeApDueDate(data, vendorList) {
+        const base = data.invoice_date || data.invoice_received_date || "";
+        if (!base) return data.due_date || "";
+        const vendor = findVendorForAp(data, vendorList);
+        return addDaysIso(base, parsePaymentTermsDays(vendor ? vendor.credit_term : ""));
+      }
+
+      function applyApDueDate(data, vendorList) {
+        return { ...data, due_date: computeApDueDate(data, vendorList) };
+      }
+
+      function sumApReceivedAgainstVendorPo(po, apList) {
+        const k = String(po && po.airlink_po_no || "").trim().toLowerCase();
+        if (!k) return 0;
+        const cur = (po && po.currency) || "USD";
+        return (apList || [])
+          .filter((b) => String(b.airlink_po || "").trim().toLowerCase() === k)
+          .reduce((s, b) => s + convertCurrency(Number(b.amount || 0), b.currency || "USD", cur), 0);
+      }
+
+      function vendorPoBalanceAmount(po, apList) {
+        return Number(po && po.amount || 0) - sumApReceivedAgainstVendorPo(po, apList);
+      }
+
+      function findVendorPoByNo(poNo, poList) {
+        const k = String(poNo || "").trim().toLowerCase();
+        if (!k) return null;
+        return (poList || []).find((p) => String(p.airlink_po_no || "").trim().toLowerCase() === k) || null;
+      }
+
+      function apLinkedPoBalance(bill, poList, apList) {
+        const po = findVendorPoByNo(bill && bill.airlink_po, poList);
+        if (!po) return null;
+        return vendorPoBalanceAmount(po, apList);
       }
 
       function monthChartLabel(year, monthIndex, lang) {
@@ -1398,7 +1462,7 @@
       function nowIso() { return new Date().toISOString(); }
 
       function emptyClient() {
-        return { customer_no: "", company: "", invoice_title: "", gst_no: "", primary_contact: "", company_phone: "", mobile_phone: "", email: "", address: "", postal_code: "", account_dept_contact: "", payment_terms: "", is_bu: false, bu_no: "" };
+        return { customer_no: "", company: "", invoice_title: "", gst_no: "", primary_contact: "", company_phone: "", mobile_phone: "", email: "", address: "", postal_code: "", account_dept_contact: "", account_dept_email: "", payment_terms: "", is_bu: false, bu_no: "" };
       }
 
       function nextCustomerNo(clientList) {
@@ -2159,6 +2223,7 @@
           po_type: "Material",
           airlink_po_no: "",
           po_date: "",
+          requested_delivery_date: "",
           currency: "USD",
           amount: "",
           local_amount: "",
@@ -2248,6 +2313,43 @@
 
       function Select(props) {
         return <select {...props} className={"w-full rounded-lg border border-slate-300 px-3 py-2 text-sm " + (props.className || "")} />;
+      }
+
+      function PaymentTermsInput({ value, onChange, hint }) {
+        const raw = String(value || "").trim();
+        const rawLower = raw.toLowerCase();
+        return (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-1.5">
+              {PAYMENT_TERMS_PRESETS.map((p) => {
+                const active = rawLower === p.toLowerCase();
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => onChange(p)}
+                    className={
+                      "px-2 py-1 text-xs rounded-lg border " +
+                      (active ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50")
+                    }
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+            <Input
+              list="erp-payment-terms-presets"
+              value={value || ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="30 Days"
+            />
+            <datalist id="erp-payment-terms-presets">
+              {PAYMENT_TERMS_PRESETS.map((p) => <option key={p} value={p} />)}
+            </datalist>
+            {hint ? <p className="text-[10px] text-slate-400">{hint}</p> : null}
+          </div>
+        );
       }
 
       /** Stable region picker (defined outside App so live clock / sync re-renders do not remount it mid-open). */
@@ -3366,7 +3468,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-15c";
+        const ERP_BUILD_ID = "airlink-2026-07-16a";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3478,6 +3580,29 @@
           scheduleLiveSyncPush(false);
           return () => { if (livePushTimerRef.current) clearTimeout(livePushTimerRef.current); };
         }, [clients, jobs, quotations, vendors, vendorPos, arInvoices, apBills, users, auditLogs, monthlyPoLines, monthlyArLines, monthlyArExpectedSnapshots, lang, activeRegion, worldTimeZone, companyName, sessionUserId, sidebarCollapsed, liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId]);
+
+        useEffect(() => {
+          if (!liveSyncEnabled || !liveSyncReady || !canLiveSyncPush()) return;
+          function onBeforeUnload() {
+            try {
+              if (livePushTimerRef.current) {
+                clearTimeout(livePushTimerRef.current);
+                livePushTimerRef.current = null;
+              }
+              const changes = collectAllLiveChanges();
+              if (!changes.length || !erpSyncKey.trim()) return;
+              // Best-effort sync before tab close / F5 (keepalive).
+              fetch("/api/sync/push", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-ERP-Sync-Key": erpSyncKey.trim() },
+                body: JSON.stringify({ changes, updated_by: sessionUserId }),
+                keepalive: true
+              }).catch(() => {});
+            } catch { /* ignore */ }
+          }
+          window.addEventListener("beforeunload", onBeforeUnload);
+          return () => window.removeEventListener("beforeunload", onBeforeUnload);
+        }, [liveSyncEnabled, liveSyncReady, erpSyncKey, sessionUserId, clients, jobs, quotations, vendors, vendorPos, arInvoices, apBills, users]);
 
         useEffect(() => {
           if (liveSyncEnabled && !liveSyncReady) {
@@ -3856,8 +3981,9 @@
         const apDisplay = useMemo(() => scopedApBills.map((b) => ({
           ...b,
           payment_status: deriveApPaymentStatus(b),
-          display_base_amount: resolveApDisplayAmount(b, regionListCurrency)
-        })), [scopedApBills, regionListCurrency]);
+          display_base_amount: resolveApDisplayAmount(b, regionListCurrency),
+          po_balance: apLinkedPoBalance(b, vendorPos, apBills)
+        })), [scopedApBills, regionListCurrency, vendorPos, apBills]);
         const arTotal = useMemo(() => arDisplay.filter(isArUnpaid).reduce((a, b) => a + b.display_base_amount, 0), [arDisplay]);
         const apTotal = useMemo(() => apDisplay.filter(isApUnpaid).reduce((a, b) => a + b.display_base_amount, 0), [apDisplay]);
         const scopedArCount = scopedArInvoices.length;
@@ -4040,7 +4166,7 @@
 
         const filteredClients = useMemo(() => {
           let list = scopedClients;
-          if (clientsSearch.trim()) list = list.filter((c) => matchesSearch(c, clientsSearch, ["customer_no", "company", "invoice_title", "gst_no", "primary_contact", "company_phone", "mobile_phone", "email", "address", "postal_code", "account_dept_contact", "payment_terms", "bu_no"]));
+          if (clientsSearch.trim()) list = list.filter((c) => matchesSearch(c, clientsSearch, ["customer_no", "company", "invoice_title", "gst_no", "primary_contact", "company_phone", "mobile_phone", "email", "address", "postal_code", "account_dept_contact", "account_dept_email", "payment_terms", "bu_no"]));
           return applyTableSort(list, "clients");
         }, [scopedClients, clientsSearch, tableSort]);
 
@@ -4289,8 +4415,10 @@
           if (!guardPermission("clients", "delete")) return;
           const c = clients.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          setClients(clients.filter((x) => x.id !== id));
+          const nextClients = clients.filter((x) => x.id !== id);
+          setClients(nextClients);
           logAudit("clients", "delete", c ? c.company : String(id), `Deleted client ${c ? c.company : id}`);
+          flushEntityDeleteToCloud({ clients: nextClients });
         }
 
         function saveJob(e) {
@@ -4511,16 +4639,20 @@
           if (!guardPermission("job", "delete")) return;
           const j = jobs.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
+          let nextQuotations = quotations;
           if (j) {
             jobQuotationNos(j).forEach((qNo) => {
-              setQuotations((prev) => prev.map((q) => {
+              nextQuotations = nextQuotations.map((q) => {
                 if (normalizeQuotationNo(q.quotation_no) !== normalizeQuotationNo(qNo)) return q;
                 return removeJobFromQuotation(q, j.id, j.job_no);
-              }));
+              });
             });
+            setQuotations(nextQuotations);
           }
-          setJobs(jobs.filter((x) => x.id !== id));
+          const nextJobs = jobs.filter((x) => x.id !== id);
+          setJobs(nextJobs);
           logAudit("job", "delete", j ? j.job_no : String(id), `Deleted job ${j ? j.job_no : id}`);
+          flushEntityDeleteToCloud({ jobs: nextJobs, quotations: nextQuotations });
         }
 
         function startOngoingEdit(job) {
@@ -4744,14 +4876,18 @@
           if (!guardPermission("quotation", "delete")) return;
           const q = quotations.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
+          let nextJobs = jobs;
           if (q) {
-          const qNo = String(q.quotation_no || "").trim();
+            const qNo = String(q.quotation_no || "").trim();
             quotationJobNos(q).forEach((jno) => {
-              setJobs((prev) => prev.map((j) => (j.job_no === jno ? removeQuotationFromJob(j, qNo) : j)));
+              nextJobs = nextJobs.map((j) => (j.job_no === jno ? removeQuotationFromJob(j, qNo) : j));
             });
+            setJobs(nextJobs);
           }
-          setQuotations(quotations.filter((x) => x.id !== id));
+          const nextQuotations = quotations.filter((x) => x.id !== id);
+          setQuotations(nextQuotations);
           logAudit("quotation", "delete", q ? q.quotation_no : String(id), `Deleted quotation ${q ? q.quotation_no : id}`);
+          flushEntityDeleteToCloud({ quotations: nextQuotations, jobs: nextJobs });
         }
 
         function saveVendor(e) {
@@ -4780,8 +4916,10 @@
           if (!guardPermission("vendors", "delete")) return;
           const v = vendors.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          setVendors(vendors.filter((x) => x.id !== id));
+          const nextVendors = vendors.filter((x) => x.id !== id);
+          setVendors(nextVendors);
           logAudit("vendors", "delete", v ? v.name : String(id), `Deleted vendor ${v ? v.name : id}`);
+          flushEntityDeleteToCloud({ vendors: nextVendors });
         }
 
         function resolveVendorPoLocalAmount(data, regionCurrency) {
@@ -4816,6 +4954,7 @@
             po_type: data.po_type || "",
             airlink_po_no: String(data.airlink_po_no || "").trim(),
             po_date: data.po_date || "",
+            requested_delivery_date: data.requested_delivery_date || "",
             job_no: data.job_no || "",
             remarks: data.remarks || ""
           };
@@ -4844,8 +4983,10 @@
           if (!guardPermission("vendor_po", "delete")) return;
           const row = vendorPos.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          setVendorPos(vendorPos.filter((x) => x.id !== id));
+          const nextVendorPos = vendorPos.filter((x) => x.id !== id);
+          setVendorPos(nextVendorPos);
           logAudit("vendor_po", "delete", row ? row.airlink_po_no : String(id), `Deleted vendor PO ${row ? row.airlink_po_no : id}`);
+          flushEntityDeleteToCloud({ vendorPos: nextVendorPos });
         }
 
         function saveAR(e) {
@@ -4894,8 +5035,10 @@
           if (!guardPermission("ar", "delete")) return;
           const r = arInvoices.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          setArInvoices(arInvoices.filter((x) => x.id !== id));
+          const nextAr = arInvoices.filter((x) => x.id !== id);
+          setArInvoices(nextAr);
           logAudit("ar", "delete", r ? r.invoice_no : String(id), `Deleted AR ${r ? r.invoice_no : id}`);
+          flushEntityDeleteToCloud({ arInvoices: nextAr });
         }
 
         function saveAP(e) {
@@ -4921,7 +5064,8 @@
             manual_override: Math.abs(baseInput - calcValue) > 0.01,
             payment_stage: f.payment_stage || "",
             pay_date: f.pay_date || "",
-            payment_status: deriveApPaymentStatus(f)
+            due_date: f.due_date || computeApDueDate(f, vendors),
+            payment_status: deriveApPaymentStatus({ ...f, due_date: f.due_date || computeApDueDate(f, vendors) })
           };
           const apDup = findDuplicateInvoiceNo(apBills, rec.invoice_no, apModal.mode === "edit" ? apModal.id : null);
           if (apDup) {
@@ -4944,8 +5088,10 @@
           if (!guardPermission("ap", "delete")) return;
           const b = apBills.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
-          setApBills(apBills.filter((x) => x.id !== id));
+          const nextAp = apBills.filter((x) => x.id !== id);
+          setApBills(nextAp);
           logAudit("ap", "delete", b ? b.invoice_no : String(id), `Deleted AP ${b ? b.invoice_no : id}`);
+          flushEntityDeleteToCloud({ apBills: nextAp });
         }
 
         function emptyUserForm() {
@@ -5143,7 +5289,7 @@
                 { header: "Pay Date", field: "pay_date" },
                 { header: "Remarks", field: "remarks" },
                 { header: "Bank Charge", field: "bank_charge" },
-                { header: "SWIFT CODE", field: "swift_code" },
+                { header: "SWIFT/Bank Code", field: "swift_code" },
                 { header: "Payment Advice email", field: "payment_advice_email" }
               ]
             };
@@ -5736,6 +5882,11 @@
           return mergeArrayByRemote(local || [], remoteArrayToChanges(remoteArr));
         }
 
+        function mergeFullEntitiesFromCloud(remoteArr) {
+          // Full sync: cloud active set is authoritative (deleted rows stay gone after F5).
+          return (remoteArr || []).map((r) => ({ ...r, _syncAt: r.updated_at || r._syncAt || nowIso() }));
+        }
+
         function mergeFullUsersFromCloud(remoteArr) {
           // Full sync users: cloud active set replaces seed/demo users (e.g. deleted Finance stays gone).
           if (!Array.isArray(remoteArr) || !remoteArr.length) return normalizeStoredUsers(null);
@@ -5746,17 +5897,17 @@
           const e = body.entities || {};
           const singletons = body.singletons || {};
           liveApplyingRemoteRef.current = true;
-          setClients((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.clients)));
-          setJobs((prev) => ensureJobsQuotations(ensureRegionOnRecords(mergeFullWithLocal(prev, e.jobs))));
-          setQuotations((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.quotations)));
-          setVendors((prev) => ensureVendorNumbers(ensureRegionOnRecords(mergeFullWithLocal(prev, e.vendors))));
-          setVendorPos((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.vendor_pos)));
-          setArInvoices((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.ar_invoices)));
-          setApBills((prev) => ensureRegionOnRecords(mergeFullWithLocal(prev, e.ap_bills)));
+          setClients(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.clients)));
+          setJobs(() => ensureJobsQuotations(ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.jobs))));
+          setQuotations(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.quotations)));
+          setVendors(() => ensureVendorNumbers(ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.vendors))));
+          setVendorPos(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.vendor_pos)));
+          setArInvoices(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.ar_invoices)));
+          setApBills(() => ensureRegionOnRecords(mergeFullEntitiesFromCloud(e.ap_bills)));
           if (e.users) setUsers(mergeFullUsersFromCloud(e.users));
-          setAuditLogs((prev) => mergeFullWithLocal(prev, e.audit_logs));
-          setMonthlyPoLines((prev) => mergeFullWithLocal(prev, e.monthly_po_lines));
-          setMonthlyArLines((prev) => mergeFullWithLocal(prev, e.monthly_ar_lines));
+          setAuditLogs(() => mergeFullEntitiesFromCloud(e.audit_logs));
+          setMonthlyPoLines(() => mergeFullEntitiesFromCloud(e.monthly_po_lines));
+          setMonthlyArLines(() => mergeFullEntitiesFromCloud(e.monthly_ar_lines));
           setMonthlyArExpectedSnapshots(singletons.monthly_ar_expected || {});
           if (singletons.settings) applySharedSettings(singletons.settings);
           liveServerVersionRef.current = body.server_version || 0;
@@ -5786,6 +5937,32 @@
           } catch (err) {
             setLiveSyncStatus("error");
             alert(t("liveSyncNowFail") + (err && err.message ? ": " + err.message : ""));
+          }
+        }
+
+        async function flushEntityDeleteToCloud(partialSnap) {
+          if (!liveSyncEnabled || !canLiveSyncPush() || !erpSyncKey.trim()) return true;
+          try {
+            await flushLiveSyncPush({
+              clients,
+              jobs,
+              quotations,
+              vendors,
+              vendorPos,
+              arInvoices,
+              apBills,
+              users,
+              auditLogs,
+              monthlyPoLines,
+              monthlyArLines,
+              monthlyArExpectedSnapshots,
+              ...partialSnap
+            });
+            return true;
+          } catch (err) {
+            console.warn("Delete sync push failed", err);
+            alert(t("deleteCloudFail"));
+            return false;
           }
         }
 
@@ -6057,7 +6234,10 @@
                 invoice_no: p.data.invoice_no,
                 invoice_date: p.data.invoice_date || "",
                 invoice_received_date: "",
-                due_date: p.data.due_date || "",
+                due_date: p.data.due_date || computeApDueDate({
+                  invoice_date: p.data.invoice_date || "",
+                  company_name: p.data.company_name
+                }, vendors),
                 currency: cur,
                 amount: amt,
                 exchange_rate_locked: 1,
@@ -6127,6 +6307,7 @@
                 po_type: p.data.po_type || "",
                 airlink_po_no: String(p.data.airlink_po_no || "").trim(),
                 po_date: p.data.po_date || "",
+                requested_delivery_date: p.data.requested_delivery_date || "",
                 currency: p.data.currency || "USD",
                 amount: Number(p.data.amount || 0),
                 local_amount: resolveVendorPoLocalAmount(p.data, regionCurrency),
@@ -6393,6 +6574,8 @@
                   {c.is_bu && <div><p className="text-slate-500">{t("colBuNo")}</p><p>{c.bu_no || "-"}</p></div>}
                   <div><p className="text-slate-500">{t("colPrimaryContact")}</p><p>{c.primary_contact}</p></div>
                   <div><p className="text-slate-500">E-mail</p><p>{c.email}</p></div>
+                  <div><p className="text-slate-500">{t("colAccountDeptContact")}</p><p>{c.account_dept_contact || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colAccountDeptEmail")}</p><p>{c.account_dept_email || "-"}</p></div>
                   <div><p className="text-slate-500">{t("colPaymentTerms")}</p><p>{c.payment_terms}</p></div>
                   <div><p className="text-slate-500">Address</p><p>{c.address}</p></div>
                 </div>
@@ -6742,8 +6925,10 @@
                   <div><p className="text-slate-500">{t("type")}</p><p>{r.po_type || "-"}</p></div>
                   <div><p className="text-slate-500">{t("colAirlinkPoNo")}</p><p className="font-medium">{r.airlink_po_no || "-"}</p></div>
                   <div><p className="text-slate-500">{t("colPoDate")}</p><p>{r.po_date || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colRequestedDeliveryDate")}</p><p>{r.requested_delivery_date || "-"}</p></div>
                   <div><p className="text-slate-500">{t("colAirlinkPoCurrency")}</p><p>{r.currency || "-"}</p></div>
                   <div><p className="text-slate-500">{t("colAirlinkPoAmt")}</p><p className="font-medium tabular-nums">{money(r.amount)} {r.currency || ""}</p></div>
+                  <div><p className="text-slate-500">{t("colPoBalance")}</p><p className="font-medium tabular-nums">{money(vendorPoBalanceAmount(r, apBills))} {r.currency || ""}</p></div>
                   <div><p className="text-slate-500">{localLabel}</p><p className="font-medium tabular-nums">{money(localAmt)} {regionListCurrency}</p></div>
                   <div><p className="text-slate-500">{t("colJobNo")}</p><p>{job ? <LinkBtn onClick={() => setDetailPanel({ type: "job", id: job.id })}>{r.job_no}</LinkBtn> : (r.job_no || "-")}</p></div>
                   <div className="md:col-span-2"><p className="text-slate-500">{t("colRemarks")}</p><p>{r.remarks || "-"}</p></div>
@@ -6825,7 +7010,7 @@
                   <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(apStatus)}>{paymentStatusLabel(apStatus, t)}</span></p></div>
                   <div><p className="text-slate-500">{t("colPayDate")}</p><p>{b.pay_date || "-"}</p></div>
                   <div><p className="text-slate-500">Bank</p><p>{b.bank}</p></div>
-                  <div><p className="text-slate-500">SWIFT</p><p>{b.swift_code}</p></div>
+                  <div><p className="text-slate-500">{t("colSwiftCode")}</p><p>{b.swift_code}</p></div>
                 </div>
                 <DetailActions
                   editLabel={t("edit")}
@@ -6893,9 +7078,11 @@
               <td className="p-3">{r.job_no || "-"}</td>
               <td className="p-3"><span className="text-xs px-1.5 py-0.5 rounded bg-slate-100">{r.payee_type === "SI" ? t("payeeSi") : t("payeeVendor")}</span></td>
               <td className="p-3">{r.company_name}</td><td className="p-3">{r.invoice_no}</td><td className="p-3">{paymentStageLabel(r.payment_stage, t)}</td><td className="p-3">{r.invoice_date || "-"}</td><td className="p-3">{r.invoice_received_date || "-"}</td>
-              <td className="p-3">{r.due_date || "-"}</td><td className="p-3">{r.currency}</td><td className="p-3 text-right">{money(r.amount)}</td>
+              <td className="p-3">{r.due_date || "-"}</td><td className="p-3">{r.currency}</td>
+              <td className="p-3 text-right">{money(r.amount)}</td>
+              <td className="p-3 text-right tabular-nums">{r.po_balance == null ? "-" : money(r.po_balance)}</td>
               <td className="p-3 text-right font-medium">{money(r.display_base_amount)}</td>
-              <td className="p-3 whitespace-nowrap"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{paymentStatusLabel(r.payment_status, t)}</span></td>
+              <td className="p-3 whitespace-nowrap"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{apPaymentLabel(r, t)}</span></td>
               <td className="p-3">{r.pay_date || "-"}</td><td className="p-3 erp-cell-truncate" title={r.remarks || ""}>{r.remarks || "-"}</td>
             </tr>
           ));
@@ -7612,7 +7799,7 @@
                           <th className="p-3 text-left">{t("colGstNo")}</th>
                           <th className="p-3 text-left">{t("colPrimaryContact")}</th><th className="p-3 text-left">{t("colCompanyPhone")}</th><th className="p-3 text-left">{t("colMobilePhone")}</th>
                           <th className="p-3 text-left">{t("colEmail")}</th><th className="p-3 text-left">{t("address")}</th><th className="p-3 text-left">{t("colPostalCode")}</th>
-                          <th className="p-3 text-left">{t("colAccountDeptContact")}</th><th className="p-3 text-left">{t("colPaymentTerms")}</th>
+                          <th className="p-3 text-left">{t("colAccountDeptContact")}</th><th className="p-3 text-left">{t("colAccountDeptEmail")}</th><th className="p-3 text-left">{t("colPaymentTerms")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -7623,7 +7810,7 @@
                             <td className="p-3 font-medium">{c.company}</td><td className="p-3">{c.gst_no}</td>
                             <td className="p-3">{c.primary_contact}</td><td className="p-3">{c.company_phone}</td><td className="p-3">{c.mobile_phone}</td>
                             <td className="p-3 erp-cell-truncate" title={c.email}>{c.email}</td><td className="p-3 erp-cell-truncate" title={c.address}>{c.address}</td><td className="p-3">{c.postal_code}</td>
-                            <td className="p-3">{c.account_dept_contact}</td><td className="p-3">{c.payment_terms}</td>
+                            <td className="p-3">{c.account_dept_contact}</td><td className="p-3">{c.account_dept_email || "-"}</td><td className="p-3">{c.payment_terms}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -7748,8 +7935,10 @@
                           <SortableTh module="vendor_po" field="po_type" label={t("type")} />
                           <SortableTh module="vendor_po" field="airlink_po_no" label={t("colAirlinkPoNo")} />
                           <SortableTh module="vendor_po" field="po_date" label={t("colPoDate")} />
+                          <th className="p-3 text-left">{t("colRequestedDeliveryDate")}</th>
                           <th className="p-3 text-left">{t("colAirlinkPoCurrency")}</th>
                           <th className="p-3 text-right">{t("colAirlinkPoAmt")}</th>
+                          <th className="p-3 text-right">{t("colPoBalance")}</th>
                           <th className="p-3 text-right">{t("colAirlinkPoAmtLocal").replace("{currency}", regionListCurrency)}</th>
                         </tr>
                       </thead>
@@ -7762,13 +7951,15 @@
                             <td className="p-3 whitespace-nowrap">{r.po_type || "-"}</td>
                             <td className="p-3 whitespace-nowrap font-medium">{r.airlink_po_no || "-"}</td>
                             <td className="p-3 whitespace-nowrap">{r.po_date || "-"}</td>
+                            <td className="p-3 whitespace-nowrap">{r.requested_delivery_date || "-"}</td>
                             <td className="p-3 whitespace-nowrap">{r.currency || "-"}</td>
                             <td className="p-3 text-right tabular-nums whitespace-nowrap">{money(r.amount)}</td>
+                            <td className="p-3 text-right tabular-nums whitespace-nowrap">{money(vendorPoBalanceAmount(r, apBills))}</td>
                             <td className="p-3 text-right tabular-nums whitespace-nowrap">{money(resolveVendorPoLocalAmount(r, regionListCurrency))}</td>
                           </tr>
                         ))}
                         {!filteredVendorPos.length && (
-                          <tr><td colSpan={9} className="p-8 text-center text-slate-400 text-sm">{t("hintClickRow")}</td></tr>
+                          <tr><td colSpan={11} className="p-8 text-center text-slate-400 text-sm">{t("hintClickRow")}</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -8041,7 +8232,7 @@
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
                                 <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><SortableTh module="ap" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
-                                <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-right">{amtInLabel}</th>
+                                <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("colReceivedGoodsAmt")}</th><th className="p-3 text-right">{t("colPoBalance")}</th><th className="p-3 text-right">{amtInLabel}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">{t("colPayDate")}</th><th className="p-3 text-left">{t("colRemarks")}</th>
                               </tr>
                             </thead>
@@ -8054,7 +8245,7 @@
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
                             <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><SortableTh module="ap" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
-                            <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("amount")}</th><th className="p-3 text-right">{amtInLabel}</th>
+                            <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("colReceivedGoodsAmt")}</th><th className="p-3 text-right">{t("colPoBalance")}</th><th className="p-3 text-right">{amtInLabel}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">{t("colPayDate")}</th><th className="p-3 text-left">{t("colRemarks")}</th>
                           </tr>
                         </thead>
@@ -8585,35 +8776,13 @@
                     <Field label={t("address")}><Input value={clientModal.data.address} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, address: e.target.value } })} /></Field>
                     <Field label={t("colPostalCode")}><Input value={clientModal.data.postal_code} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, postal_code: e.target.value } })} /></Field>
                     <Field label={t("colAccountDeptContact")}><Input value={clientModal.data.account_dept_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_contact: e.target.value } })} /></Field>
+                    <Field label={t("colAccountDeptEmail")}><Input type="email" value={clientModal.data.account_dept_email || ""} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_email: e.target.value } })} /></Field>
                     <Field label={t("colPaymentTerms")}>
-                      {(() => {
-                        const raw = String(clientModal.data.payment_terms || "").trim();
-                        const m = raw.match(/(\d+)/);
-                        const days = m ? parseInt(m[1], 10) : null;
-                        const quick = [30, 45, 60, 90];
-                        const isQuick = days != null && quick.includes(days);
-                        return (
-                          <div className="flex flex-col gap-2">
-                            <div className="flex flex-wrap gap-2">
-                              {quick.map((d) => (
-                                <button
-                                  key={d}
-                                  type="button"
-                                  onClick={() => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: `${d} Days` } })}
-                                  className={
-                                    "px-2 py-1 text-xs rounded-lg border " +
-                                    (isQuick && days === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50")
-                                  }
-                                >
-                                  {d} Days
-                                </button>
-                              ))}
-                              {!isQuick && <span className="text-[10px] text-slate-400 mt-2">Custom</span>}
-                            </div>
-                            <Input value={clientModal.data.payment_terms} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: e.target.value } })} />
-                          </div>
-                        );
-                      })()}
+                      <PaymentTermsInput
+                        value={clientModal.data.payment_terms}
+                        onChange={(v) => setClientModal({ ...clientModal, data: { ...clientModal.data, payment_terms: v } })}
+                        hint={t("paymentTermsHint")}
+                      />
                     </Field>
                     <div className="md:col-span-2 flex items-center gap-2">
                       <input type="checkbox" id="client-bu" checked={!!clientModal.data.is_bu} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, is_bu: e.target.checked, bu_no: e.target.checked ? (clientModal.data.bu_no || "") : "" } })} className="rounded border-slate-300" />
@@ -8863,7 +9032,13 @@
                     <Field label={t("colBankBranch")}><Input value={vendorModal.data.bank_branch || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bank_branch: e.target.value } })} /></Field>
                     <Field label={t("colAccountNo")}><Input value={vendorModal.data.account_no || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, account_no: e.target.value } })} /></Field>
                     <Field label={t("colSwiftCode")}><Input value={vendorModal.data.swift_code || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, swift_code: e.target.value } })} /></Field>
-                    <Field label={t("colCreditTerm")}><Input value={vendorModal.data.credit_term || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, credit_term: e.target.value } })} placeholder="30 Days" /></Field>
+                    <Field label={t("colCreditTerm")}>
+                      <PaymentTermsInput
+                        value={vendorModal.data.credit_term}
+                        onChange={(v) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, credit_term: v } })}
+                        hint={t("paymentTermsHint")}
+                      />
+                    </Field>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setVendorModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
@@ -8919,6 +9094,9 @@
                     <Field label={t("colPoDate")}>
                       <Input type="date" value={vendorPoModal.data.po_date || ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, po_date: e.target.value } })} />
                     </Field>
+                    <Field label={t("colRequestedDeliveryDate")}>
+                      <Input type="date" value={vendorPoModal.data.requested_delivery_date || ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, requested_delivery_date: e.target.value } })} />
+                    </Field>
                     <Field label={t("colAirlinkPoCurrency")}>
                       <Select value={vendorPoModal.data.currency || "USD"} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, currency: e.target.value, local_amount: "" } })}>
                         {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
@@ -8926,6 +9104,19 @@
                     </Field>
                     <Field label={t("colAirlinkPoAmt")}>
                       <Input type="number" step="0.01" required value={vendorPoModal.data.amount} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, amount: e.target.value, local_amount: "" } })} />
+                    </Field>
+                    <Field label={t("colPoBalance")}>
+                      <Input
+                        readOnly
+                        className="bg-slate-50"
+                        value={money(vendorPoBalanceAmount({
+                          ...vendorPoModal.data,
+                          amount: Number(vendorPoModal.data.amount || 0),
+                          airlink_po_no: vendorPoModal.data.airlink_po_no,
+                          currency: vendorPoModal.data.currency || "USD"
+                        }, apBills))}
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">PO Amt − Σ AP received goods</p>
                     </Field>
                     <Field label={t("colAirlinkPoAmtLocal").replace("{currency}", regionListCurrency)}>
                       <Input type="number" step="0.01" value={vendorPoModal.data.local_amount ?? ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, local_amount: e.target.value } })} placeholder={String(resolveVendorPoLocalAmount(vendorPoModal.data, regionListCurrency))} />
@@ -9033,10 +9224,33 @@
                       />
                     </Field>
                     <Field label={t("colAirlinkPo")}>
-                      <Input value={apModal.data.airlink_po || ""} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, airlink_po: e.target.value } })} />
+                      <Input value={apModal.data.airlink_po || ""} onChange={(e) => {
+                        const airlink_po = e.target.value;
+                        const po = findVendorPoByNo(airlink_po, vendorPos);
+                        let next = { ...apModal.data, airlink_po };
+                        if (po) {
+                          next.po_amount = String(po.amount ?? "");
+                          if (po.name) Object.assign(next, patchApFromPayeeMaster(po.name, vendors), { payee_type: "Vendor", si_id: "" });
+                        }
+                        next = applyApDueDate(next, vendors);
+                        setApModal({ ...apModal, data: { ...next, payment_status: deriveApPaymentStatus(next) } });
+                      }} />
                     </Field>
                     <Field label={t("colPoAmount")}>
                       <Input type="number" step="0.01" value={apModal.data.po_amount ?? ""} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, po_amount: e.target.value } })} />
+                    </Field>
+                    <Field label={t("colPoBalance")}>
+                      <Input
+                        readOnly
+                        className="bg-slate-50"
+                        value={(() => {
+                          const po = findVendorPoByNo(apModal.data.airlink_po, vendorPos);
+                          if (!po) return "";
+                          const others = sumApReceivedAgainstVendorPo(po, apBills.filter((b) => b.id !== apModal.id));
+                          const draftConv = convertCurrency(Number(apModal.data.amount || 0), apModal.data.currency || "USD", po.currency || "USD");
+                          return money(Number(po.amount || 0) - others - draftConv);
+                        })()}
+                      />
                     </Field>
                     <Field label={t("colCompanyName")}>
                       <SearchableSelect
@@ -9054,7 +9268,8 @@
                         noResultsText={t("noMatchFound")}
                         onChange={(nextValue) => {
                           const patch = patchApFromPayeeMaster(nextValue, vendors);
-                          setApModal({ ...apModal, data: { ...apModal.data, payee_type: "Vendor", si_id: "", ...patch } });
+                          const next = applyApDueDate({ ...apModal.data, payee_type: "Vendor", si_id: "", ...patch }, vendors);
+                          setApModal({ ...apModal, data: { ...next, payment_status: deriveApPaymentStatus(next) } });
                         }}
                       />
                       {apModal.data.payee_type === "SI" && apModal.data.company_name && (
@@ -9069,18 +9284,23 @@
                       </Select>
                       <p className="text-[10px] text-slate-400 mt-1">{t("paymentStageHint")}</p>
                     </Field>
-                    <Field label="Invoice Date"><Input type="date" required value={apModal.data.invoice_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_date: e.target.value } })} /></Field>
+                    <Field label="Invoice Date"><Input type="date" required value={apModal.data.invoice_date} onChange={(e) => {
+                      const next = applyApDueDate({ ...apModal.data, invoice_date: e.target.value }, vendors);
+                      setApModal({ ...apModal, data: { ...next, payment_status: deriveApPaymentStatus(next) } });
+                    }} /></Field>
                     <Field label="Invoice Received Date"><Input type="date" value={apModal.data.invoice_received_date} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, invoice_received_date: e.target.value } })} /></Field>
                     <Field label="Due Date"><Input type="date" required value={apModal.data.due_date} onChange={(e) => {
                       const next = { ...apModal.data, due_date: e.target.value };
                       setApModal({ ...apModal, data: { ...next, payment_status: deriveApPaymentStatus(next) } });
-                    }} /></Field>
+                    }} />
+                      <p className="text-[10px] text-slate-400 mt-1">{t("apDueAutoHint")}</p>
+                    </Field>
                     <Field label="Currency">
                       <Select value={apModal.data.currency || "USD"} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, currency: e.target.value } })}>
                         {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
                       </Select>
                     </Field>
-                    <Field label={t("invoiceAmountOrig")}>
+                    <Field label={t("colReceivedGoodsAmt")}>
                       <Input type="number" step="0.01" required value={apModal.data.amount} onChange={(e) => calcBaseEditable({ amount: e.target.value }, apModal.data, (d) => setApModal((prev) => ({ ...prev, data: d })))} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("invoiceAmountHint")}</p>
                     </Field>
@@ -9096,14 +9316,14 @@
                     }} /></Field>
                     <Field label={t("paymentStatus")}>
                       <p className="px-3 py-2 border rounded-lg bg-slate-50 text-sm">
-                        <span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(deriveApPaymentStatus(apModal.data))}>{paymentStatusLabel(deriveApPaymentStatus(apModal.data), t)}</span>
+                        <span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(deriveApPaymentStatus(apModal.data))}>{apPaymentLabel(apModal.data, t)}</span>
                       </p>
                       <p className="text-[10px] text-slate-400 mt-1">{t("apPaymentStatusAutoHint")}</p>
                     </Field>
                     <Field label="Remarks"><Input value={apModal.data.remarks} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, remarks: e.target.value } })} /></Field>
                     <Field label="Bank"><Input value={apModal.data.bank} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, bank: e.target.value } })} className="bg-slate-50" /></Field>
                     <Field label="Charge"><Input value={apModal.data.charge} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, charge: e.target.value } })} placeholder="OUR" className="bg-slate-50" /></Field>
-                    <Field label="SWIFT CODE"><Input value={apModal.data.swift_code} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, swift_code: e.target.value } })} className="bg-slate-50" /></Field>
+                    <Field label={t("colSwiftCode")}><Input value={apModal.data.swift_code} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, swift_code: e.target.value } })} className="bg-slate-50" /></Field>
                     <Field label="Payment Advice Email"><Input type="email" value={apModal.data.payment_advice_email} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, payment_advice_email: e.target.value } })} className="bg-slate-50" /></Field>
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setApModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
