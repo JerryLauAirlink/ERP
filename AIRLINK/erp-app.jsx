@@ -233,6 +233,7 @@
             { header: "PO Date", field: "po_date", hint: "YYYY-MM-DD" },
             { header: "Airlink PO Currency", field: "currency", hint: "USD / HKD / SGD / MYR / ..." },
             { header: "Airlink PO Amt", field: "amount", required: true, hint: "Numeric" },
+            { header: "Exchange Rate", field: "exchange_rate", hint: "Auto from FX; editable. Local = Amt × Rate" },
             { header: "Airlink PO Amt Local", field: "local_amount", aliases: ["Airlink PO Amt in MYR", "Airlink PO Amt in SGD", "Airlink PO Amt in HKD", "Airlink PO Amt in TWD", "Airlink PO Amt in USD"], hint: "Converted to region currency (auto if blank)" },
             { header: "Requested Delivery Date", field: "requested_delivery_date", hint: "YYYY-MM-DD" },
             { header: "Job No", field: "job_no", hint: "Optional linked job" },
@@ -443,6 +444,19 @@
           colAirlinkPoCurrency: "Airlink PO Currency",
           colAirlinkPoAmt: "Airlink PO Amt",
           colAirlinkPoAmtLocal: "Airlink PO Amt in {currency}",
+          exchangeRate: "Exchange Rate",
+          exchangeRateHint: "Auto-filled from FX table; you can still edit manually.",
+          fxRatesTitle: "Exchange rates (vs USD)",
+          fxRatesHint: "Market rates update automatically once per day. New Vendor PO / AR / AP forms use the latest table; you can still override per document.",
+          fxRatesUpdated: "Last market update",
+          fxRatesSource: "Source",
+          fxRatesRefresh: "Refresh rates now",
+          fxRatesRefreshing: "Refreshing…",
+          fxRatesOk: "Using today's market rates",
+          fxRatesCached: "Using cached rates",
+          fxRatesFallback: "Using built-in fallback rates",
+          fxRatesError: "Could not refresh market rates",
+          fxRatesAttribution: "Rates: exchangerate-api.com (daily)",
           colVendorPoName: "Name",
           duplicateVendorPoNo: "Vendor PO no. already exists: {no}",
           selectVendorCodeHint: "Select or type vendor code / name",
@@ -687,6 +701,19 @@
           colAirlinkPoCurrency: "Airlink PO 幣別",
           colAirlinkPoAmt: "Airlink PO 金額",
           colAirlinkPoAmtLocal: "Airlink PO 金額（{currency}）",
+          exchangeRate: "匯率",
+          exchangeRateHint: "依匯率表自動填入，仍可手動修改。",
+          fxRatesTitle: "匯率表（兌 USD）",
+          fxRatesHint: "市價匯率每日自動更新一次。新增 Vendor PO／AR／AP 會用最新匯率表；單據上仍可人手改。",
+          fxRatesUpdated: "市價最後更新",
+          fxRatesSource: "來源",
+          fxRatesRefresh: "立即更新匯率",
+          fxRatesRefreshing: "更新中…",
+          fxRatesOk: "已使用今日市價",
+          fxRatesCached: "使用本機快取匯率",
+          fxRatesFallback: "使用內建預設匯率",
+          fxRatesError: "無法更新市價匯率",
+          fxRatesAttribution: "匯率來源：exchangerate-api.com（每日更新）",
           colVendorPoName: "名稱",
           duplicateVendorPoNo: "供應商採購單號已存在：{no}",
           selectVendorCodeHint: "可選擇或輸入供應商編號／名稱",
@@ -1071,7 +1098,89 @@
         );
       }
 
-      const fxUsdMap = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160, MYR: 4.7, IDR: 16000, AUD: 1.55 };
+      const DEFAULT_FX_USD_MAP = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160, MYR: 4.7, IDR: 16000, AUD: 1.55 };
+      /** Live FX table vs USD (1 USD = N units). Mutated when daily market rates load. */
+      const fxUsdMap = { ...DEFAULT_FX_USD_MAP };
+      const FX_CACHE_KEY = "erp_fx_rates_v1";
+
+      function fxUtcDateKey() {
+        return new Date().toISOString().slice(0, 10);
+      }
+
+      function readFxCache() {
+        try {
+          const raw = localStorage.getItem(FX_CACHE_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object" || !parsed.rates) return null;
+          return parsed;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function writeFxCache(payload) {
+        try {
+          localStorage.setItem(FX_CACHE_KEY, JSON.stringify(payload));
+        } catch (_) { /* ignore quota */ }
+      }
+
+      function applyFxUsdRates(rates) {
+        if (!rates || typeof rates !== "object") return false;
+        let changed = false;
+        Object.keys(DEFAULT_FX_USD_MAP).forEach((code) => {
+          const n = Number(rates[code]);
+          if (!Number.isNaN(n) && n > 0 && fxUsdMap[code] !== n) {
+            fxUsdMap[code] = n;
+            changed = true;
+          }
+        });
+        fxUsdMap.USD = 1;
+        return changed;
+      }
+
+      function normalizeProviderRates(rawRates) {
+        const merged = { ...(rawRates || {}) };
+        if (merged.RMB == null && merged.CNY != null) merged.RMB = merged.CNY;
+        const out = {};
+        Object.keys(DEFAULT_FX_USD_MAP).forEach((code) => {
+          const n = Number(merged[code]);
+          out[code] = (!Number.isNaN(n) && n > 0) ? n : DEFAULT_FX_USD_MAP[code];
+        });
+        out.USD = 1;
+        return out;
+      }
+
+      async function fetchLiveFxRates({ force = false } = {}) {
+        const qs = force ? "?force=1" : "";
+        try {
+          const res = await fetch("/api/fx" + qs, { cache: "no-store" });
+          if (res.ok) {
+            const body = await res.json();
+            if (body && body.rates) {
+              return {
+                rates: normalizeProviderRates(body.rates),
+                updatedAt: body.updated_at || body.updatedAt || null,
+                nextUpdateAt: body.next_update_at || null,
+                source: body.source || "api",
+                ok: body.ok !== false
+              };
+            }
+          }
+        } catch (_) { /* fall through to public endpoint */ }
+
+        const res = await fetch("https://open.er-api.com/v6/latest/USD", { cache: "no-store" });
+        if (!res.ok) throw new Error("FX fetch failed (" + res.status + ")");
+        const body = await res.json();
+        if (body.result !== "success" || !body.rates) throw new Error("FX provider error");
+        return {
+          rates: normalizeProviderRates(body.rates),
+          updatedAt: body.time_last_update_utc || null,
+          nextUpdateAt: body.time_next_update_utc || null,
+          source: "exchangerate-api.com",
+          ok: true
+        };
+      }
 
       function calcOverdueDays(dueDate) {
         if (!dueDate) return 0;
@@ -1407,6 +1516,20 @@
         const fromRate = fxUsdMap[fromCurrency] || 1;
         const baseRate = fxUsdMap[baseCurrency] || 1;
         return (Number(amount) / fromRate) * baseRate;
+      }
+
+      /** Rate such that: amount_in_from × rate = amount_in_to */
+      function defaultExchangeRate(fromCurrency, toCurrency) {
+        const fromRate = fxUsdMap[fromCurrency] || 1;
+        const toRate = fxUsdMap[toCurrency] || 1;
+        if (!fromRate) return 1;
+        return toRate / fromRate;
+      }
+
+      function formatExchangeRate(rate) {
+        const n = Number(rate);
+        if (Number.isNaN(n) || n === 0) return "";
+        return String(Number(n.toFixed(6)));
       }
 
       function isArUnpaid(r) {
@@ -2228,6 +2351,7 @@
           requested_delivery_date: "",
           currency: "USD",
           amount: "",
+          exchange_rate: "",
           local_amount: "",
           job_no: "",
           remarks: ""
@@ -3470,10 +3594,23 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-16c";
+        const ERP_BUILD_ID = "airlink-2026-07-17b";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
+        const [fxMeta, setFxMeta] = useState(() => {
+          const cached = readFxCache();
+          if (cached?.rates) applyFxUsdRates(cached.rates);
+          return {
+            date: cached?.date || null,
+            updatedAt: cached?.updatedAt || null,
+            source: cached?.source || "default",
+            status: cached?.rates ? "cached" : "fallback",
+            error: null
+          };
+        });
+        const [fxTick, setFxTick] = useState(0);
+        const [fxRefreshing, setFxRefreshing] = useState(false);
         const [overviewFrom, setOverviewFrom] = useState(() => {
           const d = new Date();
           return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-01";
@@ -3497,6 +3634,66 @@
           const tmr = setTimeout(() => setImportStatus(""), 8000);
           return () => clearTimeout(tmr);
         }, [importStatus, lang]);
+
+        async function refreshFxRates({ force = false } = {}) {
+          const today = fxUtcDateKey();
+          if (!force) {
+            const cached = readFxCache();
+            if (cached?.date === today && cached?.rates) {
+              applyFxUsdRates(cached.rates);
+              setFxMeta({
+                date: cached.date,
+                updatedAt: cached.updatedAt || null,
+                source: cached.source || "cache",
+                status: "ok",
+                error: null
+              });
+              setFxTick((n) => n + 1);
+              return;
+            }
+          }
+          setFxRefreshing(true);
+          try {
+            const result = await fetchLiveFxRates({ force });
+            applyFxUsdRates(result.rates);
+            const payload = {
+              date: today,
+              rates: { ...fxUsdMap },
+              updatedAt: result.updatedAt || new Date().toISOString(),
+              source: result.source || "market"
+            };
+            writeFxCache(payload);
+            setFxMeta({
+              date: payload.date,
+              updatedAt: payload.updatedAt,
+              source: payload.source,
+              status: result.ok === false ? "fallback" : "ok",
+              error: null
+            });
+            setFxTick((n) => n + 1);
+          } catch (err) {
+            const cached = readFxCache();
+            if (cached?.rates) applyFxUsdRates(cached.rates);
+            setFxMeta((prev) => ({
+              ...prev,
+              status: cached?.rates ? "cached" : "fallback",
+              error: String(err && err.message ? err.message : err)
+            }));
+            setFxTick((n) => n + 1);
+          } finally {
+            setFxRefreshing(false);
+          }
+        }
+
+        useEffect(() => {
+          refreshFxRates({ force: false });
+          // Re-check around midnight UTC + periodically while tab stays open
+          const tmr = setInterval(() => {
+            const cached = readFxCache();
+            if (!cached || cached.date !== fxUtcDateKey()) refreshFxRates({ force: false });
+          }, 60 * 60 * 1000);
+          return () => clearInterval(tmr);
+        }, []);
 
         function patchArModalData(data) {
           const next = applyArDueDate(data, clients, jobs);
@@ -3853,11 +4050,14 @@
           setDetailPanel(null);
           const client = j.client_id ? clients.find((c) => c.id === Number(j.client_id)) : clients.find((c) => c.company === j.company);
           const customerTitle = client?.invoice_title || j.company;
+          const toCur = currencyForRegion(j.region || activeRegion, baseCurrency === "OTHER" ? (customCurrency || "USD").toUpperCase() : baseCurrency);
           setArModal({
             mode: "add",
             data: {
               job_id: String(j.id), job_no: j.job_no, customer: customerTitle, customer_po: j.customer_po || "",
-              invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "",
+              invoice_no: "", invoice_currency: "USD", invoice_amt: "",
+              exchange_rate: formatExchangeRate(defaultExchangeRate("USD", toCur)),
+              base_amount: "",
               override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment"
             }
           });
@@ -4378,8 +4578,16 @@
           setArInvoices((prev) => prev.map((r) => (r.customer === oldName ? { ...r, customer: newName } : r)));
         }
 
-        function calcBaseEditable(patch, form, setForm) {
+        function calcBaseEditable(patch, form, setForm, toCurrency) {
           const next = { ...form, ...patch };
+          const fromCur = next.invoice_currency || next.currency || "USD";
+          const toCur = toCurrency || regionListCurrency;
+          // Auto-fill rate when currency changes or rate is blank (manual rate edits pass exchange_rate in patch).
+          if (patch.exchange_rate === undefined) {
+            if (patch.invoice_currency != null || patch.currency != null || next.exchange_rate === "" || next.exchange_rate == null) {
+              next.exchange_rate = formatExchangeRate(defaultExchangeRate(fromCur, toCur));
+            }
+          }
           const amtRaw = next.amount !== undefined && next.amount !== "" ? next.amount : next.invoice_amt;
           const a = Number(amtRaw);
           const r = Number(next.exchange_rate);
@@ -4387,6 +4595,28 @@
             next.base_amount = (a * r).toFixed(2);
           }
           setForm(next);
+        }
+
+        function calcVendorPoFx(patch, form, regionCurrency, setData) {
+          const next = { ...form, ...patch };
+          const fromCur = next.currency || "USD";
+          const toCur = regionCurrency || regionListCurrency;
+          if (patch.exchange_rate === undefined) {
+            if (patch.currency != null || patch.region != null || next.exchange_rate === "" || next.exchange_rate == null) {
+              next.exchange_rate = formatExchangeRate(defaultExchangeRate(fromCur, toCur));
+            }
+          }
+          if (patch.local_amount === undefined) {
+            const a = Number(next.amount || 0);
+            const r = Number(next.exchange_rate || 0);
+            if (!Number.isNaN(a) && !Number.isNaN(r)) {
+              next.local_amount = (a * r).toFixed(2);
+            }
+          } else if (patch.local_amount !== "" && patch.local_amount != null && Number(next.amount) > 0 && patch.exchange_rate === undefined) {
+            // Manual local amount → reverse rate for display consistency
+            next.exchange_rate = formatExchangeRate(Number(patch.local_amount) / Number(next.amount));
+          }
+          setData(next);
         }
 
         function saveClient(e) {
@@ -4943,10 +5173,19 @@
         function resolveVendorPoLocalAmount(data, regionCurrency) {
           const amt = Number(data.amount || 0);
           const cur = data.currency || "USD";
+          const toCur = regionCurrency || "HKD";
           if (data.local_amount !== "" && data.local_amount != null && !Number.isNaN(Number(data.local_amount))) {
             return Number(data.local_amount);
           }
-          return convertCurrency(amt, cur, regionCurrency || "HKD");
+          const rate = Number(data.exchange_rate);
+          if (!Number.isNaN(rate) && rate > 0) return amt * rate;
+          return convertCurrency(amt, cur, toCur);
+        }
+
+        function resolveVendorPoExchangeRate(data, regionCurrency) {
+          const rate = Number(data.exchange_rate);
+          if (!Number.isNaN(rate) && rate > 0) return rate;
+          return defaultExchangeRate(data.currency || "USD", regionCurrency || "HKD");
         }
 
         function saveVendorPo(e) {
@@ -4959,6 +5198,7 @@
           const region = resolveRecordRegion(data.region, existing?.region || regionForNewRecord());
           if (vendorPoModal.mode === "edit" && !confirmRegionChange(existing?.region, region)) return;
           const regionCurrency = currencyForRegion(region, activeBaseCurrency);
+          const exchange_rate = resolveVendorPoExchangeRate(data, regionCurrency);
           const payload = {
             ...data,
             region,
@@ -4966,7 +5206,8 @@
             vendor_code: vendor ? vendor.vendor_no : (data.vendor_code || ""),
             name: vendor ? vendor.name : (data.name || ""),
             amount: Number(data.amount || 0),
-            local_amount: resolveVendorPoLocalAmount(data, regionCurrency),
+            exchange_rate,
+            local_amount: resolveVendorPoLocalAmount({ ...data, exchange_rate }, regionCurrency),
             currency: data.currency || "USD",
             for_purpose: data.for_purpose || "Project",
             po_type: data.po_type || "",
@@ -6374,7 +6615,15 @@
                 requested_delivery_date: p.data.requested_delivery_date || "",
                 currency: p.data.currency || "USD",
                 amount: Number(p.data.amount || 0),
-                local_amount: resolveVendorPoLocalAmount(p.data, regionCurrency),
+                exchange_rate: Number(p.data.exchange_rate) > 0
+                  ? Number(p.data.exchange_rate)
+                  : defaultExchangeRate(p.data.currency || "USD", regionCurrency),
+                local_amount: resolveVendorPoLocalAmount({
+                  ...p.data,
+                  exchange_rate: Number(p.data.exchange_rate) > 0
+                    ? Number(p.data.exchange_rate)
+                    : defaultExchangeRate(p.data.currency || "USD", regionCurrency)
+                }, regionCurrency),
                 job_no: p.data.job_no || "",
                 remarks: p.data.remarks || ""
               };
@@ -6992,6 +7241,7 @@
                   <div><p className="text-slate-500">{t("colRequestedDeliveryDate")}</p><p>{r.requested_delivery_date || "-"}</p></div>
                   <div><p className="text-slate-500">{t("colAirlinkPoCurrency")}</p><p>{r.currency || "-"}</p></div>
                   <div><p className="text-slate-500">{t("colAirlinkPoAmt")}</p><p className="font-medium tabular-nums">{money(r.amount)} {r.currency || ""}</p></div>
+                  <div><p className="text-slate-500">{t("exchangeRate")}</p><p className="font-medium tabular-nums">{r.exchange_rate != null && r.exchange_rate !== "" ? r.exchange_rate : resolveVendorPoExchangeRate(r, regionListCurrency)}</p></div>
                   <div><p className="text-slate-500">{t("colPoBalance")}</p><p className="font-medium tabular-nums">{money(vendorPoBalanceAmount(r, apBills))} {r.currency || ""}</p></div>
                   <div><p className="text-slate-500">{localLabel}</p><p className="font-medium tabular-nums">{money(localAmt)} {regionListCurrency}</p></div>
                   <div><p className="text-slate-500">{t("colJobNo")}</p><p>{job ? <LinkBtn onClick={() => setDetailPanel({ type: "job", id: job.id })}>{r.job_no}</LinkBtn> : (r.job_no || "-")}</p></div>
@@ -7012,6 +7262,7 @@
                         ...r,
                         vendor_id: String(r.vendor_id || ""),
                         amount: String(r.amount ?? ""),
+                        exchange_rate: String(r.exchange_rate != null && r.exchange_rate !== "" ? r.exchange_rate : resolveVendorPoExchangeRate(r, regionListCurrency)),
                         local_amount: r.local_amount === "" || r.local_amount == null ? "" : String(r.local_amount)
                       }
                     });
@@ -7985,7 +8236,21 @@
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="vendor_po" />
-                      {can("vendor_po", "add") && <button onClick={() => setVendorPoModal({ mode: "add", data: { ...emptyVendorPo(), currency: regionListCurrency === "MYR" ? "MYR" : "USD", region: regionForNewRecord() } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendorPo")}</button>}
+                      {can("vendor_po", "add") && <button onClick={() => {
+                        const region = regionForNewRecord();
+                        const cur = regionListCurrency === "MYR" ? "MYR" : "USD";
+                        const toCur = currencyForRegion(region, activeBaseCurrency);
+                        setVendorPoModal({
+                          mode: "add",
+                          data: {
+                            ...emptyVendorPo(),
+                            currency: cur,
+                            region,
+                            exchange_rate: formatExchangeRate(defaultExchangeRate(cur, toCur)),
+                            local_amount: ""
+                          }
+                        });
+                      }} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("addVendorPo")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="vendor_po" searchQ={vendorPoSearch} setSearchQ={setVendorPoSearch} lang={lang} />
@@ -8238,7 +8503,13 @@
                     <h3 className="font-semibold">{t("nav_ar")}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="ar" />
-                      {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment", payment_stage: "" } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
+                      {can("ar", "add") && <button onClick={() => setArModal({ mode: "add", data: {
+                        job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "",
+                        invoice_currency: "USD", invoice_amt: "",
+                        exchange_rate: formatExchangeRate(defaultExchangeRate("USD", regionListCurrency)),
+                        base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "",
+                        payment_status: "Awaiting Payment", payment_stage: ""
+                      } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAr")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="ar" clients={scopedClients} jobs={scopedJobs} viewMode={arViewMode} setViewMode={setArViewMode} clientFilter={arClientFilter} setClientFilter={setArClientFilter} searchQ={arSearch} setSearchQ={setArSearch} lang={lang} />
@@ -8283,7 +8554,10 @@
                     <h3 className="font-semibold">{t("nav_ap")}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       <ListImportExportBar module="ap" />
-                      {can("ap", "add") && <button onClick={() => setApModal({ mode: "add", data: emptyApForm() })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAp")}</button>}
+                      {can("ap", "add") && <button onClick={() => setApModal({ mode: "add", data: {
+                        ...emptyApForm(),
+                        exchange_rate: formatExchangeRate(defaultExchangeRate("USD", regionListCurrency))
+                      } })} className="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white">{t("createAp")}</button>}
                     </div>
                   </div>
                   <ListToolbar t={t} mode="ap" clients={scopedClients} jobs={scopedJobs} viewMode={apViewMode} setViewMode={setApViewMode} clientFilter={apClientFilter} setClientFilter={setApClientFilter} jobFilter={apJobFilter} setJobFilter={setApJobFilter} searchQ={apSearch} setSearchQ={setApSearch} lang={lang} />
@@ -8458,6 +8732,49 @@
                       <p className="text-sm font-mono bg-slate-50 border rounded-lg px-3 py-2">{timezoneLabel(worldTimeZone, lang)} · <WorldClockLabel timeZone={worldTimeZone} lang={lang} /></p>
                       <p className="text-sm text-slate-500">{t("regionDataHint")}</p>
                       <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{t("noDatabaseNote")}</p>
+                      <div className="pt-4 mt-4 border-t border-slate-200 space-y-3">
+                        <h4 className="font-semibold text-slate-800">{t("fxRatesTitle")}</h4>
+                        <p className="text-sm text-slate-500">{t("fxRatesHint")}</p>
+                        <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-50 text-slate-500">
+                              <tr>
+                                <th className="p-2 text-left">Currency</th>
+                                <th className="p-2 text-right">1 USD =</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {Object.keys(DEFAULT_FX_USD_MAP).map((code) => (
+                                <tr key={code + "-" + fxTick}>
+                                  <td className="p-2 font-medium">{code}{code === "RMB" ? " (CNY)" : ""}</td>
+                                  <td className="p-2 text-right tabular-nums">{fxUsdMap[code]}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          {t("fxRatesUpdated")}: {fxMeta.updatedAt || "—"}
+                          {fxMeta.date ? " · " + fxMeta.date : ""}
+                          {" · "}{t("fxRatesSource")}: {fxMeta.source || "—"}
+                        </p>
+                        <p className={"text-xs font-medium " + (fxMeta.status === "ok" ? "text-emerald-700" : fxMeta.status === "cached" ? "text-amber-700" : fxMeta.status === "fallback" ? "text-slate-600" : "text-red-700")}>
+                          {fxMeta.status === "ok" ? t("fxRatesOk")
+                            : fxMeta.status === "cached" ? t("fxRatesCached")
+                              : fxMeta.status === "fallback" ? t("fxRatesFallback")
+                                : t("fxRatesError")}
+                          {fxMeta.error ? " — " + fxMeta.error : ""}
+                        </p>
+                        <p className="text-[11px] text-slate-400">{t("fxRatesAttribution")}</p>
+                        <button
+                          type="button"
+                          disabled={fxRefreshing}
+                          onClick={() => refreshFxRates({ force: true })}
+                          className="px-4 py-2 text-sm rounded-lg border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-60"
+                        >
+                          {fxRefreshing ? t("fxRatesRefreshing") : t("fxRatesRefresh")}
+                        </button>
+                      </div>
                       <div className="pt-4 mt-4 border-t border-slate-200 space-y-3">
                         <h4 className="font-semibold text-slate-800">{t("myAccountTitle")}</h4>
                         <p className="text-sm text-slate-500">{getCurrentUser() ? (getCurrentUser().name + " · " + getCurrentUser().email) : "—"}</p>
@@ -8809,10 +9126,19 @@
               {newTxOpen && (
                 <Modal title={t("newTxTitle")} onClose={() => setNewTxOpen(false)}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {can("ar", "add") && <button onClick={() => { setArModal({ mode: "add", data: { job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "", invoice_currency: "USD", invoice_amt: "", exchange_rate: "", base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "", payment_status: "Awaiting Payment" } }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
+                    {can("ar", "add") && <button onClick={() => { setArModal({ mode: "add", data: {
+                      job_id: "", job_no: "", customer: "", customer_po: "", job_completed: false, invoice_no: "",
+                      invoice_currency: "USD", invoice_amt: "",
+                      exchange_rate: formatExchangeRate(defaultExchangeRate("USD", regionListCurrency)),
+                      base_amount: "", override_reason: "", invoice_date: "", due_date: "", payment_received_date: "",
+                      payment_status: "Awaiting Payment"
+                    } }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
                       <p className="font-semibold">{t("createArTitle")}</p><p className="text-xs text-slate-500">{t("createArDesc")}</p>
                     </button>}
-                    {can("ap", "add") && <button onClick={() => { setApModal({ mode: "add", data: emptyApForm() }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
+                    {can("ap", "add") && <button onClick={() => { setApModal({ mode: "add", data: {
+                      ...emptyApForm(),
+                      exchange_rate: formatExchangeRate(defaultExchangeRate("USD", regionListCurrency))
+                    } }); setNewTxOpen(false); }} className="rounded-lg border p-4 text-left hover:bg-slate-50">
                       <p className="font-semibold">{t("createApTitle")}</p><p className="text-xs text-slate-500">{t("createApDesc")}</p>
                     </button>}
                   </div>
@@ -9116,7 +9442,11 @@
                       hint={t("moveToRegionHint")}
                       value={vendorPoModal.data.region || regionForNewRecord()}
                       options={regionMoveOptions()}
-                      onChange={(region) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, region, local_amount: "" } })}
+                      onChange={(region) => {
+                        calcVendorPoFx({ region, local_amount: undefined }, vendorPoModal.data, currencyForRegion(region, activeBaseCurrency), (d) => {
+                          setVendorPoModal({ ...vendorPoModal, data: d });
+                        });
+                      }}
                     />
                     <Field label={t("colVendorCode")}>
                       <SearchableSelect
@@ -9162,12 +9492,31 @@
                       <Input type="date" value={vendorPoModal.data.requested_delivery_date || ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, requested_delivery_date: e.target.value } })} />
                     </Field>
                     <Field label={t("colAirlinkPoCurrency")}>
-                      <Select value={vendorPoModal.data.currency || "USD"} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, currency: e.target.value, local_amount: "" } })}>
+                      <Select value={vendorPoModal.data.currency || "USD"} onChange={(e) => {
+                        const region = vendorPoModal.data.region || regionForNewRecord();
+                        calcVendorPoFx({ currency: e.target.value }, vendorPoModal.data, currencyForRegion(region, activeBaseCurrency), (d) => {
+                          setVendorPoModal({ ...vendorPoModal, data: d });
+                        });
+                      }}>
                         {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
                       </Select>
                     </Field>
                     <Field label={t("colAirlinkPoAmt")}>
-                      <Input type="number" step="0.01" required value={vendorPoModal.data.amount} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, amount: e.target.value, local_amount: "" } })} />
+                      <Input type="number" step="0.01" required value={vendorPoModal.data.amount} onChange={(e) => {
+                        const region = vendorPoModal.data.region || regionForNewRecord();
+                        calcVendorPoFx({ amount: e.target.value }, vendorPoModal.data, currencyForRegion(region, activeBaseCurrency), (d) => {
+                          setVendorPoModal({ ...vendorPoModal, data: d });
+                        });
+                      }} />
+                    </Field>
+                    <Field label={t("exchangeRate")}>
+                      <Input type="number" step="0.0001" value={vendorPoModal.data.exchange_rate ?? ""} onChange={(e) => {
+                        const region = vendorPoModal.data.region || regionForNewRecord();
+                        calcVendorPoFx({ exchange_rate: e.target.value }, vendorPoModal.data, currencyForRegion(region, activeBaseCurrency), (d) => {
+                          setVendorPoModal({ ...vendorPoModal, data: d });
+                        });
+                      }} />
+                      <p className="text-[10px] text-slate-400 mt-1">{t("exchangeRateHint")}</p>
                     </Field>
                     <Field label={t("colPoBalance")}>
                       <Input
@@ -9183,7 +9532,12 @@
                       <p className="text-[10px] text-slate-400 mt-1">PO Amt − Σ AP received goods</p>
                     </Field>
                     <Field label={t("colAirlinkPoAmtLocal").replace("{currency}", regionListCurrency)}>
-                      <Input type="number" step="0.01" value={vendorPoModal.data.local_amount ?? ""} onChange={(e) => setVendorPoModal({ ...vendorPoModal, data: { ...vendorPoModal.data, local_amount: e.target.value } })} placeholder={String(resolveVendorPoLocalAmount(vendorPoModal.data, regionListCurrency))} />
+                      <Input type="number" step="0.01" value={vendorPoModal.data.local_amount ?? ""} onChange={(e) => {
+                        const region = vendorPoModal.data.region || regionForNewRecord();
+                        calcVendorPoFx({ local_amount: e.target.value }, vendorPoModal.data, currencyForRegion(region, activeBaseCurrency), (d) => {
+                          setVendorPoModal({ ...vendorPoModal, data: d });
+                        });
+                      }} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("vendorPoPlaceholderHint")}</p>
                     </Field>
                     <Field label={t("colJobNo")}>
@@ -9235,15 +9589,18 @@
                       <p className="text-[10px] text-slate-400 mt-1">{t("paymentStageHint")}</p>
                     </Field>
                     <Field label="Invoice Currency">
-                      <Select value={arModal.data.invoice_currency || "USD"} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, invoice_currency: e.target.value } })}>
+                      <Select value={arModal.data.invoice_currency || "USD"} onChange={(e) => calcBaseEditable({ invoice_currency: e.target.value }, arModal.data, (d) => setArModal((prev) => ({ ...prev, data: d })), regionListCurrency)}>
                         {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
                       </Select>
                     </Field>
                     <Field label={t("invoiceAmountOrig")}>
-                      <Input type="number" step="0.01" required value={arModal.data.invoice_amt} onChange={(e) => calcBaseEditable({ invoice_amt: e.target.value }, arModal.data, (d) => setArModal((prev) => ({ ...prev, data: d })))} />
+                      <Input type="number" step="0.01" required value={arModal.data.invoice_amt} onChange={(e) => calcBaseEditable({ invoice_amt: e.target.value }, arModal.data, (d) => setArModal((prev) => ({ ...prev, data: d })), regionListCurrency)} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("invoiceAmountHint")}</p>
                     </Field>
-                    <Field label="Exchange Rate"><Input type="number" step="0.0001" required value={arModal.data.exchange_rate} onChange={(e) => calcBaseEditable({ exchange_rate: e.target.value }, arModal.data, (d) => setArModal((prev) => ({ ...prev, data: d })))} /></Field>
+                    <Field label={t("exchangeRate")}>
+                      <Input type="number" step="0.0001" required value={arModal.data.exchange_rate} onChange={(e) => calcBaseEditable({ exchange_rate: e.target.value }, arModal.data, (d) => setArModal((prev) => ({ ...prev, data: d })), regionListCurrency)} />
+                      <p className="text-[10px] text-slate-400 mt-1">{t("exchangeRateHint")}</p>
+                    </Field>
                     <Field label={`Amount in ${regionListCurrency} (${t("amountManualOverride")})`}>
                       <Input type="number" step="0.01" value={arModal.data.base_amount} onChange={(e) => setArModal({ ...arModal, data: { ...arModal.data, base_amount: e.target.value } })} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("baseAmountHint")}</p>
@@ -9360,15 +9717,18 @@
                       <p className="text-[10px] text-slate-400 mt-1">{t("apDueAutoHint")}</p>
                     </Field>
                     <Field label="Currency">
-                      <Select value={apModal.data.currency || "USD"} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, currency: e.target.value } })}>
+                      <Select value={apModal.data.currency || "USD"} onChange={(e) => calcBaseEditable({ currency: e.target.value }, apModal.data, (d) => setApModal((prev) => ({ ...prev, data: d })), regionListCurrency)}>
                         {Object.keys(fxUsdMap).map((c) => <option key={c} value={c}>{c}</option>)}
                       </Select>
                     </Field>
                     <Field label={t("colReceivedGoodsAmt")}>
-                      <Input type="number" step="0.01" required value={apModal.data.amount} onChange={(e) => calcBaseEditable({ amount: e.target.value }, apModal.data, (d) => setApModal((prev) => ({ ...prev, data: d })))} />
+                      <Input type="number" step="0.01" required value={apModal.data.amount} onChange={(e) => calcBaseEditable({ amount: e.target.value }, apModal.data, (d) => setApModal((prev) => ({ ...prev, data: d })), regionListCurrency)} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("invoiceAmountHint")}</p>
                     </Field>
-                    <Field label="Exchange Rate"><Input type="number" step="0.0001" required value={apModal.data.exchange_rate} onChange={(e) => calcBaseEditable({ exchange_rate: e.target.value }, apModal.data, (d) => setApModal((prev) => ({ ...prev, data: d })))} /></Field>
+                    <Field label={t("exchangeRate")}>
+                      <Input type="number" step="0.0001" required value={apModal.data.exchange_rate} onChange={(e) => calcBaseEditable({ exchange_rate: e.target.value }, apModal.data, (d) => setApModal((prev) => ({ ...prev, data: d })), regionListCurrency)} />
+                      <p className="text-[10px] text-slate-400 mt-1">{t("exchangeRateHint")}</p>
+                    </Field>
                     <Field label={`Amount in ${regionListCurrency} (${t("amountManualOverride")})`}>
                       <Input type="number" step="0.01" value={apModal.data.base_amount} onChange={(e) => setApModal({ ...apModal, data: { ...apModal.data, base_amount: e.target.value } })} />
                       <p className="text-[10px] text-slate-400 mt-1">{t("baseAmountHint")}</p>

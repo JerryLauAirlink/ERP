@@ -1,6 +1,10 @@
 """Vercel serverless entry — lightweight API (no auth/passlib import chain)."""
+import json
 import os
 import sys
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
@@ -60,6 +64,92 @@ class EntityChangesPayload(BaseModel):
 @app.get("/api")
 def api_root():
     return {"status": "ok", "message": "ERP API"}
+
+
+# Daily FX cache (module-level; resets on cold start — client also caches by UTC date)
+_FX_CACHE: dict = {"date": None, "payload": None}
+_FX_CURRENCIES = ("USD", "HKD", "SGD", "TWD", "RMB", "EUR", "JPY", "MYR", "IDR", "AUD")
+_FX_FALLBACK = {
+    "USD": 1,
+    "HKD": 7.8,
+    "SGD": 1.35,
+    "TWD": 32.2,
+    "RMB": 7.2,
+    "EUR": 0.92,
+    "JPY": 160,
+    "MYR": 4.7,
+    "IDR": 16000,
+    "AUD": 1.55,
+}
+
+
+def _utc_date() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _normalize_usd_rates(raw_rates: dict) -> dict:
+    """Map provider rates (USD base) into AIRLINK currency codes. CNY → RMB."""
+    merged = dict(raw_rates or {})
+    if "RMB" not in merged and merged.get("CNY") is not None:
+        merged["RMB"] = merged["CNY"]
+    out = {}
+    for code in _FX_CURRENCIES:
+        try:
+            val = float(merged.get(code, _FX_FALLBACK[code]))
+        except (TypeError, ValueError):
+            val = float(_FX_FALLBACK[code])
+        if val <= 0:
+            val = float(_FX_FALLBACK[code])
+        out[code] = val
+    out["USD"] = 1.0
+    return out
+
+
+def _fetch_open_er_api() -> dict:
+    url = "https://open.er-api.com/v6/latest/USD"
+    req = urllib.request.Request(url, headers={"User-Agent": "AIRLINK-ERP/1.0", "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=12) as resp:
+        body = json.loads(resp.read().decode("utf-8"))
+    if body.get("result") != "success" or not isinstance(body.get("rates"), dict):
+        raise RuntimeError("FX provider returned an unexpected payload")
+    rates = _normalize_usd_rates(body["rates"])
+    return {
+        "ok": True,
+        "base": "USD",
+        "date": _utc_date(),
+        "updated_at": body.get("time_last_update_utc") or datetime.now(timezone.utc).isoformat(),
+        "next_update_at": body.get("time_next_update_utc"),
+        "source": "exchangerate-api.com",
+        "provider": body.get("provider") or "https://www.exchangerate-api.com",
+        "rates": rates,
+    }
+
+
+@app.get("/fx")
+@app.get("/api/fx")
+def get_fx_rates(force: int = 0):
+    """Daily market FX vs USD. Cached per UTC day. Attribution: exchangerate-api.com."""
+    today = _utc_date()
+    if not force and _FX_CACHE.get("date") == today and _FX_CACHE.get("payload"):
+        return _FX_CACHE["payload"]
+    try:
+        payload = _fetch_open_er_api()
+        _FX_CACHE["date"] = today
+        _FX_CACHE["payload"] = payload
+        return payload
+    except Exception as exc:
+        cached = _FX_CACHE.get("payload")
+        if cached:
+            return {**cached, "ok": True, "stale": True, "error": str(exc)}
+        return {
+            "ok": False,
+            "base": "USD",
+            "date": today,
+            "updated_at": None,
+            "source": "fallback",
+            "rates": dict(_FX_FALLBACK),
+            "error": str(exc),
+        }
 
 
 @app.get("/health")
