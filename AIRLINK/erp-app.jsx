@@ -510,7 +510,7 @@
           customerPoAmountTotal: "Customer PO Amount (Total)",
           jobCompleteCol: "Job Complete",
           arPaymentStatusAutoHint: "Status is automatic: Paid when payment date is entered; Overdue after due date; otherwise Awaiting Payment.",
-          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise TO BE PAY.",
+          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise To Be Paid.",
           jobPoLinesTitle: "Customer PO lines",
           jobPoAddLine: "+ Add PO",
           jobPoColNo: "PO No.",
@@ -557,9 +557,9 @@
           colCompanyPhone: "Company Phone #", colMobilePhone: "Mobile Phone #", colEmail: "E-mail", colPostalCode: "Postal Code",
           colName: "Name", colBank: "Bank", colSwift: "SWIFT/Bank Code", colContact: "Contact",
           colReceivedGoodsAmt: "Received Goods Amount", colPoBalance: "Order Balance", colRequestedDeliveryDate: "Requested Delivery Date",
-          apPaidStatus: "Paid", apAwaitingStatus: "TO BE PAY",
+          apPaidStatus: "Paid", apAwaitingStatus: "To Be Paid",
           apDueAutoHint: "Due date is calculated from Invoice Date + vendor payment terms (editable).",
-          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise TO BE PAY.",
+          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise To Be Paid.",
           paymentTermsHint: "Pick a preset or type your own terms.",
           deleteDupPrompt: "Found {n} records with the same key {key}. Delete ALL duplicates?\nOK = delete all / Cancel = delete this one only",
           deleteSynced: "Deleted and synced to cloud.",
@@ -729,7 +729,7 @@
           jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 向供應商詢價 → 開立 PO → 收貨及發票 → 付供應商（應付）→ 工作完成 → 向客戶開立發票（應收）",
           payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "舊分包商 (SI)", apBills: "應付單數",
           apPayeeAutoHint: "選擇供應商後會自動帶入主檔資料，仍可為此單修改。",
-          markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "TO BE PAY", issueInvoiceToClient: "向客戶開立發票",
+          markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "To Be Paid", issueInvoiceToClient: "向客戶開立發票",
           jobCompletedBanner: "工作已完成 — 可向客戶開立發票收款。", autoApPaidHint: "輸入付款日期會標記為已付款（綠色顯示）。",
           settingsTitle: "設定", language: "介面語言", langEn: "英文", langZhTw: "繁體中文（台灣）", settingsSaved: "設定已儲存",
           clientDetail: "客戶詳情", jobDetail: "工作詳情", vendorDetail: "供應商詳情", siDetail: "分包商詳情", arDetail: "應收詳情", apDetail: "應付詳情",
@@ -768,7 +768,7 @@
           customerPoAmountTotal: "客戶 PO 金額（總計）",
           jobCompleteCol: "工作完成",
           arPaymentStatusAutoHint: "狀態自動更新：有收款日期 = 已收款；過 due date = 逾期；否則 = 待收款。",
-          apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；否則 = TO BE PAY。",
+          apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；否則 = To Be Paid。",
           jobPoLinesTitle: "客戶 PO 明細",
           jobPoAddLine: "+ 新增 PO",
           jobPoColNo: "PO 編號",
@@ -815,7 +815,7 @@
           colCompanyPhone: "公司電話", colMobilePhone: "手機", colEmail: "電子郵件", colPostalCode: "郵遞區號",
           colName: "名稱", colBank: "銀行", colSwift: "SWIFT/Bank Code", colContact: "聯絡人",
           colReceivedGoodsAmt: "已收貨金額", colPoBalance: "訂單餘額", colRequestedDeliveryDate: "要求交貨日期",
-          apPaidStatus: "已付款", apAwaitingStatus: "TO BE PAY",
+          apPaidStatus: "已付款", apAwaitingStatus: "To Be Paid",
           apDueAutoHint: "到期日依發票日期 + 供應商付款方式自動計算（可改）。",
           paymentTermsHint: "可選預設，亦可自行輸入。",
           deleteDupPrompt: "發現 {n} 筆相同編號 {key}。要一次刪除全部重複？\n確定 = 全部刪除／取消 = 只刪這一筆",
@@ -1307,32 +1307,16 @@
         return (poList || []).find((p) => String(p.airlink_po_no || "").trim().toLowerCase() === k) || null;
       }
 
-      /** Order balance on AP list: 採購單金額 − Σ received goods for same AIRLINK PO. */
+      /** Order balance on AP list: Vendor PO Amt − Σ received goods for same AIRLINK PO. */
       function apLinkedPoBalance(bill, poList, apList) {
         const po = findVendorPoByNo(bill && bill.airlink_po, poList);
-        const poNo = String((bill && bill.airlink_po) || (po && po.airlink_po_no) || "").trim();
-        const orderAmt = Number(bill && bill.po_amount) > 0
-          ? Number(bill.po_amount)
-          : Number(po && po.amount || 0);
-        if (!(orderAmt > 0) && !poNo) return null;
-        if (!poNo) {
-          const received = Number(bill && bill.amount || 0);
-          return orderAmt - received;
+        if (!po) {
+          // No linked Vendor PO — fall back to AP form PO amount vs this bill only
+          const orderAmt = Number(bill && bill.po_amount || 0);
+          if (!(orderAmt > 0)) return null;
+          return orderAmt - Number(bill && bill.amount || 0);
         }
-        const cur = (po && po.currency) || (bill && bill.currency) || "USD";
-        const seen = new Set();
-        const received = (apList || [])
-          .filter((b) => {
-            if (String(b.airlink_po || "").trim().toLowerCase() !== poNo.toLowerCase()) return false;
-            const id = b.id != null ? String(b.id) : null;
-            if (id) {
-              if (seen.has(id)) return false;
-              seen.add(id);
-            }
-            return true;
-          })
-          .reduce((s, b) => s + convertCurrency(Number(b.amount || 0), b.currency || cur, cur), 0);
-        return orderAmt - received;
+        return vendorPoBalanceAmount(po, apList);
       }
 
       function monthChartLabel(year, monthIndex, lang) {
@@ -2622,10 +2606,12 @@
         const listId = React.useMemo(() => "erp-searchable-" + Math.random().toString(36).slice(2), []);
         const selected = options.find((opt) => String(opt.value) === String(value));
         const [query, setQuery] = useState(selected ? selected.label : "");
+        const [focused, setFocused] = useState(false);
 
         useEffect(() => {
+          if (focused) return;
           setQuery(selected ? selected.label : "");
-        }, [selected ? selected.label : "", value]);
+        }, [selected ? selected.label : "", value, focused]);
 
         const filtered = useMemo(() => {
           const q = String(query || "").trim().toLowerCase();
@@ -2633,21 +2619,28 @@
           return options.filter((opt) => String(opt.searchText || opt.label || "").toLowerCase().includes(q));
         }, [options, query]);
 
+        function pickOption(opt) {
+          if (!opt) return;
+          setQuery(opt.label);
+          onChange(String(opt.value), opt);
+        }
+
         function commit(nextQuery) {
           const normalized = String(nextQuery || "").trim().toLowerCase();
           if (!normalized) {
-            setQuery("");
-            onChange("", null);
+            // Focus clears the box for searching; empty blur should keep current selection
+            setQuery(selected ? selected.label : "");
             return;
           }
           const exact = options.find((opt) => {
             const label = String(opt.label || "").toLowerCase();
             const searchText = String(opt.searchText || "").toLowerCase();
-            return label === normalized || searchText === normalized;
+            return label === normalized || searchText === normalized || String(opt.value).toLowerCase() === normalized;
           });
           if (exact) {
-            setQuery(exact.label);
-            onChange(String(exact.value), exact);
+            pickOption(exact);
+          } else {
+            setQuery(selected ? selected.label : "");
           }
         }
 
@@ -2656,20 +2649,32 @@
             <input
               list={listId}
               value={query}
+              onFocus={() => {
+                setFocused(true);
+                // Clear so datalist shows all clients (not only matches for "All/全部")
+                setQuery("");
+              }}
               onChange={(e) => {
                 const next = e.target.value;
                 setQuery(next);
                 const exact = options.find((opt) => String(opt.label || "").toLowerCase() === next.toLowerCase());
-                if (exact) onChange(String(exact.value), exact);
-                else if (!next.trim()) onChange("", null);
+                if (exact) {
+                  onChange(String(exact.value), exact);
+                } else if (!next.trim()) {
+                  onChange("", null);
+                }
               }}
-              onBlur={() => commit(query)}
-              placeholder={placeholder}
+              onBlur={() => {
+                setFocused(false);
+                commit(query);
+              }}
+              placeholder={placeholder || (selected ? selected.label : "")}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              autoComplete="off"
             />
             <datalist id={listId}>
               {filtered.map((opt) => (
-                <option key={opt.value} value={opt.label}>
+                <option key={String(opt.value)} value={opt.label}>
                   {opt.searchText && opt.searchText !== opt.label ? opt.searchText : opt.label}
                 </option>
               ))}
@@ -3671,7 +3676,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-21a";
+        const ERP_BUILD_ID = "airlink-2026-07-21d";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -9835,7 +9840,7 @@
                           return bal == null ? "" : money(bal);
                         })()}
                       />
-                      <p className="text-[10px] text-slate-400 mt-1">{t("colPoBalance")} = {t("colPoAmount")} − Σ {t("colReceivedGoodsAmt")}</p>
+                      <p className="text-[10px] text-slate-400 mt-1">{t("colPoBalance")} = Vendor PO Amt − Σ {t("colReceivedGoodsAmt")}</p>
                     </Field>
                     <Field label={t("colCompanyName")}>
                       <SearchableSelect
