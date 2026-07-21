@@ -68,7 +68,7 @@ def api_root():
 
 # Daily FX cache (module-level; resets on cold start — client also caches by UTC date)
 _FX_CACHE: dict = {"date": None, "payload": None}
-_FX_CURRENCIES = ("USD", "HKD", "SGD", "TWD", "RMB", "EUR", "JPY", "MYR", "IDR", "AUD")
+_FX_CURRENCIES = ("USD", "HKD", "SGD", "TWD", "RMB", "EUR", "JPY", "MYR", "IDR", "AUD", "THB")
 _FX_FALLBACK = {
     "USD": 1,
     "HKD": 7.8,
@@ -80,6 +80,7 @@ _FX_FALLBACK = {
     "MYR": 4.7,
     "IDR": 16000,
     "AUD": 1.55,
+    "THB": 36.5,
 }
 
 

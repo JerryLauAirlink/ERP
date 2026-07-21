@@ -124,7 +124,7 @@
           columns: [
             { header: "Customer No", field: "customer_no", required: true, hint: "Required, unique key" },
             { header: "COMPANY", field: "company", required: true, hint: "Required" },
-            { header: "GST#", field: "gst_no", hint: "" },
+            { header: "GST/Tax ID/BR", field: "gst_no", hint: "" },
             { header: "Primary Contact", field: "primary_contact", hint: "" },
             { header: "Company Phone #", field: "company_phone", hint: "" },
             { header: "Mobile Phone #", field: "mobile_phone", hint: "" },
@@ -204,7 +204,7 @@
           columns: [
             { header: "Vendor No", field: "vendor_no", required: true, hint: "供應商編號" },
             { header: "Company Name", field: "name", required: true, hint: "公司名稱" },
-            { header: "GST #", field: "gst_no", hint: "統一編號" },
+            { header: "GST/Tax ID/BR", field: "gst_no", hint: "統一編號 / BR" },
             { header: "Company Legal Representative", field: "legal_rep", hint: "公司負責人" },
             { header: "Company Address", field: "address", hint: "公司地址" },
             { header: "Postal Code", field: "postal_code", hint: "郵區" },
@@ -482,6 +482,7 @@
           actions: "Actions", invoices: "Invoices", clientGroup: "Client (Group)", type: "Type", status: "Status",
           quotationNo: "Quotation No.", amount: "Amount", currency: "Currency", description: "Description",
           addQuotation: "+ Add Quotation", addQuotationTitle: "Create Quotation", editQuotation: "Edit Quotation", quotationDetail: "Quotation Details",
+          quotationNoAutoHint: "Auto: Client No + Year + seq (e.g. HK00126001). Editable.",
           quotationDate: "Quotation Date", validUntil: "Valid Until", quotationStatus: "Status",
           ongoingHint: "Currency & PO Amt from AR invoices (summed per job). Click Edit to change Billed Amt or Remarks, then Save.",
           ongoingListTitle: "Ongoing Projects List",
@@ -509,7 +510,7 @@
           customerPoAmountTotal: "Customer PO Amount (Total)",
           jobCompleteCol: "Job Complete",
           arPaymentStatusAutoHint: "Status is automatic: Paid when payment date is entered; Overdue after due date; otherwise Awaiting Payment.",
-          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise Awaiting Payment.",
+          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise TO BE PAY.",
           jobPoLinesTitle: "Customer PO lines",
           jobPoAddLine: "+ Add PO",
           jobPoColNo: "PO No.",
@@ -552,13 +553,13 @@
           colPayee: "Payee", colRemarks: "Remarks", colOverdueDays: "Overdue Days", colDays: "Days", colAmt: "Amt", colDate: "Date",
           colAccountDeptContact: "Account Dept Contact", colAccountDeptEmail: "Account Dept Email", colBankCharge: "Bank Charge", colSwiftCode: "SWIFT/Bank Code",
           colPaymentAdviceEmail: "Payment Advice email", colCustomerNo: "Customer No.", colBu: "BU", colBuNo: "BU No.", clientBuHint: "Same company, different contact/job — enter BU No.", colFinanceContact: "Finance Contact", colFinanceEmail: "Finance Email",
-          colCompany: "Company", colGstNo: "GST#", colPrimaryContact: "Primary Contact",
+          colCompany: "Company", colGstNo: "GST/Tax ID/BR", colPrimaryContact: "Primary Contact",
           colCompanyPhone: "Company Phone #", colMobilePhone: "Mobile Phone #", colEmail: "E-mail", colPostalCode: "Postal Code",
           colName: "Name", colBank: "Bank", colSwift: "SWIFT/Bank Code", colContact: "Contact",
-          colReceivedGoodsAmt: "Received Goods Amount", colPoBalance: "Balance", colRequestedDeliveryDate: "Requested Delivery Date",
-          apPaidStatus: "Paid", apAwaitingStatus: "Awaiting Payment",
+          colReceivedGoodsAmt: "Received Goods Amount", colPoBalance: "Order Balance", colRequestedDeliveryDate: "Requested Delivery Date",
+          apPaidStatus: "Paid", apAwaitingStatus: "TO BE PAY",
           apDueAutoHint: "Due date is calculated from Invoice Date + vendor payment terms (editable).",
-          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise Awaiting Payment.",
+          apPaymentStatusAutoHint: "Status is automatic: Paid when pay date is entered; otherwise TO BE PAY.",
           paymentTermsHint: "Pick a preset or type your own terms.",
           deleteDupPrompt: "Found {n} records with the same key {key}. Delete ALL duplicates?\nOK = delete all / Cancel = delete this one only",
           deleteSynced: "Deleted and synced to cloud.",
@@ -728,7 +729,7 @@
           jobFlowHint: "客戶 → 工作（報價）→ 客戶 PO → 向供應商詢價 → 開立 PO → 收貨及發票 → 付供應商（應付）→ 工作完成 → 向客戶開立發票（應收）",
           payeeType: "付款對象", payeeVendor: "供應商", payeeSi: "舊分包商 (SI)", apBills: "應付單數",
           apPayeeAutoHint: "選擇供應商後會自動帶入主檔資料，仍可為此單修改。",
-          markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "待付款", issueInvoiceToClient: "向客戶開立發票",
+          markApPaid: "標記已付款", apPaid: "已付款", apUnpaid: "TO BE PAY", issueInvoiceToClient: "向客戶開立發票",
           jobCompletedBanner: "工作已完成 — 可向客戶開立發票收款。", autoApPaidHint: "輸入付款日期會標記為已付款（綠色顯示）。",
           settingsTitle: "設定", language: "介面語言", langEn: "英文", langZhTw: "繁體中文（台灣）", settingsSaved: "設定已儲存",
           clientDetail: "客戶詳情", jobDetail: "工作詳情", vendorDetail: "供應商詳情", siDetail: "分包商詳情", arDetail: "應收詳情", apDetail: "應付詳情",
@@ -739,6 +740,7 @@
           actions: "操作", invoices: "發票數", clientGroup: "客戶（分組）", type: "類型", status: "狀態",
           quotationNo: "報價單號", amount: "金額", currency: "幣別", description: "說明",
           addQuotation: "+ 新增報價", addQuotationTitle: "新增報價單", editQuotation: "修改報價單", quotationDetail: "報價詳情",
+          quotationNoAutoHint: "自動編號：客戶編號 + 年份 + 序號（例 HK00126001），可手動改。",
           quotationDate: "報價日期", validUntil: "有效期至", quotationStatus: "狀態",
           ongoingHint: "幣別與 PO 金額來自應收發票（同一工作會加總）。點擊「修改」可變更已開票金額或備註，儲存後鎖定。",
           ongoingListTitle: "進行中項目清單",
@@ -766,7 +768,7 @@
           customerPoAmountTotal: "客戶 PO 金額（總計）",
           jobCompleteCol: "工作完成",
           arPaymentStatusAutoHint: "狀態自動更新：有收款日期 = 已收款；過 due date = 逾期；否則 = 待收款。",
-          apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；否則 = 待付款。",
+          apPaymentStatusAutoHint: "狀態自動更新：有付款日期 = 已付款；否則 = TO BE PAY。",
           jobPoLinesTitle: "客戶 PO 明細",
           jobPoAddLine: "+ 新增 PO",
           jobPoColNo: "PO 編號",
@@ -809,11 +811,11 @@
           colPayee: "付款對象", colRemarks: "備註", colOverdueDays: "逾期天數", colDays: "天數", colAmt: "金額", colDate: "日期",
           colAccountDeptContact: "會計聯絡人", colAccountDeptEmail: "會計聯絡人 Email", colBankCharge: "銀行手續費", colSwiftCode: "SWIFT/Bank Code",
           colPaymentAdviceEmail: "付款通知電子郵件", colCustomerNo: "客戶編號", colBu: "BU", colBuNo: "BU 編號", clientBuHint: "同一公司、不同聯絡人或不同工作時可勾選，並填寫 BU 編號。", colFinanceContact: "財務聯絡人", colFinanceEmail: "財務電子郵件",
-          colCompany: "公司名稱", colGstNo: "GST／統一編號", colPrimaryContact: "主要聯絡人",
+          colCompany: "公司名稱", colGstNo: "GST/統一編號/BR", colPrimaryContact: "主要聯絡人",
           colCompanyPhone: "公司電話", colMobilePhone: "手機", colEmail: "電子郵件", colPostalCode: "郵遞區號",
           colName: "名稱", colBank: "銀行", colSwift: "SWIFT/Bank Code", colContact: "聯絡人",
-          colReceivedGoodsAmt: "已收貨金額", colPoBalance: "餘額", colRequestedDeliveryDate: "要求交貨日期",
-          apPaidStatus: "已付款", apAwaitingStatus: "待付款",
+          colReceivedGoodsAmt: "已收貨金額", colPoBalance: "訂單餘額", colRequestedDeliveryDate: "要求交貨日期",
+          apPaidStatus: "已付款", apAwaitingStatus: "TO BE PAY",
           apDueAutoHint: "到期日依發票日期 + 供應商付款方式自動計算（可改）。",
           paymentTermsHint: "可選預設，亦可自行輸入。",
           deleteDupPrompt: "發現 {n} 筆相同編號 {key}。要一次刪除全部重複？\n確定 = 全部刪除／取消 = 只刪這一筆",
@@ -1098,7 +1100,7 @@
         );
       }
 
-      const DEFAULT_FX_USD_MAP = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160, MYR: 4.7, IDR: 16000, AUD: 1.55 };
+      const DEFAULT_FX_USD_MAP = { USD: 1, HKD: 7.8, SGD: 1.35, TWD: 32.2, RMB: 7.2, EUR: 0.92, JPY: 160, MYR: 4.7, IDR: 16000, AUD: 1.55, THB: 36.5 };
       /** Live FX table vs USD (1 USD = N units). Mutated when daily market rates load. */
       const fxUsdMap = { ...DEFAULT_FX_USD_MAP };
       const FX_CACHE_KEY = "erp_fx_rates_v1";
@@ -1281,9 +1283,18 @@
         const k = String(po && po.airlink_po_no || "").trim().toLowerCase();
         if (!k) return 0;
         const cur = (po && po.currency) || "USD";
+        const seen = new Set();
         return (apList || [])
-          .filter((b) => String(b.airlink_po || "").trim().toLowerCase() === k)
-          .reduce((s, b) => s + convertCurrency(Number(b.amount || 0), b.currency || "USD", cur), 0);
+          .filter((b) => {
+            if (String(b.airlink_po || "").trim().toLowerCase() !== k) return false;
+            const id = b.id != null ? String(b.id) : null;
+            if (id) {
+              if (seen.has(id)) return false;
+              seen.add(id);
+            }
+            return true;
+          })
+          .reduce((s, b) => s + convertCurrency(Number(b.amount || 0), b.currency || cur, cur), 0);
       }
 
       function vendorPoBalanceAmount(po, apList) {
@@ -1296,10 +1307,32 @@
         return (poList || []).find((p) => String(p.airlink_po_no || "").trim().toLowerCase() === k) || null;
       }
 
+      /** Order balance on AP list: 採購單金額 − Σ received goods for same AIRLINK PO. */
       function apLinkedPoBalance(bill, poList, apList) {
         const po = findVendorPoByNo(bill && bill.airlink_po, poList);
-        if (!po) return null;
-        return vendorPoBalanceAmount(po, apList);
+        const poNo = String((bill && bill.airlink_po) || (po && po.airlink_po_no) || "").trim();
+        const orderAmt = Number(bill && bill.po_amount) > 0
+          ? Number(bill.po_amount)
+          : Number(po && po.amount || 0);
+        if (!(orderAmt > 0) && !poNo) return null;
+        if (!poNo) {
+          const received = Number(bill && bill.amount || 0);
+          return orderAmt - received;
+        }
+        const cur = (po && po.currency) || (bill && bill.currency) || "USD";
+        const seen = new Set();
+        const received = (apList || [])
+          .filter((b) => {
+            if (String(b.airlink_po || "").trim().toLowerCase() !== poNo.toLowerCase()) return false;
+            const id = b.id != null ? String(b.id) : null;
+            if (id) {
+              if (seen.has(id)) return false;
+              seen.add(id);
+            }
+            return true;
+          })
+          .reduce((s, b) => s + convertCurrency(Number(b.amount || 0), b.currency || cur, cur), 0);
+        return orderAmt - received;
       }
 
       function monthChartLabel(year, monthIndex, lang) {
@@ -1513,15 +1546,21 @@
 
       function convertCurrency(amount, fromCurrency, baseCurrency) {
         if (!amount) return 0;
-        const fromRate = fxUsdMap[fromCurrency] || 1;
-        const baseRate = fxUsdMap[baseCurrency] || 1;
+        const from = fromCurrency || "USD";
+        const to = baseCurrency || "USD";
+        if (from === to) return Number(amount) || 0;
+        const fromRate = fxUsdMap[from] || 1;
+        const baseRate = fxUsdMap[to] || 1;
         return (Number(amount) / fromRate) * baseRate;
       }
 
       /** Rate such that: amount_in_from × rate = amount_in_to */
       function defaultExchangeRate(fromCurrency, toCurrency) {
-        const fromRate = fxUsdMap[fromCurrency] || 1;
-        const toRate = fxUsdMap[toCurrency] || 1;
+        const from = fromCurrency || "USD";
+        const to = toCurrency || "USD";
+        if (from === to) return 1;
+        const fromRate = fxUsdMap[from] || 1;
+        const toRate = fxUsdMap[to] || 1;
         if (!fromRate) return 1;
         return toRate / fromRate;
       }
@@ -1625,6 +1664,40 @@
         (quotationList || []).forEach((q) => scan(q && q.quotation_no != null ? q.quotation_no : q));
         (reservedNos || []).forEach(scan);
         return prefix + String(bestNum + 1).padStart(5, "0");
+      }
+
+      /** ClientNo + YY + seq: HK001 + 26 + 001 → HK00126001 */
+      function nextClientQuotationNo(client, quotationList, reservedNos) {
+        const custNo = String(client && client.customer_no || "").trim().toUpperCase();
+        if (!custNo) return "";
+        const yy = String(new Date().getFullYear()).slice(-2);
+        const prefix = custNo + yy;
+        let bestNum = 0;
+        const re = new RegExp("^" + prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\d+)$", "i");
+        const scan = (value) => {
+          const m = String(value || "").trim().match(re);
+          if (!m) return;
+          const num = parseInt(m[1], 10);
+          if (!Number.isNaN(num) && num > bestNum) bestNum = num;
+        };
+        (quotationList || []).forEach((q) => scan(q && q.quotation_no != null ? q.quotation_no : q));
+        (reservedNos || []).forEach(scan);
+        return prefix + String(bestNum + 1).padStart(3, "0");
+      }
+
+      function pruneMissingQuotationsFromJob(job, quotationList) {
+        if (!job) return job;
+        const live = new Set(
+          (quotationList || []).map((q) => String(q.quotation_no || "").trim().toLowerCase()).filter(Boolean)
+        );
+        const nos = jobQuotationNos(job).filter((n) => live.has(String(n).trim().toLowerCase()));
+        if (nos.length === jobQuotationNos(job).length
+          && nos.join("|") === jobQuotationNos(job).join("|")) return job;
+        return { ...job, linked_quotation_nos: nos, quotation_no: nos.join(", ") };
+      }
+
+      function pruneMissingQuotationsFromJobs(jobList, quotationList) {
+        return (jobList || []).map((j) => pruneMissingQuotationsFromJob(j, quotationList));
       }
 
       function findClientForJobImport(row, clientList) {
@@ -2424,10 +2497,13 @@
         );
       }
 
-      function Field({ label, children }) {
+      function Field({ label, children, required }) {
         return (
           <label className="block">
-            <span className="block mb-1 text-xs font-medium text-slate-600">{label}</span>
+            <span className="block mb-1 text-xs font-medium text-slate-600">
+              {required ? <span className="text-red-600 mr-0.5" aria-hidden="true">*</span> : null}
+              {label}
+            </span>
             {children}
           </label>
         );
@@ -3532,6 +3608,7 @@
         const [highlightId, setHighlightId] = useState(null);
 
         const [jobViewMode, setJobViewMode] = useState("list");
+        const [expandedJobIds, setExpandedJobIds] = useState({});
         const [arViewMode, setArViewMode] = useState("list");
         const [apViewMode, setApViewMode] = useState("list");
         const [jobClientFilter, setJobClientFilter] = useState("all");
@@ -3594,7 +3671,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-17b";
+        const ERP_BUILD_ID = "airlink-2026-07-21a";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -3694,6 +3771,18 @@
           }, 60 * 60 * 1000);
           return () => clearInterval(tmr);
         }, []);
+
+        // Drop deleted quotation nos that still linger on Job records
+        useEffect(() => {
+          setJobs((prev) => {
+            const next = pruneMissingQuotationsFromJobs(prev, quotations);
+            let changed = false;
+            for (let i = 0; i < next.length; i++) {
+              if (next[i] !== prev[i]) { changed = true; break; }
+            }
+            return changed ? next : prev;
+          });
+        }, [quotations]);
 
         function patchArModalData(data) {
           const next = applyArDueDate(data, clients, jobs);
@@ -5116,18 +5205,23 @@
           if (!guardPermission("quotation", "delete")) return;
           const q = quotations.find((x) => x.id === id);
           if (!window.confirm(t("confirmDelete"))) return;
+          const qNo = q ? String(q.quotation_no || "").trim() : "";
           let nextJobs = jobs;
-          if (q) {
-            const qNo = String(q.quotation_no || "").trim();
-            quotationJobNos(q).forEach((jno) => {
-              nextJobs = nextJobs.map((j) => (j.job_no === jno ? removeQuotationFromJob(j, qNo) : j));
-            });
+          if (qNo) {
+            // Remove from every job that still references this quotation no (job-side or quote-side link)
+            nextJobs = nextJobs.map((j) => removeQuotationFromJob(j, qNo));
             setJobs(nextJobs);
             markSyncedArray("jobs", nextJobs);
           }
           const nextQuotations = quotations.filter((x) => x.id !== id);
           setQuotations(nextQuotations);
           markSyncedArray("quotations", nextQuotations);
+          // Drop any other stale quotation nos that no longer exist
+          const pruned = pruneMissingQuotationsFromJobs(nextJobs, nextQuotations);
+          if (JSON.stringify(pruned) !== JSON.stringify(nextJobs)) {
+            setJobs(pruned);
+            markSyncedArray("jobs", pruned);
+          }
           logAudit("quotation", "delete", q ? q.quotation_no : String(id), `Deleted quotation ${q ? q.quotation_no : id}`);
           const cloudOk = await pushEntityTombstoneToCloud("quotations", id);
           if (liveSyncEnabled && !cloudOk) alert(t("deleteCloudFail"));
@@ -7050,7 +7144,7 @@
                     )) : "-"}</p></div>
                     <div><p className="text-slate-500">{t("quotationNo")}</p><p>{linkedQuotations.length ? linkedQuotations.map((q, i) => (
                       <span key={q.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "quotation", id: q.id })}>{q.quotation_no}</LinkBtn></span>
-                    )) : (j.quotation_no || "-")}</p></div>
+                    )) : "-"}</p></div>
                     <div><p className="text-slate-500">{t("colInvoiceNo")}</p><p>{relatedAr.length ? relatedAr.map((r, i) => (
                       <span key={r.id}>{i > 0 ? ", " : ""}<LinkBtn onClick={() => setDetailPanel({ type: "ar", id: r.id })}>{r.invoice_no}</LinkBtn></span>
                     )) : "-"}</p></div>
@@ -7322,7 +7416,7 @@
                   <div><p className="text-slate-500">{t("amount")}</p><p>{money(b.amount)} {b.currency}</p></div>
                   <div><p className="text-slate-500">{amtInLabel}</p><p>{money(convertCurrency(b.amount, b.currency, regionListCurrency))}</p></div>
                   <div><p className="text-slate-500">{t("colDueDate")}</p><p>{b.due_date}</p></div>
-                  <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(apStatus)}>{paymentStatusLabel(apStatus, t)}</span></p></div>
+                  <div><p className="text-slate-500">{t("paymentStatus")}</p><p><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(apStatus)}>{apPaymentLabel(b, t)}</span></p></div>
                   <div><p className="text-slate-500">{t("colPayDate")}</p><p>{b.pay_date || "-"}</p></div>
                   <div><p className="text-slate-500">Bank</p><p>{b.bank}</p></div>
                   <div><p className="text-slate-500">{t("colSwiftCode")}</p><p>{b.swift_code}</p></div>
@@ -7345,27 +7439,83 @@
         }
 
         function renderJobRows(list) {
-          return list.map((j) => {
+          const rows = [];
+          list.forEach((j) => {
             const client = clients.find((c) => c.id === j.client_id) || clients.find((c) => c.company === j.company);
             const buLabel = client?.bu_no ? " · BU " + client.bu_no : "";
-            return (
-            <tr key={j.id} className={"hover:bg-blue-50/50 cursor-pointer " + (isJobCompleted(j.status) ? "bg-green-50/70 " : "") + rowHighlightClass(j.id)} onClick={() => setDetailPanel({ type: "job", id: j.id })}>
-              <td className="p-3 font-medium">{j.job_no}</td>
-              <td className="p-3"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs">{j.company}{buLabel}</span></td>
-              <td className="p-3 max-w-[12rem] erp-cell-truncate" title={j.description || ""}>{j.description || "-"}</td>
-              <td className="p-3">{j.job_type}</td>
-              <td className="p-3">{j.quotation_no || "-"}</td>
-              <td className="p-3 text-right tabular-nums">{j.amount ? money(j.amount) : "-"}</td>
-              <td className="p-3">{j.currency || "-"}</td>
-              <td className="p-3">{j.customer_po || "-"}</td>
-              <td className="p-3 text-right tabular-nums">{j.customer_po_amount ? money(j.customer_po_amount) : "-"}</td>
-              <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></td>
-              <td className="p-3">{j.start_date || "-"}</td>
-              <td className="p-3">{getArByJob(j.job_no).length}</td>
-              <td className="p-3">{getApByJob(j.job_no).length}</td>
-            </tr>
+            const linkedQs = findLinkedQuotationsForJob(j, quotations);
+            const qLabel = linkedQs.length
+              ? linkedQs.map((q) => q.quotation_no).join(", ")
+              : "-";
+            const canExpand = linkedQs.length > 1;
+            const expanded = !!expandedJobIds[j.id];
+            const toggleExpand = (e) => {
+              e.stopPropagation();
+              setExpandedJobIds((prev) => ({ ...prev, [j.id]: !prev[j.id] }));
+            };
+            rows.push(
+              <tr key={j.id} className={"hover:bg-blue-50/50 cursor-pointer " + (isJobCompleted(j.status) ? "bg-green-50/70 " : "") + rowHighlightClass(j.id)} onClick={() => setDetailPanel({ type: "job", id: j.id })}>
+                <td className="p-3 font-medium whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1">
+                    {canExpand && (
+                      <button
+                        type="button"
+                        className="w-5 h-5 inline-flex items-center justify-center rounded border border-slate-300 text-slate-600 hover:bg-slate-100 shrink-0"
+                        title={expanded ? "Collapse" : "Expand"}
+                        onClick={toggleExpand}
+                      >
+                        <span className={"inline-block text-[10px] leading-none transition-transform " + (expanded ? "rotate-90" : "")}>▶</span>
+                      </button>
+                    )}
+                    {j.job_no}
+                  </span>
+                </td>
+                <td className="p-3"><span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs">{j.company}{buLabel}</span></td>
+                <td className="p-3 max-w-[12rem] erp-cell-truncate" title={j.description || ""}>{j.description || "-"}</td>
+                <td className="p-3">{j.job_type}</td>
+                <td className="p-3">{qLabel}</td>
+                <td className="p-3 text-right tabular-nums">{j.amount ? money(j.amount) : (linkedQs.length === 1 ? money(linkedQs[0].amount) : "-")}</td>
+                <td className="p-3">{j.currency || (linkedQs[0] && linkedQs[0].currency) || "-"}</td>
+                <td className="p-3">{j.customer_po || "-"}</td>
+                <td className="p-3 text-right tabular-nums">{j.customer_po_amount ? money(j.customer_po_amount) : "-"}</td>
+                <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + jobStatusClass(j.status)}>{j.status}</span></td>
+                <td className="p-3">{j.start_date || "-"}</td>
+                <td className="p-3">{getArByJob(j.job_no).length}</td>
+                <td className="p-3">{getApByJob(j.job_no).length}</td>
+              </tr>
             );
+            if (canExpand && expanded) {
+              linkedQs.forEach((q, idx) => {
+                rows.push(
+                  <tr
+                    key={j.id + "-q-" + q.id}
+                    className="bg-slate-50/80 hover:bg-blue-50/40 cursor-pointer"
+                    onClick={() => setDetailPanel({ type: "quotation", id: q.id })}
+                  >
+                    <td className="p-3 pl-8 text-slate-500 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-2">
+                        <span className="text-slate-400 select-none" aria-hidden="true">{idx === linkedQs.length - 1 ? "└" : "├"}</span>
+                        <span className="text-xs text-slate-400">{j.job_no}</span>
+                      </span>
+                    </td>
+                    <td className="p-3 text-slate-400 text-xs">{j.company}</td>
+                    <td className="p-3 max-w-[12rem] erp-cell-truncate text-slate-500" title={q.description || j.description || ""}>{q.description || j.description || "-"}</td>
+                    <td className="p-3 text-slate-400">{j.job_type}</td>
+                    <td className="p-3 font-medium text-blue-700">{q.quotation_no}</td>
+                    <td className="p-3 text-right tabular-nums font-medium">{money(q.amount)}</td>
+                    <td className="p-3">{q.currency || "-"}</td>
+                    <td className="p-3 text-slate-400">—</td>
+                    <td className="p-3 text-right text-slate-400">—</td>
+                    <td className="p-3"><span className="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600">{q.status || "-"}</span></td>
+                    <td className="p-3 text-slate-400">{q.quotation_date || "-"}</td>
+                    <td className="p-3 text-slate-400">—</td>
+                    <td className="p-3 text-slate-400">—</td>
+                  </tr>
+                );
+              });
+            }
           });
+          return rows;
         }
 
         function renderArRows(list) {
@@ -7377,7 +7527,6 @@
               <td className="p-3">{r.job_no}</td><td className="p-3">{r.customer}</td><td className="p-3">{r.customer_po || "-"}</td>
               <td className="p-3"><span className={"px-2 py-0.5 rounded text-xs " + (linkedJob ? jobStatusClass(linkedJob.status) : "bg-slate-100")}>{jobStatus}</span></td>
               <td className="p-3">{r.invoice_no}</td><td className="p-3">{paymentStageLabel(r.payment_stage, t)}</td><td className="p-3">{r.invoice_currency}</td><td className="p-3 text-right">{money(r.invoice_amt)}</td>
-              <td className="p-3 text-right font-medium">{money(r.display_base_amount)}</td>
               <td className="p-3">{r.invoice_date}</td><td className="p-3">{r.due_date}</td>
               <td className="p-3 text-right">{r.payment_status === "Paid" ? 0 : calcOverdueDays(r.due_date)}</td><td className="p-3 text-right">{calcDaysBetween(r.invoice_date, r.due_date)}</td>
               <td className="p-3">{r.payment_received_date || "-"}</td>
@@ -7396,7 +7545,6 @@
               <td className="p-3">{r.due_date || "-"}</td><td className="p-3">{r.currency}</td>
               <td className="p-3 text-right">{money(r.amount)}</td>
               <td className="p-3 text-right tabular-nums">{r.po_balance == null ? "-" : money(r.po_balance)}</td>
-              <td className="p-3 text-right font-medium">{money(r.display_base_amount)}</td>
               <td className="p-3 whitespace-nowrap"><span className={"px-2 py-0.5 rounded text-xs " + paymentStatusClass(r.payment_status)}>{apPaymentLabel(r, t)}</span></td>
               <td className="p-3">{r.pay_date || "-"}</td><td className="p-3 erp-cell-truncate" title={r.remarks || ""}>{r.remarks || "-"}</td>
             </tr>
@@ -8523,7 +8671,7 @@
                               <tr>
                                 <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("colCustomer")}</th><th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-left">{t("jobStatus")}</th>
                                 <SortableTh module="ar" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceCurrency")}</th><th className="p-3 text-right">{t("colInvoiceAmt")}</th>
-                                <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colDueDate")}</th>
+                                <th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colDueDate")}</th>
                                 <th className="p-3 text-right">{t("colOverdueDays")}</th><th className="p-3 text-right">{t("colDays")}</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th>
                               </tr>
                             </thead>
@@ -8537,7 +8685,7 @@
                           <tr>
                             <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("colCustomer")}</th><th className="p-3 text-left">{t("colCustomerPo")}</th><th className="p-3 text-left">{t("jobStatus")}</th>
                             <SortableTh module="ar" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceCurrency")}</th><th className="p-3 text-right">{t("colInvoiceAmt")}</th>
-                            <th className="p-3 text-right">{amtInLabel}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colDueDate")}</th>
+                            <th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colDueDate")}</th>
                             <th className="p-3 text-right">{t("colOverdueDays")}</th><th className="p-3 text-right">{t("colDays")}</th><th className="p-3 text-left">{t("paymentReceived")}</th><th className="p-3 text-left">{t("paymentStatus")}</th>
                           </tr>
                         </thead>
@@ -8570,7 +8718,7 @@
                             <thead className="bg-slate-50 text-slate-500">
                               <tr>
                                 <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><SortableTh module="ap" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
-                                <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("colReceivedGoodsAmt")}</th><th className="p-3 text-right">{t("colPoBalance")}</th><th className="p-3 text-right">{amtInLabel}</th>
+                                <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("colReceivedGoodsAmt")}</th><th className="p-3 text-right">{t("colPoBalance")}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">{t("colPayDate")}</th><th className="p-3 text-left">{t("colRemarks")}</th>
                               </tr>
                             </thead>
@@ -8583,7 +8731,7 @@
                         <thead className="bg-slate-50 text-slate-500">
                           <tr>
                             <th className="p-3 text-left">{t("colJobNo")}</th><th className="p-3 text-left">{t("payeeType")}</th><th className="p-3 text-left">{t("colCompanyName")}</th><SortableTh module="ap" field="invoice_no" label={t("colInvoiceNo")} /><th className="p-3 text-left">{t("paymentStage")}</th><th className="p-3 text-left">{t("colInvoiceDate")}</th><th className="p-3 text-left">{t("colInvoiceReceivedDate")}</th>
-                            <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("colReceivedGoodsAmt")}</th><th className="p-3 text-right">{t("colPoBalance")}</th><th className="p-3 text-right">{amtInLabel}</th>
+                            <th className="p-3 text-left">{t("colDueDate")}</th><th className="p-3 text-left">{t("currency")}</th><th className="p-3 text-right">{t("colReceivedGoodsAmt")}</th><th className="p-3 text-right">{t("colPoBalance")}</th>
                             <th className="p-3 text-left whitespace-nowrap">{t("paymentStatus")}</th><th className="p-3 text-left">{t("colPayDate")}</th><th className="p-3 text-left">{t("colRemarks")}</th>
                           </tr>
                         </thead>
@@ -9156,14 +9304,14 @@
                       onChange={(region) => setClientModal({ ...clientModal, data: { ...clientModal.data, region } })}
                     />
                     <Field label={t("colCustomerNo")}><Input required value={clientModal.data.customer_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, customer_no: e.target.value } })} /></Field>
-                    <Field label={t("colCompany")}><Input required value={clientModal.data.company} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company: e.target.value } })} /></Field>
-                    <Field label="Invoice Title"><Input value={clientModal.data.invoice_title || ""} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, invoice_title: e.target.value } })} /></Field>
-                    <Field label={t("colGstNo")}><Input value={clientModal.data.gst_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, gst_no: e.target.value } })} /></Field>
-                    <Field label={t("colPrimaryContact")}><Input value={clientModal.data.primary_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, primary_contact: e.target.value } })} /></Field>
-                    <Field label={t("colCompanyPhone")}><Input value={clientModal.data.company_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company_phone: e.target.value } })} /></Field>
+                    <Field label={t("colCompany")} required><Input required value={clientModal.data.company} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company: e.target.value } })} /></Field>
+                    <Field label="Invoice Title" required><Input required value={clientModal.data.invoice_title || ""} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, invoice_title: e.target.value } })} /></Field>
+                    <Field label={t("colGstNo")} required><Input required value={clientModal.data.gst_no} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, gst_no: e.target.value } })} /></Field>
+                    <Field label={t("colPrimaryContact")} required><Input required value={clientModal.data.primary_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, primary_contact: e.target.value } })} /></Field>
+                    <Field label={t("colCompanyPhone")} required><Input required value={clientModal.data.company_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, company_phone: e.target.value } })} /></Field>
                     <Field label={t("colMobilePhone")}><Input value={clientModal.data.mobile_phone} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, mobile_phone: e.target.value } })} /></Field>
-                    <Field label={t("colEmail")}><Input type="email" value={clientModal.data.email} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, email: e.target.value } })} /></Field>
-                    <Field label={t("address")}><Input value={clientModal.data.address} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, address: e.target.value } })} /></Field>
+                    <Field label={t("colEmail")} required><Input required type="email" value={clientModal.data.email} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, email: e.target.value } })} /></Field>
+                    <Field label={t("address")} required><Input required value={clientModal.data.address} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, address: e.target.value } })} /></Field>
                     <Field label={t("colPostalCode")}><Input value={clientModal.data.postal_code} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, postal_code: e.target.value } })} /></Field>
                     <Field label={t("colAccountDeptContact")}><Input value={clientModal.data.account_dept_contact} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_contact: e.target.value } })} /></Field>
                     <Field label={t("colAccountDeptEmail")}><Input type="email" value={clientModal.data.account_dept_email || ""} onChange={(e) => setClientModal({ ...clientModal, data: { ...clientModal.data, account_dept_email: e.target.value } })} /></Field>
@@ -9197,7 +9345,9 @@
                       options={regionMoveOptions()}
                       onChange={(region) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, region, client_id: "", company: "" } })}
                     />
-                    <Field label={t("quotationNo")}><Input required value={quotationModal.data.quotation_no} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_no: e.target.value } })} /></Field>
+                    <Field label={t("quotationNo")}><Input required value={quotationModal.data.quotation_no} onChange={(e) => setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, quotation_no: e.target.value } })} />
+                      {quotationModal.mode === "add" && <p className="text-[10px] text-slate-400 mt-1">{t("quotationNoAutoHint")}</p>}
+                    </Field>
                     <Field label={t("clientGroup")}>
                       <SearchableSelect
                         required
@@ -9207,7 +9357,15 @@
                         noResultsText={t("noMatchFound")}
                         onChange={(nextValue) => {
                           const client = clients.find((c) => c.id === Number(nextValue));
-                          setQuotationModal({ ...quotationModal, data: { ...quotationModal.data, client_id: nextValue, company: client ? client.company : "" } });
+                          const patch = {
+                            ...quotationModal.data,
+                            client_id: nextValue,
+                            company: client ? client.company : ""
+                          };
+                          if (quotationModal.mode === "add" && client) {
+                            patch.quotation_no = nextClientQuotationNo(client, quotations);
+                          }
+                          setQuotationModal({ ...quotationModal, data: patch });
                         }}
                       />
                     </Field>
@@ -9665,13 +9823,19 @@
                         readOnly
                         className="bg-slate-50"
                         value={(() => {
-                          const po = findVendorPoByNo(apModal.data.airlink_po, vendorPos);
-                          if (!po) return "";
-                          const others = sumApReceivedAgainstVendorPo(po, apBills.filter((b) => b.id !== apModal.id));
-                          const draftConv = convertCurrency(Number(apModal.data.amount || 0), apModal.data.currency || "USD", po.currency || "USD");
-                          return money(Number(po.amount || 0) - others - draftConv);
+                          const draft = {
+                            ...apModal.data,
+                            id: apModal.id,
+                            amount: Number(apModal.data.amount || 0),
+                            po_amount: apModal.data.po_amount === "" || apModal.data.po_amount == null ? "" : Number(apModal.data.po_amount)
+                          };
+                          const others = apBills.filter((b) => b.id !== apModal.id);
+                          const withDraft = [...others, draft];
+                          const bal = apLinkedPoBalance(draft, vendorPos, withDraft);
+                          return bal == null ? "" : money(bal);
                         })()}
                       />
+                      <p className="text-[10px] text-slate-400 mt-1">{t("colPoBalance")} = {t("colPoAmount")} − Σ {t("colReceivedGoodsAmt")}</p>
                     </Field>
                     <Field label={t("colCompanyName")}>
                       <SearchableSelect
