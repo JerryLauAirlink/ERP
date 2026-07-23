@@ -482,7 +482,7 @@
           actions: "Actions", invoices: "Invoices", clientGroup: "Client (Group)", type: "Type", status: "Status",
           quotationNo: "Quotation No.", amount: "Amount", currency: "Currency", description: "Description",
           addQuotation: "+ Add Quotation", addQuotationTitle: "Create Quotation", editQuotation: "Edit Quotation", quotationDetail: "Quotation Details",
-          quotationNoAutoHint: "Auto: Client No + Year + seq (e.g. HK00126001). Editable.",
+          quotationNoAutoHint: "Auto: Client No + Year + seq (e.g. HK00126001). SG: Q# + Client No + Year + seq (e.g. Q#SG00126001). Editable.",
           quotationDate: "Quotation Date", validUntil: "Valid Until", quotationStatus: "Status",
           ongoingHint: "Currency & PO Amt from AR invoices (summed per job). Click Edit to change Billed Amt or Remarks, then Save.",
           ongoingListTitle: "Ongoing Projects List",
@@ -740,7 +740,7 @@
           actions: "操作", invoices: "發票數", clientGroup: "客戶（分組）", type: "類型", status: "狀態",
           quotationNo: "報價單號", amount: "金額", currency: "幣別", description: "說明",
           addQuotation: "+ 新增報價", addQuotationTitle: "新增報價單", editQuotation: "修改報價單", quotationDetail: "報價詳情",
-          quotationNoAutoHint: "自動編號：客戶編號 + 年份 + 序號（例 HK00126001），可手動改。",
+          quotationNoAutoHint: "自動編號：客戶編號 + 年份 + 序號（例 HK00126001）。新加坡：Q# + 客戶編號 + 年份 + 序號（例 Q#SG00126001）。可手動改。",
           quotationDate: "報價日期", validUntil: "有效期至", quotationStatus: "狀態",
           ongoingHint: "幣別與 PO 金額來自應收發票（同一工作會加總）。點擊「修改」可變更已開票金額或備註，儲存後鎖定。",
           ongoingListTitle: "進行中項目清單",
@@ -1650,13 +1650,16 @@
         return prefix + String(bestNum + 1).padStart(5, "0");
       }
 
-      /** ClientNo + YY + seq: HK001 + 26 + 001 → HK00126001 */
-      function nextClientQuotationNo(client, quotationList, reservedNos) {
+      /** ClientNo + YY + seq: HK001 + 26 + 001 → HK00126001. SG uses Q# prefix: Q#SG00126001 */
+      function nextClientQuotationNo(client, quotationList, reservedNos, region) {
         const custNo = String(client && client.customer_no || "").trim().toUpperCase();
         if (!custNo) return "";
+        const rg = String(region || client?.region || "").trim().toUpperCase();
         const yy = String(new Date().getFullYear()).slice(-2);
-        const prefix = custNo + yy;
+        const head = rg === "SG" ? ("Q#" + custNo) : custNo;
+        const prefix = head + yy;
         let bestNum = 0;
+        // Escape for regex; treat # literally
         const re = new RegExp("^" + prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\d+)$", "i");
         const scan = (value) => {
           const m = String(value || "").trim().match(re);
@@ -3676,7 +3679,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-21d";
+        const ERP_BUILD_ID = "airlink-2026-07-23a";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -9368,7 +9371,8 @@
                             company: client ? client.company : ""
                           };
                           if (quotationModal.mode === "add" && client) {
-                            patch.quotation_no = nextClientQuotationNo(client, quotations);
+                            const region = quotationModal.data.region || quotationFormRegion || client.region;
+                            patch.quotation_no = nextClientQuotationNo(client, quotations, null, region);
                           }
                           setQuotationModal({ ...quotationModal, data: patch });
                         }}
