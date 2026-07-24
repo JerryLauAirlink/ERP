@@ -217,7 +217,9 @@
             { header: "Bank Branch", field: "bank_branch", hint: "開戶分行名稱" },
             { header: "Account #", field: "account_no", hint: "帳號" },
             { header: "SWIFT/Bank Code", field: "swift_code", hint: "SWIFT or Bank Code", aliases: ["SWIFT Code", "SWIFT CODE", "Bank Code"] },
-            { header: "Credit Term", field: "credit_term", hint: "30 Days / 45 Days / 60 Days / 90 Days / COD / Payment before delivery" }
+            { header: "Credit Term", field: "credit_term", hint: "30 Days / 45 Days / 60 Days / 90 Days / COD / Payment before delivery" },
+            { header: "BU", field: "is_bu", hint: "Y if same company, different contact/job" },
+            { header: "BU No", field: "bu_no", hint: "Business unit no. when BU is Y" }
           ]
         },
         vendor_po: {
@@ -2395,7 +2397,7 @@
           vendor_no: "", name: "", gst_no: "", legal_rep: "", address: "", postal_code: "",
           phone: "", contact: "", email: "", mobile_phone: "", job_title: "",
           bank: "", bank_branch: "", account_no: "", swift_code: "", credit_term: "",
-          charge: "OUR"
+          charge: "OUR", is_bu: false, bu_no: ""
         };
       }
 
@@ -3679,7 +3681,7 @@
         const [importLoading, setImportLoading] = useState(false);
         const [importStatus, setImportStatus] = useState("");
         const [tableSort, setTableSort] = useState({});
-        const ERP_BUILD_ID = "airlink-2026-07-23a";
+        const ERP_BUILD_ID = "airlink-2026-07-24a";
         const [ongoingEditId, setOngoingEditId] = useState(null);
         const [ongoingDraft, setOngoingDraft] = useState({ billedAmt: "", remarks: "" });
         const [auditFilters, setAuditFilters] = useState({ dateFrom: "", dateTo: "", userId: "all", module: "all", action: "all", q: "" });
@@ -4211,13 +4213,13 @@
         })), [sortedScopedJobs]);
         const vendorOptions = useMemo(() => sortedScopedVendors.map((v) => ({
           value: v.name || "",
-          label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}`,
-          searchText: [v.vendor_no, v.name, v.contact, v.email, v.gst_no, v.phone, v.mobile_phone, v.bank, v.swift_code].filter(Boolean).join(" ")
+          label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}${v.bu_no ? " · BU " + v.bu_no : ""}`,
+          searchText: [v.vendor_no, v.name, v.contact, v.email, v.gst_no, v.phone, v.mobile_phone, v.bank, v.swift_code, v.bu_no].filter(Boolean).join(" ")
         })), [sortedScopedVendors]);
         const vendorPoVendorOptions = useMemo(() => sortedScopedVendors.map((v) => ({
           value: String(v.id),
-          label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}`,
-          searchText: [v.vendor_no, v.name, v.contact, v.email].filter(Boolean).join(" ")
+          label: `${v.vendor_no ? v.vendor_no + " · " : ""}${v.name}${v.bu_no ? " · BU " + v.bu_no : ""}`,
+          searchText: [v.vendor_no, v.name, v.contact, v.email, v.bu_no].filter(Boolean).join(" ")
         })), [sortedScopedVendors]);
         const accessibleQuotations = useMemo(() => {
           const allowed = getUserRegions();
@@ -4477,7 +4479,7 @@
 
         const filteredVendors = useMemo(() => {
           let list = scopedVendors;
-          if (vendorsSearch.trim()) list = list.filter((v) => matchesSearch(v, vendorsSearch, ["vendor_no", "name", "gst_no", "legal_rep", "address", "postal_code", "phone", "contact", "email", "mobile_phone", "job_title", "bank", "bank_branch", "account_no", "swift_code", "credit_term"]));
+          if (vendorsSearch.trim()) list = list.filter((v) => matchesSearch(v, vendorsSearch, ["vendor_no", "name", "gst_no", "legal_rep", "address", "postal_code", "phone", "contact", "email", "mobile_phone", "job_title", "bank", "bank_branch", "account_no", "swift_code", "credit_term", "bu_no"]));
           return applyTableSort(list, "vendors");
         }, [scopedVendors, vendorsSearch, tableSort]);
         const filteredVendorPos = useMemo(() => {
@@ -5237,7 +5239,11 @@
 
         function saveVendor(e) {
           e.preventDefault();
-          const data = vendorModal.data;
+          const data = {
+            ...vendorModal.data,
+            is_bu: !!vendorModal.data.is_bu,
+            bu_no: vendorModal.data.is_bu ? String(vendorModal.data.bu_no || "").trim() : ""
+          };
           if (vendorModal.mode === "add") {
             if (!guardPermission("vendors", "add")) return;
             const region = resolveRecordRegion(data.region, regionForNewRecord());
@@ -5600,7 +5606,11 @@
             swift_code: b.swift_code || "",
             payment_advice_email: b.payment_advice_email || ""
           }));
-          if (module === "vendors") return scopedVendors.map((v) => rowFromSchema(EXCEL_SCHEMAS.vendors, v));
+          if (module === "vendors") return scopedVendors.map((v) => {
+            const row = rowFromSchema(EXCEL_SCHEMAS.vendors, v);
+            row.is_bu = v.is_bu ? "Y" : "";
+            return row;
+          });
           if (module === "vendor_po") return scopedVendorPos.map((r) => {
             const row = rowFromSchema(EXCEL_SCHEMAS.vendor_po, r);
             row.local_amount = resolveVendorPoLocalAmount(r, regionListCurrency);
@@ -5775,6 +5785,10 @@
               row.vendor_no = "VEND-" + String(row.name).trim().replace(/\s+/g, "-").slice(0, 24).toUpperCase();
             }
             if (module === "clients") {
+              row.is_bu = parseBuFlag(row.is_bu);
+              if (!row.is_bu) row.bu_no = "";
+            }
+            if (module === "vendors") {
               row.is_bu = parseBuFlag(row.is_bu);
               if (!row.is_bu) row.bu_no = "";
             }
@@ -6693,7 +6707,9 @@
                 account_no: p.data.account_no || "",
                 swift_code: p.data.swift_code || "",
                 credit_term: p.data.credit_term || "",
-                charge: p.data.charge || "OUR"
+                charge: p.data.charge || "OUR",
+                is_bu: !!p.data.is_bu,
+                bu_no: p.data.is_bu ? String(p.data.bu_no || "").trim() : ""
               };
               const existing = nextVendors.find((v) => v.vendor_no.toLowerCase() === p.key.toLowerCase());
               if (existing) { nextVendors = nextVendors.map((v) => (v.id === existing.id ? { ...v, ...payload } : v)); updated++; }
@@ -7252,6 +7268,7 @@
               <Modal title={t("vendorDetail") + " - " + (v.vendor_no ? v.vendor_no + " · " : "") + v.name} onClose={() => setDetailPanel(null)} wide>
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                   <div><p className="text-slate-500">{t("vendorNo")}</p><p className="font-medium">{v.vendor_no || "-"}</p></div>
+                  <div><p className="text-slate-500">{t("colBuNo")}</p><p className="font-medium">{v.is_bu ? (v.bu_no || t("colBu")) : "-"}</p></div>
                   <div><p className="text-slate-500">{t("colCompanyName")}</p><p className="font-medium">{v.name}</p></div>
                   <div><p className="text-slate-500">{t("colGstNo")}</p><p>{v.gst_no || "-"}</p></div>
                   <div><p className="text-slate-500">{t("colLegalRep")}</p><p>{v.legal_rep || "-"}</p></div>
@@ -8609,6 +8626,7 @@
                       <thead className="bg-slate-50 text-slate-500">
                         <tr>
                           <SortableTh module="vendors" field="vendor_no" label={t("vendorNo")} />
+                          <th className="p-3 text-left">{t("colBuNo")}</th>
                           <SortableTh module="vendors" field="name" label={t("colCompanyName")} />
                           <th className="p-3 text-left">{t("colGstNo")}</th>
                           <th className="p-3 text-left">{t("colLegalRep")}</th>
@@ -8630,6 +8648,7 @@
                         {filteredVendors.map((v) => (
                           <tr key={v.id} className="hover:bg-blue-50/50 cursor-pointer" onClick={() => setDetailPanel({ type: "vendor", id: v.id })}>
                             <td className="p-3 whitespace-nowrap">{v.vendor_no || "-"}</td>
+                            <td className="p-3">{v.is_bu ? (v.bu_no || <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{t("colBu")}</span>) : "-"}</td>
                             <td className="p-3 font-medium whitespace-nowrap">{v.name}</td>
                             <td className="p-3 whitespace-nowrap">{v.gst_no || "-"}</td>
                             <td className="p-3 whitespace-nowrap">{v.legal_rep || "-"}</td>
@@ -9596,6 +9615,13 @@
                         hint={t("paymentTermsHint")}
                       />
                     </Field>
+                    <div className="md:col-span-2 flex items-center gap-2 pt-1">
+                      <input type="checkbox" id="vendor-bu" checked={!!vendorModal.data.is_bu} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, is_bu: e.target.checked, bu_no: e.target.checked ? (vendorModal.data.bu_no || "") : "" } })} className="rounded border-slate-300" />
+                      <label htmlFor="vendor-bu" className="text-sm text-slate-700">{t("colBu")} — {t("clientBuHint")}</label>
+                    </div>
+                    {vendorModal.data.is_bu && (
+                      <Field label={t("colBuNo")}><Input value={vendorModal.data.bu_no || ""} onChange={(e) => setVendorModal({ ...vendorModal, data: { ...vendorModal.data, bu_no: e.target.value } })} /></Field>
+                    )}
                     <div className="md:col-span-2 flex justify-end gap-2"><button type="button" onClick={() => setVendorModal(null)} className="px-4 py-2 rounded-lg border">{t("cancel")}</button><button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{t("save")}</button></div>
                   </form>
                 </Modal>
